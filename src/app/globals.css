@@ -496,25 +496,12 @@ body::after {
   border-color: rgba(255, 255, 255, 0.06) !important;
 }
 
-/* ─── Number input spinner styling ─── */
-input[type="number"] {
-  padding-right: 8px;
-}
-
+/* ─── Hide native number spinners ─── */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
-  opacity: 0.6;
-  height: auto;
-  transform: scale(1.2);
-  cursor: pointer;
+  display: none;
 }
 
-input[type="number"]::-webkit-inner-spin-button:hover,
-input[type="number"]::-webkit-outer-spin-button:hover {
-  opacity: 1;
-}
-
-/* Firefox */
 input[type="number"] {
   -moz-appearance: textfield;
 }
