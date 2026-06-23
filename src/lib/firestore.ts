@@ -11,6 +11,7 @@ import {
   orderBy,
   Timestamp,
   QueryConstraint,
+  setDoc,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Cliente, Producto, Remito, RemitoItem } from '@/types'
@@ -22,13 +23,19 @@ const COLECCIONES = {
   contadores: 'contadores',
 } as const
 
+function getDb() {
+  if (!db) throw new Error('Firebase no está configurado. Verificá las variables de entorno.')
+  return db
+}
+
 // ============ CLIENTES ============
 
 export async function getClientes(search?: string, page = 1, pageSize = 10) {
+  const _db = getDb()
   const constraints: QueryConstraint[] = []
   constraints.push(orderBy('createdAt', 'desc'))
 
-  const q = query(collection(db, COLECCIONES.clientes), ...constraints)
+  const q = query(collection(_db, COLECCIONES.clientes), ...constraints)
   const snapshot = await getDocs(q)
 
   let clientes = snapshot.docs.map((doc) => ({
@@ -58,7 +65,7 @@ export async function getClientes(search?: string, page = 1, pageSize = 10) {
 
 export async function getAllClientes() {
   const q = query(
-    collection(db, COLECCIONES.clientes),
+    collection(getDb(), COLECCIONES.clientes),
     orderBy('razonSocial', 'asc')
   )
   const snapshot = await getDocs(q)
@@ -69,14 +76,14 @@ export async function getAllClientes() {
 }
 
 export async function getCliente(id: string) {
-  const docRef = doc(db, COLECCIONES.clientes, id)
+  const docRef = doc(getDb(), COLECCIONES.clientes, id)
   const snap = await getDoc(docRef)
   if (!snap.exists()) return null
   return { id: snap.id, ...snap.data() } as Cliente
 }
 
 export async function createCliente(data: Omit<Cliente, 'id' | 'createdAt'>) {
-  const docRef = await addDoc(collection(db, COLECCIONES.clientes), {
+  const docRef = await addDoc(collection(getDb(), COLECCIONES.clientes), {
     ...data,
     createdAt: Timestamp.now(),
   })
@@ -84,16 +91,16 @@ export async function createCliente(data: Omit<Cliente, 'id' | 'createdAt'>) {
 }
 
 export async function updateCliente(id: string, data: Partial<Cliente>) {
-  await updateDoc(doc(db, COLECCIONES.clientes, id), data)
+  await updateDoc(doc(getDb(), COLECCIONES.clientes, id), data)
 }
 
 export async function deleteCliente(id: string) {
-  await deleteDoc(doc(db, COLECCIONES.clientes, id))
+  await deleteDoc(doc(getDb(), COLECCIONES.clientes, id))
 }
 
 export async function clienteExists(cuit: string, excludeId?: string) {
   const q = query(
-    collection(db, COLECCIONES.clientes),
+    collection(getDb(), COLECCIONES.clientes),
     where('cuit', '==', cuit)
   )
   const snapshot = await getDocs(q)
@@ -108,7 +115,7 @@ export async function getProductos(search?: string, page = 1, pageSize = 10) {
   const constraints: QueryConstraint[] = []
   constraints.push(orderBy('createdAt', 'desc'))
 
-  const q = query(collection(db, COLECCIONES.productos), ...constraints)
+  const q = query(collection(getDb(), COLECCIONES.productos), ...constraints)
   const snapshot = await getDocs(q)
 
   let productos = snapshot.docs.map((doc) => ({
@@ -138,7 +145,7 @@ export async function getProductos(search?: string, page = 1, pageSize = 10) {
 
 export async function getAllProductos() {
   const q = query(
-    collection(db, COLECCIONES.productos),
+    collection(getDb(), COLECCIONES.productos),
     orderBy('nombre', 'asc')
   )
   const snapshot = await getDocs(q)
@@ -149,7 +156,7 @@ export async function getAllProductos() {
 }
 
 export async function createProducto(data: Omit<Producto, 'id' | 'createdAt'>) {
-  const docRef = await addDoc(collection(db, COLECCIONES.productos), {
+  const docRef = await addDoc(collection(getDb(), COLECCIONES.productos), {
     ...data,
     stock: data.stock ?? 0,
     createdAt: Timestamp.now(),
@@ -158,17 +165,17 @@ export async function createProducto(data: Omit<Producto, 'id' | 'createdAt'>) {
 }
 
 export async function updateProducto(id: string, data: Partial<Producto>) {
-  await updateDoc(doc(db, COLECCIONES.productos, id), data)
+  await updateDoc(doc(getDb(), COLECCIONES.productos, id), data)
 }
 
 export async function deleteProducto(id: string) {
-  await deleteDoc(doc(db, COLECCIONES.productos, id))
+  await deleteDoc(doc(getDb(), COLECCIONES.productos, id))
 }
 
 // ============ REMITOS ============
 
 async function getNextNumeroRemito(year: number): Promise<number> {
-  const contadorRef = doc(db, COLECCIONES.contadores, `remito_${year}`)
+  const contadorRef = doc(getDb(), COLECCIONES.contadores, `remito_${year}`)
   const snap = await getDoc(contadorRef)
 
   if (!snap.exists()) {
@@ -180,8 +187,6 @@ async function getNextNumeroRemito(year: number): Promise<number> {
   await updateDoc(contadorRef, { ultimo })
   return ultimo
 }
-
-import { setDoc } from 'firebase/firestore'
 
 export async function createRemito(data: {
   idCliente: string
@@ -197,7 +202,7 @@ export async function createRemito(data: {
   const iva = subtotalGeneral * 0.21
   const totalGeneral = subtotalGeneral + iva
 
-  const docRef = await addDoc(collection(db, COLECCIONES.remitos), {
+  const docRef = await addDoc(collection(getDb(), COLECCIONES.remitos), {
     numeroRemito,
     fecha: Timestamp.fromDate(now),
     idCliente: data.idCliente,
@@ -227,7 +232,7 @@ export async function getRemitos(filters?: {
     constraints.push(where('estado', '==', filters.estado))
   }
 
-  const q = query(collection(db, COLECCIONES.remitos), ...constraints)
+  const q = query(collection(getDb(), COLECCIONES.remitos), ...constraints)
   const snapshot = await getDocs(q)
 
   let remitos = snapshot.docs.map((doc) => ({
@@ -257,7 +262,7 @@ export async function getRemitos(filters?: {
 }
 
 export async function getRemito(id: string) {
-  const docRef = doc(db, COLECCIONES.remitos, id)
+  const docRef = doc(getDb(), COLECCIONES.remitos, id)
   const snap = await getDoc(docRef)
   if (!snap.exists()) return null
   const data = snap.data()
@@ -273,7 +278,7 @@ export async function updateRemitoEstado(
   id: string,
   estado: 'Pendiente' | 'Entregado' | 'Anulado'
 ) {
-  await updateDoc(doc(db, COLECCIONES.remitos, id), { estado })
+  await updateDoc(doc(getDb(), COLECCIONES.remitos, id), { estado })
 }
 
 export async function getDashboardStats(): Promise<{
@@ -286,7 +291,7 @@ export async function getDashboardStats(): Promise<{
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
   const q = query(
-    collection(db, COLECCIONES.remitos),
+    collection(getDb(), COLECCIONES.remitos),
     orderBy('createdAt', 'desc')
   )
   const snapshot = await getDocs(q)
@@ -307,7 +312,7 @@ export async function getDashboardStats(): Promise<{
     .reduce((sum, r) => sum + r.totalGeneral, 0)
 
   const clientesSnapshot = await getDocs(
-    collection(db, COLECCIONES.clientes)
+    collection(getDb(), COLECCIONES.clientes)
   )
   const clientesActivos = clientesSnapshot.size
 
