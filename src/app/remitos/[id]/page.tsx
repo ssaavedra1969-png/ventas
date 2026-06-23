@@ -97,7 +97,7 @@ export default function RemitoViewPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Header */}
           <div className="p-8 border-b border-gray-200">
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-6">
+            <div className="flex flex-col items-center gap-4 mb-6">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-gray-900 rounded-xl flex items-center justify-center">
                   <Building2 className="h-7 w-7 text-white" />
@@ -111,17 +111,18 @@ export default function RemitoViewPage() {
                   </p>
                 </div>
               </div>
-              <div className="text-left sm:text-right">
-                <div className="inline-block px-4 py-2 bg-gray-900 text-white rounded-xl">
-                  <p className="text-xs text-gray-400">REMITO</p>
-                  <p className="text-2xl font-bold">
-                    N° {remito.numeroRemito}
-                  </p>
-                </div>
+            </div>
+
+            <div className="flex justify-center mb-6">
+              <div className="inline-block px-8 py-3 bg-gray-900 text-white rounded-xl text-center">
+                <p className="text-xs text-gray-400 uppercase tracking-widest">Remito</p>
+                <p className="text-3xl font-bold tracking-tight">
+                  N° {remito.numeroRemito}
+                </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
               <div className="flex items-center gap-2 text-gray-600">
                 <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
                 Av. Ejemplo 1234

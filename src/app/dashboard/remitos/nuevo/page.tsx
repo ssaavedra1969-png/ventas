@@ -18,6 +18,8 @@ import {
   FileText,
   Check,
   AlertCircle,
+  Pencil,
+  X,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -37,9 +39,11 @@ export default function NuevoRemitoPage() {
   // Step 2: Items
   const [productSearch, setProductSearch] = useState('')
   const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null)
+  const [precioUnitario, setPrecioUnitario] = useState(0)
   const [cantidad, setCantidad] = useState(1)
   const [items, setItems] = useState<RemitoItem[]>([])
   const [showProductDropdown, setShowProductDropdown] = useState(false)
+  const [editItemIndex, setEditItemIndex] = useState<number | null>(null)
 
   // Step 3: Observaciones
   const [observaciones, setObservaciones] = useState('')
@@ -81,7 +85,9 @@ export default function NuevoRemitoPage() {
 
   const selectProducto = (producto: Producto) => {
     setSelectedProducto(producto)
-    setProductSearch('')
+    setPrecioUnitario(producto.valorUnitario)
+    setCantidad(1)
+    setProductSearch(producto.nombre)
     setShowProductDropdown(false)
   }
 
@@ -94,24 +100,63 @@ export default function NuevoRemitoPage() {
       toast.error('La cantidad debe ser al menos 1')
       return
     }
+    if (precioUnitario <= 0) {
+      toast.error('El precio unitario debe ser mayor a 0')
+      return
+    }
 
-    const subtotal = selectedProducto.valorUnitario * cantidad
-    setItems([
-      ...items,
-      {
+    const subtotal = precioUnitario * cantidad
+
+    if (editItemIndex !== null) {
+      const updated = [...items]
+      updated[editItemIndex] = {
         idProducto: selectedProducto.id!,
         nombreProducto: selectedProducto.nombre,
         cantidad,
-        precioUnitario: selectedProducto.valorUnitario,
+        precioUnitario,
         subtotal,
-      },
-    ])
+      }
+      setItems(updated)
+      setEditItemIndex(null)
+      toast.success('Producto actualizado')
+    } else {
+      setItems([
+        ...items,
+        {
+          idProducto: selectedProducto.id!,
+          nombreProducto: selectedProducto.nombre,
+          cantidad,
+          precioUnitario,
+          subtotal,
+        },
+      ])
+    }
     setSelectedProducto(null)
     setProductSearch('')
+    setPrecioUnitario(0)
     setCantidad(1)
   }
 
+  const startEditItem = (index: number) => {
+    const item = items[index]
+    const producto = productos.find((p) => p.id === item.idProducto)
+    if (producto) {
+      setSelectedProducto(producto)
+      setPrecioUnitario(item.precioUnitario)
+      setCantidad(item.cantidad)
+      setProductSearch(producto.nombre)
+      setEditItemIndex(index)
+    }
+  }
+
   const removeItem = (index: number) => {
+    if (editItemIndex === index) {
+      setEditItemIndex(null)
+      setSelectedProducto(null)
+      setProductSearch('')
+      setPrecioUnitario(0)
+      setCantidad(1)
+    }
     setItems(items.filter((_, i) => i !== index))
   }
 
@@ -157,7 +202,7 @@ export default function NuevoRemitoPage() {
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && selectedProducto && cantidad >= 1) {
+    if (e.key === 'Enter' && selectedProducto && cantidad >= 1 && precioUnitario > 0) {
       e.preventDefault()
       addItem()
     }
@@ -303,22 +348,27 @@ export default function NuevoRemitoPage() {
               Agregar Productos
             </h2>
 
-            <div className="flex flex-col sm:flex-row gap-3" onKeyDown={handleKeyDown}>
-              <div className="flex-1 relative">
+            {/* Search + Selected Product Preview */}
+            <div className="space-y-4" onKeyDown={handleKeyDown}>
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B6B8A]" />
                 <input
                   type="text"
-                  placeholder="Buscar producto..."
+                  placeholder="Buscá un producto por nombre o tipo..."
                   value={productSearch}
                   onChange={(e) => {
                     setProductSearch(e.target.value)
                     setShowProductDropdown(true)
-                    if (selectedProducto) setSelectedProducto(null)
+                    if (selectedProducto && e.target.value !== selectedProducto.nombre) {
+                      setSelectedProducto(null)
+                      setPrecioUnitario(0)
+                      setEditItemIndex(null)
+                    }
                   }}
                   onFocus={() => setShowProductDropdown(true)}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
                 />
-                {showProductDropdown && filteredProductos.length > 0 && (
+                {showProductDropdown && filteredProductos.length > 0 && !selectedProducto && (
                   <div className="absolute z-20 top-full mt-1 left-0 right-0 max-h-60 overflow-y-auto rounded-xl bg-[#12122A] border border-white/5 shadow-xl">
                     {filteredProductos.map((producto) => (
                       <button
@@ -344,27 +394,73 @@ export default function NuevoRemitoPage() {
                 )}
               </div>
 
-              <div className="w-full sm:w-28">
-                <input
-                  type="number"
-                  min="1"
-                  value={cantidad}
-                  onChange={(e) =>
-                    setCantidad(Math.max(1, parseInt(e.target.value) || 1))
-                  }
-                  placeholder="Cant."
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#0A0A1A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
-                />
-              </div>
+              {/* Selected Product Preview */}
+              {selectedProducto && (
+                <div className="p-4 rounded-xl bg-gradient-to-r from-[#6C3CE1]/10 to-[#00D4FF]/5 border border-[#6C3CE1]/20 animate-fadeInUp">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-sm font-medium text-white">{selectedProducto.nombre}</p>
+                      <p className="text-xs text-[#6B6B8A]">{selectedProducto.tipo} · {selectedProducto.medida}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedProducto(null)
+                        setPrecioUnitario(0)
+                        setCantidad(1)
+                        setProductSearch('')
+                        setEditItemIndex(null)
+                      }}
+                      className="text-[#6B6B8A] hover:text-white transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
 
-              <button
-                onClick={addItem}
-                disabled={!selectedProducto || cantidad < 1}
-                className="btn-nebula inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 whitespace-nowrap"
-              >
-                <Plus className="h-4 w-4" />
-                Agregar
-              </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xs text-[#6B6B8A] mb-1">Precio Unitario ($)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={precioUnitario}
+                        onChange={(e) => setPrecioUnitario(parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#6B6B8A] mb-1">Cantidad</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={cantidad}
+                        onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <div>
+                        <p className="text-xs text-[#6B6B8A] mb-1">Subtotal</p>
+                        <p className="text-lg font-bold text-white font-mono">
+                          ${(precioUnitario * cantidad).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={addItem}
+                        className="w-full btn-nebula inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
+                      >
+                        {editItemIndex !== null ? (
+                          <>Actualizar</>
+                        ) : (
+                          <><Plus className="h-4 w-4" /> Agregar</>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -393,7 +489,7 @@ export default function NuevoRemitoPage() {
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {items.map((item, index) => (
-                      <tr key={index} className="hover:bg-white/5 transition-colors">
+                      <tr key={index} className={`hover:bg-white/5 transition-colors ${editItemIndex === index ? 'bg-[#6C3CE1]/5' : ''}`}>
                         <td className="px-4 py-3 text-sm text-white">
                           {item.nombreProducto}
                         </td>
@@ -407,12 +503,22 @@ export default function NuevoRemitoPage() {
                           ${item.subtotal.toFixed(2)}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => removeItem(index)}
-                            className="p-1 rounded-lg text-[#6B6B8A] hover:text-red-400 transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => startEditItem(index)}
+                              className="p-1.5 rounded-lg text-[#6B6B8A] hover:text-[#00D4FF] transition-colors"
+                              title="Editar"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => removeItem(index)}
+                              className="p-1.5 rounded-lg text-[#6B6B8A] hover:text-red-400 transition-colors"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -440,6 +546,11 @@ export default function NuevoRemitoPage() {
                     ${totalGeneral.toFixed(2)}
                   </span>
                 </div>
+              </div>
+
+              {/* Total items count */}
+              <div className="border-t border-white/5 px-4 py-2 text-xs text-[#6B6B8A]">
+                {items.length} producto{items.length !== 1 ? 's' : ''} agregado{items.length !== 1 ? 's' : ''}
               </div>
             </div>
           ) : (
