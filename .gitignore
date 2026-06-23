@@ -39,3 +39,7 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# local backups (contiene service-account.json y datos exportados)
+/backups/backup-*/
+/backups/service-account.json
