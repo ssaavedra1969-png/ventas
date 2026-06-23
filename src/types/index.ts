@@ -30,6 +30,7 @@ export interface RemitoItem {
   nombreProducto: string
   cantidad: number
   precioUnitario: number
+  bonificacion?: number
   subtotal: number
 }
 

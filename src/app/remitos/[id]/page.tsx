@@ -183,42 +183,48 @@ export default function RemitoViewPage() {
 
           {/* Items Table */}
           <div className="px-8 py-6">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2 border-gray-200">
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider pb-3 w-16">
-                    Cant.
-                  </th>
-                  <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider pb-3">
-                    Descripción
-                  </th>
-                  <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider pb-3">
-                    P. Unitario
-                  </th>
-                  <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider pb-3">
-                    Subtotal
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {remito.items.map((item, index) => (
-                  <tr key={index}>
-                    <td className="py-3 text-sm font-mono text-gray-900">
-                      {item.cantidad}
-                    </td>
-                    <td className="py-3 text-sm text-gray-900">
-                      {item.nombreProducto}
-                    </td>
-                    <td className="py-3 text-sm font-mono text-gray-700 text-right">
-                      ${item.precioUnitario.toFixed(2)}
-                    </td>
-                    <td className="py-3 text-sm font-mono text-gray-900 text-right font-medium">
-                      ${item.subtotal.toFixed(2)}
-                    </td>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider pb-3 w-16">
+                      Cant.
+                    </th>
+                    <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider pb-3">
+                      Descripción
+                    </th>
+                    <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider pb-3">
+                      P. Unitario
+                    </th>
+                    <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider pb-3">
+                      Bonif.
+                    </th>
+                    <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider pb-3">
+                      Subtotal
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {remito.items.map((item, index) => (
+                    <tr key={index}>
+                      <td className="py-3 text-sm font-mono text-gray-900">
+                        {item.cantidad}
+                      </td>
+                      <td className="py-3 text-sm text-gray-900">
+                        {item.nombreProducto}
+                      </td>
+                      <td className="py-3 text-sm font-mono text-gray-700 text-right">
+                        ${item.precioUnitario.toFixed(2)}
+                      </td>
+                      <td className="py-3 text-sm font-mono text-gray-700 text-right">
+                        {item.bonificacion ? `${item.bonificacion}%` : '—'}
+                      </td>
+                      <td className="py-3 text-sm font-mono text-gray-900 text-right font-medium">
+                        ${item.subtotal.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
             {/* Totales */}
             <div className="border-t-2 border-gray-200 mt-4 pt-4 space-y-2 ml-auto w-full sm:w-72">

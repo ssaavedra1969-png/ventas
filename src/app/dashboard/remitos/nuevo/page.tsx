@@ -48,6 +48,7 @@ export default function NuevoRemitoPage() {
   const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null)
   const [precioUnitario, setPrecioUnitario] = useState(0)
   const [cantidad, setCantidad] = useState(1)
+  const [bonificacionValue, setBonificacionValue] = useState(0)
   const [items, setItems] = useState<RemitoItem[]>([])
   const [showProductDropdown, setShowProductDropdown] = useState(false)
   const [editItemIndex, setEditItemIndex] = useState<number | null>(null)
@@ -100,6 +101,7 @@ export default function NuevoRemitoPage() {
     setSelectedProducto(producto)
     setPrecioUnitario(producto.valorUnitario)
     setCantidad(1)
+    setBonificacionValue(0)
     setProductSearch(producto.nombre)
     setShowProductDropdown(false)
     ;(document.activeElement as HTMLElement)?.blur()
@@ -119,7 +121,8 @@ export default function NuevoRemitoPage() {
       return
     }
 
-    const subtotal = precioUnitario * cantidad
+    const bonif = bonificacionValue || 0
+    const subtotal = precioUnitario * cantidad * (1 - bonif / 100)
 
     if (editItemIndex !== null) {
       const updated = [...items]
@@ -128,6 +131,7 @@ export default function NuevoRemitoPage() {
         nombreProducto: selectedProducto.nombre,
         cantidad,
         precioUnitario,
+        bonificacion: bonif,
         subtotal,
       }
       setItems(updated)
@@ -141,6 +145,7 @@ export default function NuevoRemitoPage() {
           nombreProducto: selectedProducto.nombre,
           cantidad,
           precioUnitario,
+          bonificacion: bonif,
           subtotal,
         },
       ])
@@ -149,6 +154,7 @@ export default function NuevoRemitoPage() {
     setProductSearch('')
     setPrecioUnitario(0)
     setCantidad(1)
+    setBonificacionValue(0)
   }
 
   const startEditItem = (index: number) => {
@@ -158,6 +164,7 @@ export default function NuevoRemitoPage() {
       setSelectedProducto(producto)
       setPrecioUnitario(item.precioUnitario)
       setCantidad(item.cantidad)
+      setBonificacionValue(item.bonificacion || 0)
       setProductSearch(producto.nombre)
       setEditItemIndex(index)
     }
@@ -170,6 +177,7 @@ export default function NuevoRemitoPage() {
       setProductSearch('')
       setPrecioUnitario(0)
       setCantidad(1)
+      setBonificacionValue(0)
     }
     setItems(items.filter((_, i) => i !== index))
   }
@@ -428,7 +436,7 @@ export default function NuevoRemitoPage() {
       {/* Step 2: Items */}
       {step === 2 && (
         <div className="space-y-4 animate-fadeInUp">
-          <div className="glass-card rounded-xl p-6">
+          <div className="glass-card rounded-xl p-6 relative z-10">
             <h2 className="text-lg font-semibold text-white mb-4">
               Agregar Productos
             </h2>
@@ -510,6 +518,7 @@ export default function NuevoRemitoPage() {
                         setSelectedProducto(null)
                         setPrecioUnitario(0)
                         setCantidad(1)
+                        setBonificacionValue(0)
                         setProductSearch('')
                         setEditItemIndex(null)
                       }}
@@ -519,7 +528,7 @@ export default function NuevoRemitoPage() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                     <div>
                       <label className="block text-xs text-[#6B6B8A] mb-1">Precio Unitario ($)</label>
                       <input
@@ -541,11 +550,23 @@ export default function NuevoRemitoPage() {
                         className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
                       />
                     </div>
+                    <div>
+                      <label className="block text-xs text-[#6B6B8A] mb-1">Bonificación (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={bonificacionValue}
+                        onChange={(e) => setBonificacionValue(parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                      />
+                    </div>
                     <div className="flex items-end">
                       <div>
                         <p className="text-xs text-[#6B6B8A] mb-1">Subtotal</p>
                         <p className="text-lg font-bold text-white font-mono">
-                          ${(precioUnitario * cantidad).toFixed(2)}
+                          ${(precioUnitario * cantidad * (1 - (bonificacionValue || 0) / 100)).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -583,6 +604,9 @@ export default function NuevoRemitoPage() {
                       <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3 hidden sm:table-cell">
                         P. Unit.
                       </th>
+                      <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3 hidden sm:table-cell">
+                        Bonif.
+                      </th>
                       <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3">
                         Subtotal
                       </th>
@@ -601,6 +625,9 @@ export default function NuevoRemitoPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-[#B0B0D0] text-right font-mono hidden sm:table-cell">
                           ${item.precioUnitario.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-[#B0B0D0] text-right font-mono hidden sm:table-cell">
+                          {item.bonificacion ? `${item.bonificacion}%` : '—'}
                         </td>
                         <td className="px-4 py-3 text-sm text-white text-right font-mono">
                           ${item.subtotal.toFixed(2)}
@@ -758,8 +785,11 @@ export default function NuevoRemitoPage() {
                       <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5">
                         Descripción
                       </th>
-                      <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5 w-28">
+                      <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5 w-24">
                         P. Unitario
+                      </th>
+                      <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5 w-20">
+                        Bonif.
                       </th>
                       <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5 w-28">
                         Subtotal
@@ -769,7 +799,9 @@ export default function NuevoRemitoPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {items.map((item, index) => (
+                    {items.map((item, index) => {
+                      const bonif = item.bonificacion || 0
+                      return (
                       <tr key={index} className="hover:bg-white/5 transition-colors">
                         <td className="px-3 py-2">
                           <input
@@ -779,7 +811,7 @@ export default function NuevoRemitoPage() {
                             onChange={(e) => {
                               const qty = Math.max(1, parseInt(e.target.value) || 1)
                               const updated = [...items]
-                              updated[index] = { ...item, cantidad: qty, subtotal: item.precioUnitario * qty }
+                              updated[index] = { ...item, cantidad: qty, subtotal: item.precioUnitario * qty * (1 - bonif / 100) }
                               setItems(updated)
                             }}
                             className="w-full px-2 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-center focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
@@ -797,7 +829,23 @@ export default function NuevoRemitoPage() {
                             onChange={(e) => {
                               const price = parseFloat(e.target.value) || 0
                               const updated = [...items]
-                              updated[index] = { ...item, precioUnitario: price, subtotal: price * item.cantidad }
+                              updated[index] = { ...item, precioUnitario: price, subtotal: price * item.cantidad * (1 - bonif / 100) }
+                              setItems(updated)
+                            }}
+                            className="w-full px-2 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-right focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            value={bonif}
+                            onChange={(e) => {
+                              const b = parseFloat(e.target.value) || 0
+                              const updated = [...items]
+                              updated[index] = { ...item, bonificacion: b, subtotal: item.precioUnitario * item.cantidad * (1 - b / 100) }
                               setItems(updated)
                             }}
                             className="w-full px-2 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-right focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
@@ -816,7 +864,8 @@ export default function NuevoRemitoPage() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
