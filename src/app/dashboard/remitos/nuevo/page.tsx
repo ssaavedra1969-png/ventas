@@ -29,6 +29,7 @@ export default function NuevoRemitoPage() {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [productos, setProductos] = useState<Producto[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingError, setLoadingError] = useState('')
   const [saving, setSaving] = useState(false)
 
   // Step 1: Cliente selection
@@ -53,6 +54,11 @@ export default function NuevoRemitoPage() {
       .then(([c, p]) => {
         setClientes(c)
         setProductos(p)
+      })
+      .catch((err) => {
+        console.error('Error al cargar datos:', err)
+        setLoadingError('No se pudieron cargar los datos. Verificá que Firebase esté configurado correctamente.')
+        toast.error('Error al cargar datos de Firebase')
       })
       .finally(() => setLoading(false))
   }, [])
@@ -89,6 +95,7 @@ export default function NuevoRemitoPage() {
     setCantidad(1)
     setProductSearch(producto.nombre)
     setShowProductDropdown(false)
+    ;(document.activeElement as HTMLElement)?.blur()
   }
 
   const addItem = () => {
@@ -212,6 +219,24 @@ export default function NuevoRemitoPage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-[#6C3CE1]" />
+      </div>
+    )
+  }
+
+  if (loadingError) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="glass-card rounded-xl p-12 text-center">
+          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-white mb-2">Error de conexión</h2>
+          <p className="text-[#B0B0D0] mb-6">{loadingError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="btn-nebula inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium"
+          >
+            Reintentar
+          </button>
+        </div>
       </div>
     )
   }
@@ -366,14 +391,27 @@ export default function NuevoRemitoPage() {
                     }
                   }}
                   onFocus={() => setShowProductDropdown(true)}
+                  onBlur={() => {
+                    setTimeout(() => setShowProductDropdown(false), 200)
+                  }}
                   className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
                 />
-                {showProductDropdown && filteredProductos.length > 0 && !selectedProducto && (
-                  <div className="absolute z-20 top-full mt-1 left-0 right-0 max-h-60 overflow-y-auto rounded-xl bg-[#12122A] border border-white/5 shadow-xl">
+                {productos.length === 0 && !loading && (
+                  <div className="absolute z-50 top-full mt-1 left-0 right-0 rounded-xl bg-[#12122A] border border-white/5 shadow-xl p-4 text-center">
+                    <p className="text-sm text-[#6B6B8A]">No hay productos en el catálogo.</p>
+                    <p className="text-xs text-[#6B6B8A] mt-1">Primero agregá productos desde la sección Productos.</p>
+                  </div>
+                )}
+                {showProductDropdown && filteredProductos.length > 0 && (
+                  <div className="absolute z-50 top-full mt-1 left-0 right-0 max-h-60 overflow-y-auto rounded-xl bg-[#12122A] border border-white/5 shadow-xl">
                     {filteredProductos.map((producto) => (
                       <button
                         key={producto.id}
-                        onClick={() => selectProducto(producto)}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          selectProducto(producto)
+                        }}
                         className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-b-0"
                       >
                         <div className="flex items-center justify-between">
@@ -390,6 +428,11 @@ export default function NuevoRemitoPage() {
                         </span>
                       </button>
                     ))}
+                  </div>
+                )}
+                {showProductDropdown && filteredProductos.length === 0 && productos.length > 0 && (
+                  <div className="absolute z-50 top-full mt-1 left-0 right-0 rounded-xl bg-[#12122A] border border-white/5 shadow-xl p-4 text-center">
+                    <p className="text-sm text-[#6B6B8A]">No se encontraron productos con ese nombre.</p>
                   </div>
                 )}
               </div>
