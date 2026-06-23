@@ -129,7 +129,11 @@ export default function DashboardPage() {
       animate="show"
     >
       {/* Parallax Hero */}
-      <ParallaxHero />
+      <ParallaxHero
+        remitosMes={stats?.remitosMes}
+        clientesActivos={stats?.clientesActivos}
+        totalFacturado={stats?.totalFacturado}
+      />
 
       {/* Hero Section */}
       <motion.div variants={itemAnim}>

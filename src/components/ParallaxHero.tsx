@@ -2,7 +2,7 @@
 
 import { useRef, useMemo } from 'react'
 import { useScroll, useTransform, motion } from 'framer-motion'
-import { Building2, ArrowDown, Truck } from 'lucide-react'
+import { Building2 } from 'lucide-react'
 
 function FloatingParticles() {
   const particles = useMemo(
@@ -77,7 +77,13 @@ function GlowOrbs() {
   )
 }
 
-export default function ParallaxHero() {
+interface Props {
+  remitosMes?: number
+  clientesActivos?: number
+  totalFacturado?: number
+}
+
+export default function ParallaxHero({ remitosMes, clientesActivos, totalFacturado }: Props) {
   const sectionRef = useRef<HTMLDivElement>(null)
 
   const { scrollYProgress } = useScroll({
@@ -186,9 +192,9 @@ export default function ParallaxHero() {
                 {/* Quick Stats */}
                 <div className="flex flex-wrap gap-4 sm:gap-6 ml-auto">
                   {[
-                    { label: 'Remitos', value: 'Hoy' },
-                    { label: 'Clientes', value: 'Activos' },
-                    { label: 'Gestión', value: 'Online' },
+                    { label: 'Remitos del Mes', value: remitosMes ?? 0 },
+                    { label: 'Clientes Activos', value: clientesActivos ?? 0 },
+                    { label: 'Total Facturado', value: totalFacturado !== undefined ? `$${totalFacturado.toLocaleString('es-AR', { minimumFractionDigits: 2 })}` : '$0.00' },
                   ].map((stat, i) => (
                     <motion.div
                       key={stat.label}
@@ -200,7 +206,7 @@ export default function ParallaxHero() {
                       <p className="text-[10px] text-white/60 uppercase tracking-[0.15em]">
                         {stat.label}
                       </p>
-                      <p className="text-sm font-semibold text-white/95">
+                      <p className="text-sm font-semibold text-white/95 font-mono">
                         {stat.value}
                       </p>
                     </motion.div>
@@ -216,9 +222,8 @@ export default function ParallaxHero() {
                 transition={{ delay: 0.6 }}
               >
                 <div className="flex items-center gap-3">
-                  <Truck className="w-4 h-4 text-[#00D4FF]/80" />
                   <p className="text-sm text-white/70 tracking-wide">
-                    Soluciones en logística y construction
+                    Panel de Administración
                   </p>
                 </div>
               </motion.div>
@@ -226,50 +231,12 @@ export default function ParallaxHero() {
 
             {/* Bottom Bar */}
             <div className="px-6 sm:px-10 py-3 border-t border-white/5" style={{ background: 'rgba(8,8,22,0.5)' }}>
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] text-white/50 tracking-wider">
-                  Sistema de Gestión Integral
-                </p>
-                <motion.div
-                  className="flex items-center gap-2 text-white/50"
-                  animate={{ y: [0, 3, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <span className="text-[10px] tracking-wider">SCROLL</span>
-                  <ArrowDown className="w-3 h-3" />
-                </motion.div>
-              </div>
+              <p className="text-[10px] text-white/50 tracking-wider">
+                Sistema de Gestión Integral
+              </p>
             </div>
           </motion.div>
         </div>
-      </motion.div>
-
-      {/* Scroll indicator */}
-      <motion.div
-        className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-      >
-        <motion.div
-          className="flex flex-col items-center gap-2"
-          animate={{ y: [0, 6, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <div className="w-5 h-8 rounded-full border border-white/40 flex items-start justify-center p-1">
-            <motion.div
-              className="w-1 h-2 rounded-full"
-              style={{
-                background: 'linear-gradient(180deg, #6C3CE1, #00D4FF)',
-              }}
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-            />
-          </div>
-          <span className="text-[8px] text-white/50 tracking-[0.3em] uppercase">
-            Explorar
-          </span>
-        </motion.div>
       </motion.div>
     </div>
   )
