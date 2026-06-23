@@ -289,7 +289,7 @@ export default function DashboardPage() {
                   >
                     <div className="flex items-center gap-4">
                       <motion.div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm relative overflow-hidden"
+                        className="w-16 h-10 rounded-lg flex items-center justify-center text-white font-bold text-[11px] font-mono tracking-wider relative overflow-hidden"
                         style={{ background: 'linear-gradient(135deg, #6C3CE1, #00D4FF)' }}
                         whileHover={{ scale: 1.1, rotate: 5 }}
                       >

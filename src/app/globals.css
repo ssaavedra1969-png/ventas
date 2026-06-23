@@ -16,6 +16,104 @@
   --silver: #C0C0C0;
 }
 
+/* ─── Soft Light Mode ─── */
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #f0f0f5;
+    --foreground: #1a1a2e;
+    --card: rgba(255, 255, 255, 0.7);
+    --card-hover: rgba(255, 255, 255, 0.85);
+    --border: rgba(0, 0, 0, 0.08);
+    --accent: #5B2CCE;
+    --accent-light: #0099CC;
+    --muted: #7A7A9A;
+    --text-secondary: #4A4A6A;
+    --gold: #B8962E;
+    --silver: #8A8A8A;
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.65) !important;
+    backdrop-filter: blur(24px) saturate(1.5) !important;
+    border-color: rgba(0, 0, 0, 0.06) !important;
+  }
+
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.8) !important;
+    border-color: rgba(91, 44, 206, 0.2) !important;
+  }
+
+  .glass-card input,
+  .glass-card select,
+  .glass-card textarea {
+    background: rgba(240, 240, 245, 0.8) !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+    color: #1a1a2e !important;
+  }
+
+  .glass-card input:focus,
+  .glass-card select:focus,
+  .glass-card textarea:focus {
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  .glass-card input::placeholder {
+    color: rgba(74, 74, 106, 0.5) !important;
+  }
+
+  .glass-card table tbody tr {
+    background: rgba(0, 0, 0, 0.02);
+  }
+
+  .glass-card table tbody tr:hover {
+    background: rgba(91, 44, 206, 0.04);
+  }
+
+  .glass-card::before {
+    background: linear-gradient(135deg, rgba(91, 44, 206, 0.06) 0%, transparent 30%, rgba(0, 153, 204, 0.04) 70%, transparent 100%) !important;
+  }
+
+  .badge-pendiente {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.12), rgba(234, 179, 8, 0.04)) !important;
+    color: #A67C00 !important;
+  }
+  .badge-entregado {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.04)) !important;
+    color: #15803D !important;
+  }
+  .badge-anulado {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.04)) !important;
+    color: #B91C1C !important;
+  }
+
+  .table-row-glass {
+    background: rgba(0, 0, 0, 0.02) !important;
+  }
+  .table-row-glass:hover {
+    background: rgba(91, 44, 206, 0.05) !important;
+  }
+
+  .input-nebula {
+    background: rgba(240, 240, 245, 0.8) !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+    color: #1a1a2e !important;
+  }
+  .input-nebula:focus {
+    background: rgba(255, 255, 255, 0.95) !important;
+  }
+  .input-nebula::placeholder {
+    color: rgba(74, 74, 106, 0.5) !important;
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.6) 25%, rgba(91, 44, 206, 0.08) 50%, rgba(255, 255, 255, 0.6) 75%) !important;
+  }
+
+  .watermark {
+    color: rgba(91, 44, 206, 0.04) !important;
+  }
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
@@ -33,6 +131,7 @@ body {
   background: var(--background);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* ─── Animated Background ─── */
@@ -395,6 +494,29 @@ body::after {
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
   background: rgba(10, 10, 26, 0.6) !important;
   border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* ─── Number input spinner styling ─── */
+input[type="number"] {
+  padding-right: 8px;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.6;
+  height: auto;
+  transform: scale(1.2);
+  cursor: pointer;
+}
+
+input[type="number"]::-webkit-inner-spin-button:hover,
+input[type="number"]::-webkit-outer-spin-button:hover {
+  opacity: 1;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 .glass-card input:focus,

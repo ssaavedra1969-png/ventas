@@ -819,7 +819,7 @@ export default function NuevoRemitoPage() {
                               updated[index] = { ...item, cantidad: qty, subtotal: item.precioUnitario * qty * (1 - bonif / 100) }
                               setItems(updated)
                             }}
-                            className="w-full px-2 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-center focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                            className="w-full px-3 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-center focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
                           />
                         </td>
                         <td className="px-3 py-2 text-sm text-white">
@@ -837,7 +837,7 @@ export default function NuevoRemitoPage() {
                               updated[index] = { ...item, precioUnitario: price, subtotal: price * item.cantidad * (1 - bonif / 100) }
                               setItems(updated)
                             }}
-                            className="w-full px-2 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-right focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                            className="w-full px-3 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-right focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
                           />
                         </td>
                         <td className="px-3 py-2">
@@ -853,7 +853,7 @@ export default function NuevoRemitoPage() {
                               updated[index] = { ...item, bonificacion: b, subtotal: item.precioUnitario * item.cantidad * (1 - b / 100) }
                               setItems(updated)
                             }}
-                            className="w-full px-2 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-right focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                            className="w-full px-3 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-right focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
                           />
                         </td>
                         <td className="px-3 py-2 text-sm text-white text-right font-mono">
