@@ -19,6 +19,7 @@ import { motion } from 'framer-motion'
 import TiltCard from '@/components/TiltCard'
 import AnimatedCounter from '@/components/AnimatedCounter'
 import ParallaxHero from '@/components/ParallaxHero'
+import FreedomSection from '@/components/FreedomSection'
 
 const container = {
   hidden: { opacity: 0 },
@@ -331,6 +332,9 @@ export default function DashboardPage() {
           </div>
         )}
       </motion.div>
+
+      {/* FreedomSection */}
+      <FreedomSection />
     </motion.div>
   )
 }
