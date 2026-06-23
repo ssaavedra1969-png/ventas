@@ -8,6 +8,9 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+      },
       colors: {
         background: 'var(--background)',
         foreground: 'var(--foreground)',
@@ -33,6 +36,14 @@ const config: Config = {
         'levitate': 'levitate 6s ease-in-out infinite',
         'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
         'gradient-shift': 'gradientShift 8s ease infinite',
+        'parallax-drift': 'parallaxDrift 12s ease-in-out infinite',
+        'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
+        'fade-in-scale': 'fadeInScale 0.5s ease-out forwards',
+        'tilt-float': 'tiltFloat 8s ease-in-out infinite',
+        'glow-pulse': 'glowPulse 3s ease-in-out infinite',
+        'slide-in-right': 'slideInRight 0.5s ease-out forwards',
+        'slide-in-left': 'slideInLeft 0.5s ease-out forwards',
+        'bounce-soft': 'bounceSoft 2s ease-in-out infinite',
       },
       keyframes: {
         shimmer: {
@@ -61,6 +72,39 @@ const config: Config = {
           '0%': { backgroundPosition: '0% 50%' },
           '50%': { backgroundPosition: '100% 50%' },
           '100%': { backgroundPosition: '0% 50%' },
+        },
+        parallaxDrift: {
+          '0%, 100%': { transform: 'translateX(0) scale(1)' },
+          '50%': { transform: 'translateX(-10px) scale(1.02)' },
+        },
+        fadeInUp: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        fadeInScale: {
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        tiltFloat: {
+          '0%, 100%': { transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg)' },
+          '25%': { transform: 'perspective(1000px) rotateX(2deg) rotateY(-2deg)' },
+          '75%': { transform: 'perspective(1000px) rotateX(-2deg) rotateY(2deg)' },
+        },
+        glowPulse: {
+          '0%, 100%': { opacity: '0.4', filter: 'blur(60px)' },
+          '50%': { opacity: '0.8', filter: 'blur(80px)' },
+        },
+        slideInRight: {
+          '0%': { opacity: '0', transform: 'translateX(30px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        slideInLeft: {
+          '0%': { opacity: '0', transform: 'translateX(-30px)' },
+          '100%': { opacity: '1', transform: 'translateX(0)' },
+        },
+        bounceSoft: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-6px)' },
         },
       },
       backgroundSize: {

@@ -18,6 +18,7 @@ import { es } from 'date-fns/locale'
 import { motion } from 'framer-motion'
 import TiltCard from '@/components/TiltCard'
 import AnimatedCounter from '@/components/AnimatedCounter'
+import ParallaxHero from '@/components/ParallaxHero'
 
 const container = {
   hidden: { opacity: 0 },
@@ -127,6 +128,9 @@ export default function DashboardPage() {
       initial="hidden"
       animate="show"
     >
+      {/* Parallax Hero */}
+      <ParallaxHero />
+
       {/* Hero Section */}
       <motion.div variants={itemAnim}>
         <div className="relative overflow-hidden rounded-2xl p-8 glass-card">
