@@ -15,13 +15,14 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Cliente, Producto, Remito, RemitoItem } from '@/types'
+import type { Cliente, Producto, Remito, RemitoItem, Vendedor } from '@/types'
 
 const COLECCIONES = {
   clientes: 'clientes',
   productos: 'productos',
   remitos: 'remitos',
   contadores: 'contadores',
+  vendedores: 'vendedores',
 } as const
 
 function getDb() {
@@ -190,6 +191,64 @@ export async function deleteProducto(id: string) {
   await deleteDoc(doc(getDb(), COLECCIONES.productos, id))
 }
 
+// ============ VENDEDORES ============
+
+export async function getVendedores() {
+  const q = query(
+    collection(getDb(), COLECCIONES.vendedores),
+    orderBy('nombre', 'asc')
+  )
+  const snapshot = await getDocs(q)
+  return snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Vendedor[]
+}
+
+export async function createVendedor(data: Omit<Vendedor, 'id' | 'createdAt'>) {
+  const docRef = await addDoc(collection(getDb(), COLECCIONES.vendedores), {
+    ...data,
+    createdAt: Timestamp.now(),
+  })
+  return docRef.id
+}
+
+export async function updateVendedor(id: string, data: Partial<Vendedor>) {
+  await updateDoc(doc(getDb(), COLECCIONES.vendedores), data)
+}
+
+export async function deleteVendedor(id: string) {
+  await deleteDoc(doc(getDb(), COLECCIONES.vendedores, id))
+}
+
+export async function vendedorCodigoExists(codigo: string, excludeId?: string) {
+  const q = query(
+    collection(getDb(), COLECCIONES.vendedores),
+    where('codigo', '==', codigo)
+  )
+  const snapshot = await getDocs(q)
+  if (snapshot.empty) return false
+  if (excludeId && snapshot.docs[0].id === excludeId) return false
+  return true
+}
+
+export async function createMultipleVendedores(
+  data: Omit<Vendedor, 'id' | 'createdAt'>[]
+) {
+  const _db = getDb()
+  const batch = writeBatch(_db)
+  const results: { label: string; ok: boolean; error?: string }[] = []
+
+  for (const item of data) {
+    const ref = doc(collection(_db, COLECCIONES.vendedores))
+    batch.set(ref, { ...item, activo: true, createdAt: Timestamp.now() })
+    results.push({ label: `${item.nombre} (${item.codigo})`, ok: true })
+  }
+
+  await batch.commit()
+  return results
+}
+
 export async function createMultipleProductos(
   data: Omit<Producto, 'id' | 'createdAt'>[]
 ) {
@@ -226,6 +285,7 @@ async function getNextNumeroRemito(year: number): Promise<number> {
 export async function createRemito(data: {
   idCliente: string
   clienteData: Remito['clienteData']
+  vendedor?: Remito['vendedor']
   items: RemitoItem[]
   observaciones?: string
 }) {
@@ -242,6 +302,7 @@ export async function createRemito(data: {
     fecha: Timestamp.fromDate(now),
     idCliente: data.idCliente,
     clienteData: data.clienteData,
+    vendedor: data.vendedor || null,
     items: data.items,
     subtotalGeneral,
     iva,

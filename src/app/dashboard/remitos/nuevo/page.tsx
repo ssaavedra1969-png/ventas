@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import {
   getAllClientes,
   getAllProductos,
+  getVendedores,
   createRemito,
 } from '@/lib/firestore'
-import type { Cliente, Producto, RemitoItem } from '@/types'
+import type { Cliente, Producto, RemitoItem, Vendedor } from '@/types'
 import {
   Search,
   Loader2,
@@ -37,6 +38,11 @@ export default function NuevoRemitoPage() {
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
   const [showClienteDropdown, setShowClienteDropdown] = useState(false)
 
+  // Vendedor
+  const [vendedores, setVendedores] = useState<Vendedor[]>([])
+  const [selectedVendedor, setSelectedVendedor] = useState<Vendedor | null>(null)
+  const [showVendedorDropdown, setShowVendedorDropdown] = useState(false)
+
   // Step 2: Items
   const [productSearch, setProductSearch] = useState('')
   const [selectedProducto, setSelectedProducto] = useState<Producto | null>(null)
@@ -50,10 +56,11 @@ export default function NuevoRemitoPage() {
   const [observaciones, setObservaciones] = useState('')
 
   useEffect(() => {
-    Promise.all([getAllClientes(), getAllProductos()])
-      .then(([c, p]) => {
+    Promise.all([getAllClientes(), getAllProductos(), getVendedores()])
+      .then(([c, p, v]) => {
         setClientes(c)
         setProductos(p)
+        setVendedores(v)
       })
       .catch((err) => {
         console.error('Error al cargar datos:', err)
@@ -194,6 +201,7 @@ export default function NuevoRemitoPage() {
           direccion: selectedCliente.direccion,
           telefono: selectedCliente.telefono,
         },
+        vendedor: selectedVendedor ? { codigo: selectedVendedor.codigo, nombre: selectedVendedor.nombre } : undefined,
         items,
         observaciones,
       })
@@ -351,6 +359,58 @@ export default function NuevoRemitoPage() {
               </div>
             </div>
           )}
+
+          {/* Vendedor */}
+          <div>
+            <label className="block text-sm font-medium text-[#B0B0D0] mb-1">
+              Vendedor (opcional)
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Buscá un vendedor por nombre o código..."
+                value={selectedVendedor ? `${selectedVendedor.nombre} (${selectedVendedor.codigo})` : ''}
+                onChange={() => {
+                  setSelectedVendedor(null)
+                  setShowVendedorDropdown(true)
+                }}
+                onFocus={() => setShowVendedorDropdown(true)}
+                onBlur={() => setTimeout(() => setShowVendedorDropdown(false), 200)}
+                className="w-full px-4 py-2.5 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+              />
+              {showVendedorDropdown && vendedores.length > 0 && (
+                <div className="absolute z-50 top-full mt-1 left-0 right-0 max-h-48 overflow-y-auto rounded-xl bg-[#12122A] border border-white/5 shadow-xl">
+                  {vendedores.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        setSelectedVendedor(v)
+                        setShowVendedorDropdown(false)
+                        ;(document.activeElement as HTMLElement)?.blur()
+                      }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-b-0 flex items-center gap-3"
+                    >
+                      <span className="inline-block px-2 py-0.5 rounded bg-[#6C3CE1]/10 text-[#6C3CE1] text-xs font-mono font-bold">{v.codigo}</span>
+                      <span>{v.nombre}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedVendedor && (
+                <button
+                  onClick={() => setSelectedVendedor(null)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6B8A] hover:text-white"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {vendedores.length === 0 && (
+              <p className="text-xs text-[#6B6B8A] mt-1">No hay vendedores cargados. Agregalos desde Vendedores.</p>
+            )}
+          </div>
 
           <div className="flex justify-end pt-2">
             <button
@@ -632,51 +692,148 @@ export default function NuevoRemitoPage() {
       {/* Step 3: Review & Generate */}
       {step === 3 && (
         <div className="space-y-4 animate-fadeInUp">
-          {/* Resumen */}
-          <div className="glass-card rounded-xl p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-white">
-              Resumen del Remito
-            </h2>
+          <div className="glass-card rounded-xl p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">
+                Vista Previa del Remito
+              </h2>
+              <span className="text-xs text-[#6B6B8A]">{items.length} producto{items.length !== 1 ? 's' : ''}</span>
+            </div>
+
+            {/* Company Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 p-4 rounded-xl bg-white/5">
+              <div>
+                <p className="text-lg font-bold text-white">GRUPO FALPAT SRL</p>
+                <p className="text-xs text-[#6B6B8A]">CUIT: 30-71784388-2</p>
+              </div>
+              <div className="text-left sm:text-right">
+                <p className="text-xs text-[#6B6B8A] uppercase tracking-wider">Remito</p>
+                <p className="text-xl font-bold text-white">N° ---</p>
+              </div>
+            </div>
 
             {/* Cliente */}
-            <div className="p-4 rounded-xl bg-white/5">
-              <p className="text-xs text-[#6B6B8A] mb-1">CLIENTE</p>
-              <p className="text-white font-medium">
-                {selectedCliente?.razonSocial}
-              </p>
-              <p className="text-sm text-[#B0B0D0]">
-                {selectedCliente?.cuit} | {selectedCliente?.direccion}
-              </p>
-            </div>
-
-            {/* Items summary */}
-            <div className="p-4 rounded-xl bg-white/5">
-              <p className="text-xs text-[#6B6B8A] mb-2">PRODUCTOS</p>
-              <p className="text-white text-sm">
-                {items.length} línea{items.length !== 1 ? 's' : ''}
-              </p>
-            </div>
-
-            {/* Totales */}
             <div className="p-4 rounded-xl bg-gradient-to-r from-[#6C3CE1]/10 to-[#00D4FF]/5 border border-[#6C3CE1]/20">
-              <div className="space-y-2">
+              <p className="text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider mb-3">
+                Datos del Cliente
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+                <div>
+                  <p className="text-xs text-[#6B6B8A]">CUIT</p>
+                  <p className="text-sm font-medium text-white">{selectedCliente?.cuit}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#6B6B8A]">Razón Social</p>
+                  <p className="text-sm font-medium text-white">{selectedCliente?.razonSocial}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#6B6B8A]">Dirección</p>
+                  <p className="text-sm text-[#B0B0D0]">{selectedCliente?.direccion}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#6B6B8A]">Teléfono</p>
+                  <p className="text-sm text-[#B0B0D0]">{selectedCliente?.telefono}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#6B6B8A]">Vendedor</p>
+                  <p className="text-sm font-medium text-white">
+                    {selectedVendedor ? `${selectedVendedor.nombre} (${selectedVendedor.codigo})` : '—'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Items Table - Editable */}
+            <div>
+              <p className="text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider mb-3">
+                Productos
+              </p>
+              <div className="overflow-x-auto rounded-xl border border-white/5">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-white/5">
+                      <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5 w-14">
+                        Cant.
+                      </th>
+                      <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5">
+                        Descripción
+                      </th>
+                      <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5 w-28">
+                        P. Unitario
+                      </th>
+                      <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5 w-28">
+                        Subtotal
+                      </th>
+                      <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5 w-16">
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {items.map((item, index) => (
+                      <tr key={index} className="hover:bg-white/5 transition-colors">
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.cantidad}
+                            onChange={(e) => {
+                              const qty = Math.max(1, parseInt(e.target.value) || 1)
+                              const updated = [...items]
+                              updated[index] = { ...item, cantidad: qty, subtotal: item.precioUnitario * qty }
+                              setItems(updated)
+                            }}
+                            className="w-full px-2 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-center focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-sm text-white">
+                          {item.nombreProducto}
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            value={item.precioUnitario}
+                            onChange={(e) => {
+                              const price = parseFloat(e.target.value) || 0
+                              const updated = [...items]
+                              updated[index] = { ...item, precioUnitario: price, subtotal: price * item.cantidad }
+                              setItems(updated)
+                            }}
+                            className="w-full px-2 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-right focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-sm text-white text-right font-mono">
+                          ${item.subtotal.toFixed(2)}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <button
+                            onClick={() => removeItem(index)}
+                            className="p-1 rounded-lg text-[#6B6B8A] hover:text-red-400 transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Totales */}
+              <div className="ml-auto w-full sm:w-72 mt-4 space-y-1.5 p-4 rounded-xl bg-gradient-to-r from-[#6C3CE1]/10 to-[#00D4FF]/5 border border-[#6C3CE1]/20">
                 <div className="flex justify-between text-sm">
                   <span className="text-[#B0B0D0]">Subtotal</span>
-                  <span className="text-white font-mono">
-                    ${subtotalGeneral.toFixed(2)}
-                  </span>
+                  <span className="text-white font-mono">${subtotalGeneral.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-[#B0B0D0]">IVA (21%)</span>
-                  <span className="text-white font-mono">
-                    ${iva.toFixed(2)}
-                  </span>
+                  <span className="text-white font-mono">${iva.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-lg font-bold border-t border-white/5 pt-2">
-                  <span className="text-white">TOTAL</span>
-                  <span className="text-white font-mono">
-                    ${totalGeneral.toFixed(2)}
-                  </span>
+                  <span className="text-white">Total General</span>
+                  <span className="text-white font-mono">${totalGeneral.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -690,7 +847,7 @@ export default function NuevoRemitoPage() {
                 value={observaciones}
                 onChange={(e) => setObservaciones(e.target.value)}
                 placeholder="Notas adicionales..."
-                rows={3}
+                rows={2}
                 className="w-full px-3 py-2.5 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors resize-none"
               />
             </div>
@@ -702,11 +859,11 @@ export default function NuevoRemitoPage() {
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
-              Volver
+              Volver a Productos
             </button>
             <button
               onClick={handleGenerate}
-              disabled={saving}
+              disabled={saving || items.length === 0}
               className="btn-nebula inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
             >
               {saving ? (

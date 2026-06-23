@@ -170,6 +170,14 @@ export default function RemitoViewPage() {
                   {remito.clienteData.telefono}
                 </p>
               </div>
+              {remito.vendedor && (
+                <div>
+                  <p className="text-xs text-gray-400">Vendedor</p>
+                  <p className="text-sm font-medium text-gray-900">
+                    {remito.vendedor.nombre} <span className="text-gray-400">({remito.vendedor.codigo})</span>
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

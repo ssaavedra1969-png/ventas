@@ -17,6 +17,14 @@ export interface Producto {
   createdAt?: Date
 }
 
+export interface Vendedor {
+  id?: string
+  codigo: string
+  nombre: string
+  activo?: boolean
+  createdAt?: Date
+}
+
 export interface RemitoItem {
   idProducto: string
   nombreProducto: string
@@ -35,6 +43,10 @@ export interface Remito {
     razonSocial: string
     direccion: string
     telefono: string
+  }
+  vendedor?: {
+    codigo: string
+    nombre: string
   }
   items: RemitoItem[]
   subtotalGeneral: number

@@ -12,6 +12,7 @@ import {
   Sun,
   Moon,
   Settings,
+  UserCheck,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -22,11 +23,12 @@ const navigation = [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     ],
   },
-  {
+    {
     section: 'GESTIÓN',
     items: [
       { href: '/dashboard/clientes', label: 'Clientes', icon: Users },
       { href: '/dashboard/productos', label: 'Productos', icon: Package },
+      { href: '/dashboard/vendedores', label: 'Vendedores', icon: UserCheck },
     ],
   },
   {
