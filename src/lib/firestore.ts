@@ -15,7 +15,7 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Cliente, Producto, Remito, RemitoItem, Vendedor } from '@/types'
+import type { Cliente, Producto, Remito, RemitoItem, Vendedor, EmpresaConfig } from '@/types'
 
 const COLECCIONES = {
   clientes: 'clientes',
@@ -23,11 +23,39 @@ const COLECCIONES = {
   remitos: 'remitos',
   contadores: 'contadores',
   vendedores: 'vendedores',
+  configuracion: 'configuracion',
 } as const
 
 function getDb() {
   if (!db) throw new Error('Firebase no está configurado. Verificá las variables de entorno.')
   return db
+}
+
+// ============ CONFIGURACIÓN EMPRESA ============
+
+const DEFAULT_EMPRESA: EmpresaConfig = {
+  razonSocial: 'GRUPO FALPAT SRL',
+  cuit: '30-71784388-2',
+  direccion: 'Av. Ejemplo 1234',
+  telefono: '(011) 1234-5678',
+  email: 'info@falpat.com',
+}
+
+export async function getEmpresaConfig(): Promise<EmpresaConfig> {
+  const _db = getDb()
+  const docRef = doc(_db, COLECCIONES.configuracion, 'empresa')
+  const snap = await getDoc(docRef)
+  if (!snap.exists()) {
+    await setDoc(docRef, DEFAULT_EMPRESA)
+    return DEFAULT_EMPRESA
+  }
+  return snap.data() as EmpresaConfig
+}
+
+export async function saveEmpresaConfig(data: EmpresaConfig): Promise<void> {
+  const _db = getDb()
+  const docRef = doc(_db, COLECCIONES.configuracion, 'empresa')
+  await setDoc(docRef, data)
 }
 
 // ============ CLIENTES ============

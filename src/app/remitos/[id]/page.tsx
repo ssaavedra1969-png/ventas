@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { getRemito } from '@/lib/firestore'
-import type { Remito } from '@/types'
+import { getRemito, getEmpresaConfig } from '@/lib/firestore'
+import type { Remito, EmpresaConfig } from '@/types'
 import {
   ArrowLeft,
   Printer,
@@ -29,14 +29,19 @@ const fadeUp = {
 export default function RemitoViewPage() {
   const params = useParams()
   const [remito, setRemito] = useState<Remito | null>(null)
+  const [empresa, setEmpresa] = useState<EmpresaConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
 
   useEffect(() => {
     if (!params.id) return
-    getRemito(params.id as string)
-      .then((data) => {
-        if (data) setRemito(data)
+    Promise.all([
+      getRemito(params.id as string),
+      getEmpresaConfig(),
+    ])
+      .then(([remitoData, empresaData]) => {
+        setEmpresa(empresaData)
+        if (remitoData) setRemito(remitoData)
         else setNotFound(true)
       })
       .catch(() => setNotFound(true))
@@ -128,7 +133,7 @@ export default function RemitoViewPage() {
           {/* Premium Document Container */}
           <div className="relative border border-white/10 rounded-2xl overflow-hidden bg-gradient-to-b from-[#12122A] to-[#0E0E22]">
             {/* Watermark */}
-            <div className="watermark hidden sm:block">FALPAT SRL</div>
+            <div className="watermark hidden sm:block">{empresa?.razonSocial || 'FALPAT SRL'}</div>
 
             {/* Decorative top bar */}
             <div className="h-1.5 bg-gradient-to-r from-[#6C3CE1] via-[#00D4FF] to-[#6C3CE1]" />
@@ -156,9 +161,9 @@ export default function RemitoViewPage() {
                   </motion.div>
                   <div>
                     <h1 className="text-2xl font-bold text-white">
-                      GRUPO FALPAT SRL
+                      {empresa?.razonSocial || 'GRUPO FALPAT SRL'}
                     </h1>
-                    <p className="text-sm text-[#6B6B8A]">CUIT: 30-71784388-2</p>
+                    <p className="text-sm text-[#6B6B8A]">CUIT: {empresa?.cuit || '30-71784388-2'}</p>
                   </div>
                 </motion.div>
               </div>
@@ -184,7 +189,7 @@ export default function RemitoViewPage() {
                   />
                   <p className="text-xs text-[#6B6B8A] uppercase tracking-[0.2em] mb-1">Remito</p>
                   <p className="text-4xl font-black tracking-tight text-white">
-                    N° {remito.numeroRemito}
+                    N° {String(remito.numeroRemito).padStart(6, '0')}
                   </p>
                 </motion.div>
               </motion.div>
@@ -196,7 +201,7 @@ export default function RemitoViewPage() {
                   custom={2}
                 >
                   <MapPin className="h-4 w-4 text-[#6C3CE1] shrink-0" />
-                  Av. Ejemplo 1234
+                  {empresa?.direccion || 'Av. Ejemplo 1234'}
                 </motion.div>
                 <motion.div
                   className="flex items-center gap-2 text-[#6B6B8A]"
@@ -204,7 +209,7 @@ export default function RemitoViewPage() {
                   custom={3}
                 >
                   <Phone className="h-4 w-4 text-[#6C3CE1] shrink-0" />
-                  (011) 1234-5678
+                  {empresa?.telefono || '(011) 1234-5678'}
                 </motion.div>
                 <motion.div
                   className="flex items-center gap-2 text-[#6B6B8A]"

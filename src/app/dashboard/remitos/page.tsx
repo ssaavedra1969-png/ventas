@@ -200,7 +200,7 @@ export default function RemitosPage() {
                     <td className="px-4 py-3">
                       <Link href={`/remitos/${remito.id}`}>
                         <span className="text-sm font-bold text-white hover:text-[#6C3CE1] transition-colors">
-                          #{remito.numeroRemito}
+                          #{String(remito.numeroRemito).padStart(6, '0')}
                         </span>
                       </Link>
                     </td>

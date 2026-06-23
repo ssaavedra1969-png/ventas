@@ -14,7 +14,7 @@ import {
   Building2,
   ChevronRight,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const navigation = [
@@ -101,6 +101,30 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [clock, setClock] = useState('')
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date()
+      setClock(
+        now.toLocaleDateString('es-AR', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        }) +
+          ' - ' +
+          now.toLocaleTimeString('es-AR', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+          })
+      )
+    }
+    update()
+    const id = setInterval(update, 1000)
+    return () => clearInterval(id)
+  }, [])
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0A0A1A]">
@@ -282,11 +306,14 @@ export default function DashboardLayout({
             transition={{ delay: 0.3 }}
           >
             <motion.div
-              className="w-2 h-2 rounded-full bg-green-400"
-              animate={{ opacity: [1, 0.3, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
+              className="w-3 h-3 rounded-full bg-green-400"
+              animate={{
+                opacity: [1, 0.3, 1],
+                backgroundColor: ['#22c55e', '#3b82f6', '#a855f7', '#22c55e'],
+              }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             />
-            En línea
+            {clock}
           </motion.div>
         </motion.header>
 

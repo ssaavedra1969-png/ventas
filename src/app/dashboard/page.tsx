@@ -293,7 +293,7 @@ export default function DashboardPage() {
                         style={{ background: 'linear-gradient(135deg, #6C3CE1, #00D4FF)' }}
                         whileHover={{ scale: 1.1, rotate: 5 }}
                       >
-                        {remito.numeroRemito}
+                        {String(remito.numeroRemito).padStart(6, '0')}
                       </motion.div>
                       <div>
                         <p className="text-sm font-medium text-white">

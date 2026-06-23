@@ -65,3 +65,11 @@ export interface DashboardStats {
   ultimosRemitos: Remito[]
   clientesActivos: number
 }
+
+export interface EmpresaConfig {
+  razonSocial: string
+  cuit: string
+  direccion: string
+  telefono: string
+  email: string
+}

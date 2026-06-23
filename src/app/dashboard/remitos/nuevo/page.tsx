@@ -7,8 +7,9 @@ import {
   getAllProductos,
   getVendedores,
   createRemito,
+  getEmpresaConfig,
 } from '@/lib/firestore'
-import type { Cliente, Producto, RemitoItem, Vendedor } from '@/types'
+import type { Cliente, Producto, RemitoItem, Vendedor, EmpresaConfig } from '@/types'
 import {
   Search,
   Loader2,
@@ -53,15 +54,19 @@ export default function NuevoRemitoPage() {
   const [showProductDropdown, setShowProductDropdown] = useState(false)
   const [editItemIndex, setEditItemIndex] = useState<number | null>(null)
 
+  // Empresa config
+  const [empresa, setEmpresa] = useState<EmpresaConfig | null>(null)
+
   // Step 3: Observaciones
   const [observaciones, setObservaciones] = useState('')
 
   useEffect(() => {
-    Promise.all([getAllClientes(), getAllProductos(), getVendedores()])
-      .then(([c, p, v]) => {
+    Promise.all([getAllClientes(), getAllProductos(), getVendedores(), getEmpresaConfig()])
+      .then(([c, p, v, e]) => {
         setClientes(c)
         setProductos(p)
         setVendedores(v)
+        setEmpresa(e)
       })
       .catch((err) => {
         console.error('Error al cargar datos:', err)
@@ -214,7 +219,7 @@ export default function NuevoRemitoPage() {
         observaciones,
       })
       toast.success(
-        `Remito N° ${result.numeroRemito} creado exitosamente`
+        `Remito N° ${String(result.numeroRemito).padStart(6, '0')} creado exitosamente`
       )
       router.push(`/remitos/${result.id}`)
     } catch {
@@ -730,8 +735,8 @@ export default function NuevoRemitoPage() {
             {/* Company Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4 p-4 rounded-xl bg-white/5">
               <div>
-                <p className="text-lg font-bold text-white">GRUPO FALPAT SRL</p>
-                <p className="text-xs text-[#6B6B8A]">CUIT: 30-71784388-2</p>
+                <p className="text-lg font-bold text-white">{empresa?.razonSocial || 'GRUPO FALPAT SRL'}</p>
+                <p className="text-xs text-[#6B6B8A]">CUIT: {empresa?.cuit || '30-71784388-2'}</p>
               </div>
               <div className="text-left sm:text-right">
                 <p className="text-xs text-[#6B6B8A] uppercase tracking-wider">Remito</p>
