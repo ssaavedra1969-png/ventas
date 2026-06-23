@@ -17,16 +17,21 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased`}>
-        {children}
+      <body className={`${inter.className} antialiased min-h-screen`}>
+        <div className="relative z-10">
+          {children}
+        </div>
         <Toaster
           position="top-right"
           toastOptions={{
             style: {
-              background: '#12122A',
-              border: '1px solid rgba(255,255,255,0.05)',
+              background: 'rgba(18, 18, 42, 0.85)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(108, 60, 225, 0.2)',
               color: '#F0F0F5',
+              borderRadius: '12px',
             },
+            duration: 3000,
           }}
         />
       </body>
