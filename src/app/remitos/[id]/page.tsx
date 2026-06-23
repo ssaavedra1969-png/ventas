@@ -251,6 +251,10 @@ export default function RemitoViewPage() {
                   <p className="text-[10px] text-[#6B6B8A] uppercase tracking-wider">Teléfono</p>
                   <p className="text-sm text-[#B0B0D0]">{remito.clienteData.telefono}</p>
                 </div>
+                <div>
+                  <p className="text-[10px] text-[#6B6B8A] uppercase tracking-wider">T. FAC</p>
+                  <p className="text-sm font-medium text-white">{remito.clienteData.tipoFactura || '—'}</p>
+                </div>
                 {remito.vendedor && (
                   <div>
                     <p className="text-[10px] text-[#6B6B8A] uppercase tracking-wider">Vendedor</p>

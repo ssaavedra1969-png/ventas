@@ -213,6 +213,7 @@ export default function NuevoRemitoPage() {
           razonSocial: selectedCliente.razonSocial,
           direccion: selectedCliente.direccion,
           telefono: selectedCliente.telefono,
+          tipoFactura: selectedCliente.tipoFactura || '',
         },
         vendedor: selectedVendedor ? { codigo: selectedVendedor.codigo, nombre: selectedVendedor.nombre } : undefined,
         items,

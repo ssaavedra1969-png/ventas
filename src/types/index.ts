@@ -4,6 +4,7 @@ export interface Cliente {
   razonSocial: string
   direccion: string
   telefono: string
+  tipoFactura: string
   createdAt?: Date
 }
 
@@ -44,6 +45,7 @@ export interface Remito {
     razonSocial: string
     direccion: string
     telefono: string
+    tipoFactura: string
   }
   vendedor?: {
     codigo: string

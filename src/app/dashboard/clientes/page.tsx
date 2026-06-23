@@ -30,6 +30,7 @@ interface ClienteForm {
   razonSocial: string
   direccion: string
   telefono: string
+  tipoFactura: string
 }
 
 const emptyForm: ClienteForm = {
@@ -37,6 +38,7 @@ const emptyForm: ClienteForm = {
   razonSocial: '',
   direccion: '',
   telefono: '',
+  tipoFactura: '',
 }
 
 export default function ClientesPage() {
@@ -88,6 +90,7 @@ export default function ClientesPage() {
     if (!form.razonSocial.trim()) errs.razonSocial = 'La razón social es obligatoria'
     if (!form.direccion.trim()) errs.direccion = 'La dirección es obligatoria'
     if (!form.telefono.trim()) errs.telefono = 'El teléfono es obligatorio'
+    if (!form.tipoFactura.trim()) errs.tipoFactura = 'Seleccioná un tipo de factura'
     setErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -128,6 +131,7 @@ export default function ClientesPage() {
       razonSocial: cliente.razonSocial,
       direccion: cliente.direccion,
       telefono: cliente.telefono,
+      tipoFactura: cliente.tipoFactura || '',
     })
     setEditId(cliente.id ?? null)
     setErrors({})
@@ -158,14 +162,15 @@ export default function ClientesPage() {
       razonSocial: String(row.razonSocial ?? ''),
       direccion: String(row.direccion ?? ''),
       telefono: String(row.telefono ?? ''),
+      tipoFactura: String(row.tipoFactura ?? ''),
     }))
     return await createMultipleClientes(items)
   }
 
   const clientesExampleData = [
-    { cuit: '30-12345678-9', razonSocial: 'GRUPO FALPAT SRL', direccion: 'Av. Corrientes 1234, CABA', telefono: '011-4567-8901' },
-    { cuit: '30-23456789-0', razonSocial: 'MATERIALES DEL SUR SA', direccion: 'Av. Rivadavia 5678, CABA', telefono: '011-5678-9012' },
-    { cuit: '27-34567890-1', razonSocial: 'CONSTRUCCIONES NORTE SRL', direccion: 'Av. Cabildo 4321, CABA', telefono: '011-6789-0123' },
+    { cuit: '30-12345678-9', razonSocial: 'GRUPO FALPAT SRL', direccion: 'Av. Corrientes 1234, CABA', telefono: '011-4567-8901', tipoFactura: 'A' },
+    { cuit: '30-23456789-0', razonSocial: 'MATERIALES DEL SUR SA', direccion: 'Av. Rivadavia 5678, CABA', telefono: '011-5678-9012', tipoFactura: 'B' },
+    { cuit: '27-34567890-1', razonSocial: 'CONSTRUCCIONES NORTE SRL', direccion: 'Av. Cabildo 4321, CABA', telefono: '011-6789-0123', tipoFactura: 'C' },
   ]
 
   return (
@@ -236,6 +241,9 @@ export default function ClientesPage() {
                     Razón Social
                   </th>
                   <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3 hidden md:table-cell">
+                    T. FAC
+                  </th>
+                  <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3 hidden md:table-cell">
                     Dirección
                   </th>
                   <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3 hidden md:table-cell">
@@ -257,6 +265,23 @@ export default function ClientesPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-white font-medium">
                       {cliente.razonSocial}
+                    </td>
+                    <td className="px-4 py-3 text-sm hidden md:table-cell">
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
+                        cliente.tipoFactura === 'A'
+                          ? 'bg-green-500/15 text-green-400 border border-green-500/20'
+                          : cliente.tipoFactura === 'B'
+                            ? 'bg-blue-500/15 text-blue-400 border border-blue-500/20'
+                            : cliente.tipoFactura === 'C'
+                              ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/20'
+                              : cliente.tipoFactura === 'E'
+                                ? 'bg-purple-500/15 text-purple-400 border border-purple-500/20'
+                                : cliente.tipoFactura === 'M'
+                                  ? 'bg-orange-500/15 text-orange-400 border border-orange-500/20'
+                                  : 'bg-white/5 text-[#6B6B8A] border border-white/10'
+                      }`}>
+                        {cliente.tipoFactura || '—'}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-[#B0B0D0] hidden md:table-cell">
                       {cliente.direccion}
@@ -433,6 +458,33 @@ export default function ClientesPage() {
                   </p>
                 )}
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#B0B0D0] mb-1">
+                  T. FAC *
+                </label>
+                <select
+                  value={form.tipoFactura}
+                  onChange={(e) =>
+                    setForm({ ...form, tipoFactura: e.target.value })
+                  }
+                  className={`w-full px-3 py-2.5 rounded-xl bg-[#0A0A1A] border ${
+                    errors.tipoFactura ? 'border-red-500/50' : 'border-white/5'
+                  } text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors appearance-none`}
+                >
+                  <option value="">Seleccionar...</option>
+                  <option value="A">Factura A</option>
+                  <option value="B">Factura B</option>
+                  <option value="C">Factura C</option>
+                  <option value="E">Factura E</option>
+                  <option value="M">Factura M</option>
+                </select>
+                {errors.tipoFactura && (
+                  <p className="text-xs text-red-400 mt-1">
+                    {errors.tipoFactura}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-3 mt-6">
@@ -506,7 +558,7 @@ export default function ClientesPage() {
         onClose={() => setBulkOpen(false)}
         title="Carga Masiva de Clientes"
         description="Seleccioná un archivo Excel con los datos de los clientes para importarlos de a uno o en lote."
-        templateHeaders={['cuit', 'razonSocial', 'direccion', 'telefono']}
+        templateHeaders={['cuit', 'razonSocial', 'direccion', 'telefono', 'tipoFactura']}
         exampleData={clientesExampleData}
         onUpload={handleBulkUpload}
         onRefresh={loadClientes}
