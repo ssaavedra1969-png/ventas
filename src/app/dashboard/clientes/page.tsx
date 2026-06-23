@@ -19,7 +19,10 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
+  Upload,
 } from 'lucide-react'
+import BulkUploadModal from '@/components/BulkUploadModal'
+import { createMultipleClientes } from '@/lib/firestore'
 import { toast } from 'sonner'
 
 interface ClienteForm {
@@ -50,6 +53,7 @@ export default function ClientesPage() {
   const [saving, setSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [bulkOpen, setBulkOpen] = useState(false)
 
   // Debounce search
   useEffect(() => {
@@ -148,6 +152,22 @@ export default function ClientesPage() {
     setModalOpen(true)
   }
 
+  const handleBulkUpload = async (data: Record<string, unknown>[]) => {
+    const items = data.map((row) => ({
+      cuit: String(row.cuit ?? ''),
+      razonSocial: String(row.razonSocial ?? ''),
+      direccion: String(row.direccion ?? ''),
+      telefono: String(row.telefono ?? ''),
+    }))
+    return await createMultipleClientes(items)
+  }
+
+  const clientesExampleData = [
+    { cuit: '30-12345678-9', razonSocial: 'GRUPO FALPAT SRL', direccion: 'Av. Corrientes 1234, CABA', telefono: '011-4567-8901' },
+    { cuit: '30-23456789-0', razonSocial: 'MATERIALES DEL SUR SA', direccion: 'Av. Rivadavia 5678, CABA', telefono: '011-5678-9012' },
+    { cuit: '27-34567890-1', razonSocial: 'CONSTRUCCIONES NORTE SRL', direccion: 'Av. Cabildo 4321, CABA', telefono: '011-6789-0123' },
+  ]
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -156,13 +176,22 @@ export default function ClientesPage() {
           <h1 className="text-2xl font-bold text-white">Clientes</h1>
           <p className="text-[#B0B0D0] text-sm">Gestión de clientes</p>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="btn-nebula inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
-        >
-          <Plus className="h-4 w-4" />
-          Nuevo Cliente
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setBulkOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-white/10 text-[#B0B0D0] hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            Carga Masiva
+          </button>
+          <button
+            onClick={openCreateModal}
+            className="btn-nebula inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
+          >
+            <Plus className="h-4 w-4" />
+            Nuevo Cliente
+          </button>
+        </div>
       </div>
 
       {/* Search */}
@@ -471,6 +500,17 @@ export default function ClientesPage() {
           </div>
         </div>
       )}
+
+      <BulkUploadModal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        title="Carga Masiva de Clientes"
+        description="Seleccioná un archivo Excel con los datos de los clientes para importarlos de a uno o en lote."
+        templateHeaders={['cuit', 'razonSocial', 'direccion', 'telefono']}
+        exampleData={clientesExampleData}
+        onUpload={handleBulkUpload}
+        onRefresh={loadClientes}
+      />
     </div>
   )
 }

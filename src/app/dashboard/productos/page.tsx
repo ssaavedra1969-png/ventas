@@ -18,7 +18,10 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
+  Upload,
 } from 'lucide-react'
+import BulkUploadModal from '@/components/BulkUploadModal'
+import { createMultipleProductos } from '@/lib/firestore'
 import { toast } from 'sonner'
 
 const tipos = [
@@ -68,6 +71,7 @@ export default function ProductosPage() {
   const [saving, setSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [bulkOpen, setBulkOpen] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -94,6 +98,23 @@ export default function ProductosPage() {
   useEffect(() => {
     loadProductos()
   }, [loadProductos])
+
+  const handleBulkUpload = async (data: Record<string, unknown>[]) => {
+    const items = data.map((row) => ({
+      nombre: String(row.nombre ?? ''),
+      tipo: String(row.tipo ?? ''),
+      medida: String(row.medida ?? ''),
+      valorUnitario: Number(row.valorUnitario) || 0,
+      stock: Number(row.stock) || 0,
+    }))
+    return await createMultipleProductos(items)
+  }
+
+  const productosExampleData = [
+    { nombre: 'Cemento Portland CPC 50kg', tipo: 'Cemento', medida: 'Bolsa', valorUnitario: 4850, stock: 200 },
+    { nombre: 'Varilla de hierro diámetro 8mm', tipo: 'Hierros', medida: 'Kg', valorUnitario: 890, stock: 500 },
+    { nombre: 'Pintura látex interior 20L', tipo: 'Pinturería', medida: 'Litro', valorUnitario: 3200, stock: 80 },
+  ]
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {}
@@ -159,18 +180,27 @@ export default function ProductosPage() {
           <h1 className="text-2xl font-bold text-white">Productos</h1>
           <p className="text-[#B0B0D0] text-sm">Catálogo de productos</p>
         </div>
-        <button
-          onClick={() => {
-            setForm(emptyForm)
-            setEditId(null)
-            setErrors({})
-            setModalOpen(true)
-          }}
-          className="btn-nebula inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
-        >
-          <Plus className="h-4 w-4" />
-          Nuevo Producto
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setBulkOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-white/10 text-[#B0B0D0] hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            Carga Masiva
+          </button>
+          <button
+            onClick={() => {
+              setForm(emptyForm)
+              setEditId(null)
+              setErrors({})
+              setModalOpen(true)
+            }}
+            className="btn-nebula inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
+          >
+            <Plus className="h-4 w-4" />
+            Nuevo Producto
+          </button>
+        </div>
       </div>
 
       <div className="relative">
@@ -525,6 +555,17 @@ export default function ProductosPage() {
           </div>
         </div>
       )}
+
+      <BulkUploadModal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        title="Carga Masiva de Productos"
+        description="Seleccioná un archivo Excel con los datos de los productos para importarlos de a uno o en lote."
+        templateHeaders={['nombre', 'tipo', 'medida', 'valorUnitario', 'stock']}
+        exampleData={productosExampleData}
+        onUpload={handleBulkUpload}
+        onRefresh={loadProductos}
+      />
     </div>
   )
 }

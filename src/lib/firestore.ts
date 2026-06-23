@@ -12,6 +12,7 @@ import {
   Timestamp,
   QueryConstraint,
   setDoc,
+  writeBatch,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Cliente, Producto, Remito, RemitoItem } from '@/types'
@@ -109,6 +110,23 @@ export async function clienteExists(cuit: string, excludeId?: string) {
   return true
 }
 
+export async function createMultipleClientes(
+  data: Omit<Cliente, 'id' | 'createdAt'>[]
+) {
+  const _db = getDb()
+  const batch = writeBatch(_db)
+  const results: { label: string; ok: boolean; error?: string }[] = []
+
+  for (const item of data) {
+    const ref = doc(collection(_db, COLECCIONES.clientes))
+    batch.set(ref, { ...item, createdAt: Timestamp.now() })
+    results.push({ label: `${item.razonSocial} (${item.cuit})`, ok: true })
+  }
+
+  await batch.commit()
+  return results
+}
+
 // ============ PRODUCTOS ============
 
 export async function getProductos(search?: string, page = 1, pageSize = 10) {
@@ -170,6 +188,23 @@ export async function updateProducto(id: string, data: Partial<Producto>) {
 
 export async function deleteProducto(id: string) {
   await deleteDoc(doc(getDb(), COLECCIONES.productos, id))
+}
+
+export async function createMultipleProductos(
+  data: Omit<Producto, 'id' | 'createdAt'>[]
+) {
+  const _db = getDb()
+  const batch = writeBatch(_db)
+  const results: { label: string; ok: boolean; error?: string }[] = []
+
+  for (const item of data) {
+    const ref = doc(collection(_db, COLECCIONES.productos))
+    batch.set(ref, { ...item, stock: item.stock ?? 0, createdAt: Timestamp.now() })
+    results.push({ label: `${item.nombre}`, ok: true })
+  }
+
+  await batch.commit()
+  return results
 }
 
 // ============ REMITOS ============
