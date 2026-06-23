@@ -145,11 +145,11 @@ export default function ParallaxHero() {
       >
         <div className="max-w-7xl mx-auto">
           <motion.div
-            className="backdrop-blur-xl rounded-2xl sm:rounded-3xl overflow-hidden"
+            className="backdrop-blur-2xl rounded-2xl sm:rounded-3xl overflow-hidden"
             style={{
-              background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+              background: 'linear-gradient(135deg, rgba(12,12,30,0.88) 0%, rgba(16,16,38,0.82) 100%)',
+              border: '1px solid rgba(108,60,225,0.15)',
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.7), 0 0 0 1px rgba(108,60,225,0.05) inset',
             }}
             initial={{ opacity: 0, y: -30, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -177,7 +177,7 @@ export default function ParallaxHero() {
                     <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
                       GRUPO FALPAT SRL
                     </h1>
-                    <p className="text-xs sm:text-sm text-white/50 tracking-wider uppercase">
+                    <p className="text-xs sm:text-sm text-white/75 tracking-wider uppercase">
                       Administración
                     </p>
                   </div>
@@ -197,10 +197,10 @@ export default function ParallaxHero() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.4 + i * 0.1 }}
                     >
-                      <p className="text-[10px] text-white/40 uppercase tracking-[0.15em]">
+                      <p className="text-[10px] text-white/60 uppercase tracking-[0.15em]">
                         {stat.label}
                       </p>
-                      <p className="text-sm font-semibold text-white/80">
+                      <p className="text-sm font-semibold text-white/95">
                         {stat.value}
                       </p>
                     </motion.div>
@@ -216,8 +216,8 @@ export default function ParallaxHero() {
                 transition={{ delay: 0.6 }}
               >
                 <div className="flex items-center gap-3">
-                  <Truck className="w-4 h-4 text-[#00D4FF]/60" />
-                  <p className="text-sm text-white/40 tracking-wide">
+                  <Truck className="w-4 h-4 text-[#00D4FF]/80" />
+                  <p className="text-sm text-white/70 tracking-wide">
                     Soluciones en logística y construction
                   </p>
                 </div>
@@ -225,13 +225,13 @@ export default function ParallaxHero() {
             </div>
 
             {/* Bottom Bar */}
-            <div className="px-6 sm:px-10 py-3 border-t border-white/5 bg-white/[0.02]">
+            <div className="px-6 sm:px-10 py-3 border-t border-white/5" style={{ background: 'rgba(8,8,22,0.5)' }}>
               <div className="flex items-center justify-between">
-                <p className="text-[10px] text-white/30 tracking-wider">
+                <p className="text-[10px] text-white/50 tracking-wider">
                   Sistema de Gestión Integral
                 </p>
                 <motion.div
-                  className="flex items-center gap-2 text-white/30"
+                  className="flex items-center gap-2 text-white/50"
                   animate={{ y: [0, 3, 0] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
@@ -256,7 +256,7 @@ export default function ParallaxHero() {
           animate={{ y: [0, 6, 0] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <div className="w-5 h-8 rounded-full border border-white/20 flex items-start justify-center p-1">
+          <div className="w-5 h-8 rounded-full border border-white/40 flex items-start justify-center p-1">
             <motion.div
               className="w-1 h-2 rounded-full"
               style={{
@@ -266,7 +266,7 @@ export default function ParallaxHero() {
               transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
             />
           </div>
-          <span className="text-[8px] text-white/30 tracking-[0.3em] uppercase">
+          <span className="text-[8px] text-white/50 tracking-[0.3em] uppercase">
             Explorar
           </span>
         </motion.div>
