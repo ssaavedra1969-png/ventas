@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { getRemito, getEmpresaConfig } from '@/lib/firestore'
 import type { Remito, EmpresaConfig } from '@/types'
 import {
@@ -11,23 +11,32 @@ import {
   MapPin,
   Mail,
   Receipt,
+  MessageCircle,
+  Send,
+  Smartphone,
 } from 'lucide-react'
-import Link from 'next/link'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'sonner'
 
 const esPresupuesto = (estado: string) =>
-  ['Enviado', 'Aceptado', 'Anulado'].includes(estado)
+  ['Enviado', 'Anulado'].includes(estado)
 
 export default function RemitoViewPage() {
   const params = useParams()
+  const router = useRouter()
+  const [from, setFrom] = useState<string | null>(null)
   const [remito, setRemito] = useState<Remito | null>(null)
   const [empresa, setEmpresa] = useState<EmpresaConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [wspPhone, setWspPhone] = useState('')
+  const [showWsp, setShowWsp] = useState(false)
 
   useEffect(() => {
+    const p = new URLSearchParams(window.location.search)
+    setFrom(p.get('from'))
     if (!params.id) return
     Promise.all([
       getRemito(params.id as string),
@@ -69,16 +78,13 @@ export default function RemitoViewPage() {
           <Receipt className="h-16 w-16 text-[#6B6B8A] mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">Remito no encontrado</h1>
           <p className="text-[#B0B0D0] mb-6">El remito que buscás no existe o fue eliminado.</p>
-          <Link href="/dashboard">
-            <motion.span
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl btn-nebula text-sm font-medium cursor-pointer"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Volver al Dashboard
-            </motion.span>
-          </Link>
+          <button
+            onClick={() => router.push(from ? `/dashboard/remitos?tab=${from}` : '/dashboard')}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl btn-nebula text-sm font-medium cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver
+          </button>
         </motion.div>
       </div>
     )
@@ -112,19 +118,35 @@ export default function RemitoViewPage() {
       {/* Toolbar */}
       <div className="no-print bg-[#0A0A1A]/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/dashboard">
-            <span className="inline-flex items-center gap-2 text-sm text-[#B0B0D0] hover:text-white transition-colors cursor-pointer">
-              <ArrowLeft className="h-4 w-4" />
-              Volver al Dashboard
-            </span>
-          </Link>
           <button
-            onClick={handlePrint}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl btn-nebula text-sm font-medium"
+            onClick={() => router.push(from ? `/dashboard/remitos?tab=${from}` : '/dashboard')}
+            className="inline-flex items-center gap-2 text-sm text-[#B0B0D0] hover:text-white transition-colors cursor-pointer"
           >
-            <Printer className="h-4 w-4" />
-            Imprimir / PDF
+            <ArrowLeft className="h-4 w-4" />
+            Volver
           </button>
+          <div className="flex items-center gap-2">
+            {presupuesto && (
+              <button
+                onClick={() => {
+                  setWspPhone(remito.clienteData.telefono)
+                  setShowWsp(true)
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500/20 text-green-400 hover:bg-green-500/30 text-sm font-medium transition-colors"
+                title="Enviar por WhatsApp al cliente"
+              >
+                <MessageCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">WhatsApp</span>
+              </button>
+            )}
+            <button
+              onClick={handlePrint}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl btn-nebula text-sm font-medium"
+            >
+              <Printer className="h-4 w-4" />
+              <span className="hidden sm:inline">Imprimir / PDF</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -329,6 +351,71 @@ export default function RemitoViewPage() {
           </div>
         </div>
       </div>
+
+      {/* WhatsApp Popup */}
+      <AnimatePresence>
+        {showWsp && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowWsp(false)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            <motion.div
+              className="relative w-full max-w-sm glass-card rounded-2xl p-6"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
+                <Smartphone className="h-6 w-6 text-green-400" />
+              </div>
+              <h2 className="text-lg font-semibold text-white mb-1 text-center">
+                Enviar Presupuesto
+              </h2>
+              <p className="text-sm text-[#B0B0D0] mb-4 text-center">
+                Número de WhatsApp del cliente
+              </p>
+              <input
+                type="text"
+                value={wspPhone}
+                onChange={(e) => setWspPhone(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-green-500/50 transition-colors mb-5"
+                placeholder="Ingresá el número..."
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowWsp(false)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    const cleanPhone = wspPhone.replace(/\D/g, '')
+                    if (!cleanPhone) {
+                      toast.error('Ingresá un número válido')
+                      return
+                    }
+                    const nroStr = String(remito.numeroRemito).padStart(6, '0')
+                    const msg = encodeURIComponent(
+                      `📋 PRESUPUESTO N° ${nroStr}\nCliente: ${remito.clienteData.razonSocial}\nTotal: $${remito.totalGeneral.toFixed(2)}\nCompleto: ${window.location.origin}/remitos/${remito.id}`
+                    )
+                    window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank')
+                    setShowWsp(false)
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-green-500/20 text-green-400 hover:bg-green-500/30 text-sm font-medium transition-colors inline-flex items-center justify-center gap-2"
+                >
+                  <Send className="h-4 w-4" />
+                  Enviar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

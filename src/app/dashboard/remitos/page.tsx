@@ -15,6 +15,8 @@ import {
   XCircle,
   ClipboardList,
   Truck,
+  Send,
+  Smartphone,
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -24,8 +26,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 type Tab = 'presupuestos' | 'remitos'
 
-const ESTADOS_PRESUPUESTOS = ['Enviado', 'Aceptado', 'Anulado']
-const ESTADOS_REMITOS = ['En_Revision', 'A_Entregar']
+const ESTADOS_PRESUPUESTOS = ['Enviado', 'Anulado']
+const ESTADOS_REMITOS = ['Aceptado', 'En_Revision', 'A_Entregar']
 
 const getEstadoColor = (estado: string) => {
   switch (estado) {
@@ -64,9 +66,22 @@ export default function RemitosPage() {
   const [filtroFecha, setFiltroFecha] = useState('')
   const [anularConfirm, setAnularConfirm] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [wspPopup, setWspPopup] = useState<{
+    remitoId: string
+    phone: string
+    tipo: 'presupuesto' | 'remito'
+  } | null>(null)
 
   useEffect(() => {
     getEmpresaConfig().then(setEmpresa).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const t = params.get('tab')
+    if (t === 'presupuestos' || t === 'remitos') {
+      setTab(t)
+    }
   }, [])
 
   const loadRemitos = useCallback(async () => {
@@ -114,23 +129,28 @@ export default function RemitosPage() {
     }
   }
 
-  const handleWsp = (phone: string, id: string, nro: number, cliente: string, total: number, tipo: 'presupuesto' | 'remito', adminPhone?: string) => {
-    const targetPhone = tipo === 'remito' ? (adminPhone || phone) : phone
-    const cleanPhone = targetPhone.replace(/\D/g, '')
-    const nroStr = String(nro).padStart(6, '0')
+  const handleWspConfirm = () => {
+    if (!wspPopup) return
+    const { remitoId, phone, tipo } = wspPopup
+    const remito = remitos.find((r) => r.id === remitoId)
+    if (!remito) return
+
+    const cleanPhone = phone.replace(/\D/g, '')
+    if (!cleanPhone) {
+      toast.error('Ingresá un número de teléfono válido')
+      return
+    }
+    const targetPhone = tipo === 'remito' ? (empresa?.telefonoAdmin || phone).replace(/\D/g, '') : cleanPhone
+    const nroStr = String(remito.numeroRemito).padStart(6, '0')
     const header = tipo === 'presupuesto'
       ? `📋 PRESUPUESTO N° ${nroStr}`
       : `🚚 REMITO N° ${nroStr}`
     const msg = encodeURIComponent(
-      `${header}\nCliente: ${cliente}\nTotal: $${total.toFixed(2)}\nCompleto: ${window.location.origin}/remitos/${id}`
+      `${header}\nCliente: ${remito.clienteData.razonSocial}\nTotal: $${remito.totalGeneral.toFixed(2)}\nCompleto: ${window.location.origin}/remitos/${remitoId}`
     )
-    window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank')
-
-    if (tipo === 'presupuesto') {
-      handleCambiarEstado(id, 'Enviado')
-    } else {
-      handleCambiarEstado(id, 'A_Entregar')
-    }
+    window.open(`https://wa.me/${targetPhone}?text=${msg}`, '_blank')
+    setWspPopup(null)
+    handleCambiarEstado(remitoId, tipo === 'presupuesto' ? 'Enviado' : 'A_Entregar')
   }
 
   const getTotalPorEstado = (estados: string[]) =>
@@ -243,19 +263,13 @@ export default function RemitosPage() {
                 </p>
               </div>
               <div className="glass-card rounded-xl p-3 text-center">
-                <p className="text-xs text-[#6B6B8A]">Aceptados</p>
-                <p className="text-lg font-bold text-emerald-400">{filtrados.filter((r) => r.estado === 'Aceptado').length}</p>
-                <p className="text-xs font-mono text-emerald-400">
-                  ${getTotalPorEstado(['Aceptado']).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-              <div className="glass-card rounded-xl p-3 text-center">
                 <p className="text-xs text-[#6B6B8A]">Anulados</p>
                 <p className="text-lg font-bold text-red-400">{filtrados.filter((r) => r.estado === 'Anulado').length}</p>
                 <p className="text-xs font-mono text-red-400">
                   ${getTotalPorEstado(['Anulado']).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
+              <div className="glass-card rounded-xl p-3 text-center" />
             </>
           ) : (
             <>
@@ -264,6 +278,13 @@ export default function RemitosPage() {
                 <p className="text-lg font-bold text-white">{filtrados.length}</p>
                 <p className="text-xs font-mono text-white">
                   ${getTotalPorEstado(ESTADOS_REMITOS).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="glass-card rounded-xl p-3 text-center">
+                <p className="text-xs text-[#6B6B8A]">Aceptados</p>
+                <p className="text-lg font-bold text-emerald-400">{filtrados.filter((r) => r.estado === 'Aceptado').length}</p>
+                <p className="text-xs font-mono text-emerald-400">
+                  ${getTotalPorEstado(['Aceptado']).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
               <div className="glass-card rounded-xl p-3 text-center">
@@ -280,7 +301,6 @@ export default function RemitosPage() {
                   ${getTotalPorEstado(['A_Entregar']).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
-              <div className="glass-card rounded-xl p-3 text-center" />
             </>
           )}
         </motion.div>
@@ -327,7 +347,7 @@ export default function RemitosPage() {
                     className="hover:bg-white/5 transition-colors"
                   >
                     <td className="px-4 py-3">
-                      <Link href={`/remitos/${remito.id}`}>
+                      <Link href={`/remitos/${remito.id}?from=${tab}`}>
                         <span className="text-sm font-bold text-white hover:text-[#6C3CE1] transition-colors">
                           #{String(remito.numeroRemito).padStart(6, '0')}
                         </span>
@@ -356,14 +376,11 @@ export default function RemitosPage() {
                           <>
                             <button
                               onClick={() =>
-                                handleWsp(
-                                  remito.clienteData.telefono,
-                                  remito.id!,
-                                  remito.numeroRemito,
-                                  remito.clienteData.razonSocial,
-                                  remito.totalGeneral,
-                                  'presupuesto'
-                                )
+                                setWspPopup({
+                                  remitoId: remito.id!,
+                                  phone: remito.clienteData.telefono,
+                                  tipo: 'presupuesto',
+                                })
                               }
                               disabled={updating === remito.id}
                               className="p-1.5 rounded-lg text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50"
@@ -394,28 +411,37 @@ export default function RemitosPage() {
                           </>
                         )}
 
-                        {tab === 'presupuestos' && remito.estado === 'Aceptado' && (
-                          <span className="text-[10px] text-emerald-400/60 italic mr-1">→ Remitos</span>
-                        )}
-
                         {tab === 'presupuestos' && remito.estado === 'Anulado' && (
                           <span className="text-[10px] text-red-400/60 italic mr-1">Anulado</span>
                         )}
 
                         {/* Remitos tab actions */}
+                        {tab === 'remitos' && remito.estado === 'Aceptado' && (
+                          <>
+                            <button
+                              onClick={() => handleCambiarEstado(remito.id!, 'En_Revision')}
+                              disabled={updating === remito.id}
+                              className="px-2 py-1 rounded-lg text-xs font-medium bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors disabled:opacity-50"
+                              title="Pasar a En Revisión"
+                            >
+                              {updating === remito.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                'Revisar'
+                              )}
+                            </button>
+                          </>
+                        )}
+
                         {tab === 'remitos' && remito.estado === 'En_Revision' && (
                           <>
                             <button
                               onClick={() =>
-                                handleWsp(
-                                  remito.clienteData.telefono,
-                                  remito.id!,
-                                  remito.numeroRemito,
-                                  remito.clienteData.razonSocial,
-                                  remito.totalGeneral,
-                                  'remito',
-                                  empresa?.telefonoAdmin
-                                )
+                                setWspPopup({
+                                  remitoId: remito.id!,
+                                  phone: empresa?.telefonoAdmin || remito.clienteData.telefono,
+                                  tipo: 'remito',
+                                })
                               }
                               disabled={updating === remito.id}
                               className="p-1.5 rounded-lg text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50"
@@ -442,7 +468,7 @@ export default function RemitosPage() {
                           <span className="text-[10px] text-violet-400/60 italic mr-1">Listo</span>
                         )}
 
-                        <Link href={`/remitos/${remito.id}`}>
+                        <Link href={`/remitos/${remito.id}?from=${tab}`}>
                           <ChevronRight className="h-4 w-4 text-[#6B6B8A] hover:text-white transition-colors" />
                         </Link>
                       </div>
@@ -493,6 +519,63 @@ export default function RemitosPage() {
                   className="flex-1 px-4 py-2.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 text-sm font-medium transition-colors"
                 >
                   Anular
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* WhatsApp Popup */}
+      <AnimatePresence>
+        {wspPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setWspPopup(null)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            <motion.div
+              className="relative w-full max-w-sm glass-card rounded-2xl p-6"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
+                <Smartphone className="h-6 w-6 text-green-400" />
+              </div>
+              <h2 className="text-lg font-semibold text-white mb-1 text-center">
+                Enviar por WhatsApp
+              </h2>
+              <p className="text-sm text-[#B0B0D0] mb-4 text-center">
+                {wspPopup.tipo === 'presupuesto'
+                  ? 'Número del cliente'
+                  : 'Número de Administración'}
+              </p>
+              <input
+                type="text"
+                value={wspPopup.phone}
+                onChange={(e) =>
+                  setWspPopup({ ...wspPopup, phone: e.target.value })
+                }
+                className="w-full px-4 py-2.5 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-green-500/50 transition-colors mb-5"
+                placeholder="Ingresá el número..."
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setWspPopup(null)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleWspConfirm}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-green-500/20 text-green-400 hover:bg-green-500/30 text-sm font-medium transition-colors inline-flex items-center justify-center gap-2"
+                >
+                  <Send className="h-4 w-4" />
+                  Enviar
                 </button>
               </div>
             </motion.div>
