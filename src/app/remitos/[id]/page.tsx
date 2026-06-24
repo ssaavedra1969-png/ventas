@@ -112,7 +112,7 @@ export default function RemitoViewPage() {
 
       {/* Document */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="rounded-2xl overflow-hidden relative border border-gray-300 bg-[#E8E8E8]">
+        <div className="rounded-2xl overflow-hidden relative border border-gray-200 bg-[#E8E8E8]">
           {/* PRESUPUESTO watermark */}
           {presupuesto && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 select-none">
@@ -129,7 +129,7 @@ export default function RemitoViewPage() {
           <div className="h-1 bg-gradient-to-r from-[#6C3CE1] via-[#00D4FF] to-[#6C3CE1]" />
 
           {/* ─── HEADER ─── */}
-          <div className="px-8 pt-6 pb-4 border-b border-gray-300">
+          <div className="px-8 pt-6 pb-4 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row justify-between gap-4">
               {/* Company Info */}
               <div className="flex items-center gap-3 min-w-0">
@@ -195,7 +195,7 @@ export default function RemitoViewPage() {
           </div>
 
           {/* ─── CLIENT DATA ─── */}
-          <div className="px-8 py-3 border-b border-gray-300 bg-gray-100/50">
+          <div className="px-8 py-3 border-b border-gray-200 bg-gray-100/50">
             <p className="text-[8px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
               Datos del Cliente
             </p>
@@ -235,7 +235,7 @@ export default function RemitoViewPage() {
           <div className="px-8 py-4">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-300">
+                <tr className="border-b border-gray-200">
                   <th className="text-left text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2 w-12">Cant.</th>
                   <th className="text-left text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2">Descripción</th>
                   <th className="text-right text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2 w-24">P. Unitario</th>
@@ -243,7 +243,7 @@ export default function RemitoViewPage() {
                   <th className="text-right text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2 w-24">Subtotal</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-100">
                 {remito.items.map((item, index) => (
                   <tr key={index} className="even:bg-gray-100/50">
                     <td className="py-2 text-xs font-mono text-gray-800">{item.cantidad}</td>
@@ -259,7 +259,7 @@ export default function RemitoViewPage() {
             </table>
 
             {/* Totals */}
-            <div className="border-t border-gray-300 mt-3 pt-3 ml-auto w-full sm:w-56 space-y-1">
+            <div className="border-t border-gray-200 mt-3 pt-3 ml-auto w-full sm:w-56 space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="text-gray-500">Subtotal</span>
                 <span className="font-mono text-gray-800">${remito.subtotalGeneral.toFixed(2)}</span>
@@ -268,7 +268,7 @@ export default function RemitoViewPage() {
                 <span className="text-gray-500">IVA ({ivaRate}%)</span>
                 <span className="font-mono text-gray-800">${remito.iva.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm font-bold border-t border-gray-300 pt-2">
+              <div className="flex justify-between text-sm font-bold border-t border-gray-200 pt-2">
                 <span className="text-gray-900">Total General</span>
                 <span
                   className="font-mono px-2.5 py-0.5 rounded-lg text-white text-xs"
@@ -283,7 +283,7 @@ export default function RemitoViewPage() {
           </div>
 
           {/* ─── FOOTER ─── */}
-          <div className="px-8 py-4 border-t border-gray-300 bg-gray-100/50">
+          <div className="px-8 py-4 border-t border-gray-200 bg-gray-100/50">
             {remito.observaciones && (
               <div className="mb-4">
                 <p className="text-[8px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">
@@ -309,7 +309,7 @@ export default function RemitoViewPage() {
                 </span>
               </div>
               <div className="text-center">
-                <div className="border-t-2 border-gray-300 w-44 pt-1.5">
+                <div className="border-t-2 border-gray-200 w-44 pt-1.5">
                   <p className="text-[8px] text-gray-500 uppercase tracking-wider">Firma y Acuse</p>
                 </div>
               </div>
