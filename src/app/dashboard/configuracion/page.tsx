@@ -145,6 +145,23 @@ export default function ConfiguracionPage() {
             />
           </div>
 
+          {/* WhatsApp Admin */}
+          <div>
+            <label className="block text-sm font-medium text-[#B0B0D0] mb-1.5">
+              WhatsApp Administración
+            </label>
+            <input
+              type="text"
+              value={data?.telefonoAdmin || ''}
+              onChange={(e) => handleChange('telefonoAdmin', e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors input-nebula"
+              placeholder="(011) 1234-5678"
+            />
+            <p className="text-[10px] text-[#6B6B8A] mt-1">
+              Número al que se enviarán los remitos desde la sección Remitos via WhatsApp
+            </p>
+          </div>
+
           {/* Save Button */}
           <div className="flex justify-end pt-2">
             <motion.button

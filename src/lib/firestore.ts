@@ -39,6 +39,7 @@ const DEFAULT_EMPRESA: EmpresaConfig = {
   direccion: 'Av. Ejemplo 1234',
   telefono: '(011) 1234-5678',
   email: 'info@falpat.com',
+  telefonoAdmin: '(011) 1234-5678',
 }
 
 export async function getEmpresaConfig(): Promise<EmpresaConfig> {
@@ -344,7 +345,7 @@ export async function createRemito(data: {
     subtotalGeneral,
     iva,
     totalGeneral,
-    estado: 'Pendiente',
+    estado: 'Enviado',
     observaciones: data.observaciones || '',
     createdAt: Timestamp.now(),
   })
@@ -409,7 +410,7 @@ export async function getRemito(id: string) {
 
 export async function updateRemitoEstado(
   id: string,
-  estado: 'Pendiente' | 'Entregado' | 'Anulado'
+  estado: Remito['estado']
 ) {
   await updateDoc(doc(getDb(), COLECCIONES.remitos, id), { estado })
 }

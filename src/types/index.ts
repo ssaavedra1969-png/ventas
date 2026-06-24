@@ -55,7 +55,7 @@ export interface Remito {
   subtotalGeneral: number
   iva: number
   totalGeneral: number
-  estado: 'Pendiente' | 'Entregado' | 'Anulado'
+  estado: 'Enviado' | 'Aceptado' | 'Anulado' | 'En_Revision' | 'A_Entregar'
   usuarioCreador?: string
   createdAt?: Date
   observaciones?: string
@@ -74,4 +74,5 @@ export interface EmpresaConfig {
   direccion: string
   telefono: string
   email: string
+  telefonoAdmin?: string
 }

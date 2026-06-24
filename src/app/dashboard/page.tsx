@@ -316,16 +316,13 @@ export default function DashboardPage() {
                       <p className="text-sm font-semibold text-white font-mono">
                         ${remito.totalGeneral.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
                       </p>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${
-                          remito.estado === 'Pendiente'
-                            ? 'badge-pendiente'
-                            : remito.estado === 'Entregado'
-                              ? 'badge-entregado'
-                              : 'badge-anulado'
-                        }`}
-                      >
-                        {remito.estado}
+                      <span className="text-xs text-[#6B6B8A]">
+                        {remito.estado === 'Enviado' ? 'Presupuesto' :
+                         remito.estado === 'Aceptado' ? 'Aceptado' :
+                         remito.estado === 'Anulado' ? 'Anulado' :
+                         remito.estado === 'En_Revision' ? 'Revisión' :
+                         remito.estado === 'A_Entregar' ? 'A Entregar' :
+                         remito.estado}
                       </span>
                     </div>
                   </motion.div>

@@ -17,7 +17,8 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { motion } from 'framer-motion'
 
-const esPresupuesto = (estado: string) => estado !== 'Entregado'
+const esPresupuesto = (estado: string) =>
+  ['Enviado', 'Aceptado', 'Anulado'].includes(estado)
 
 export default function RemitoViewPage() {
   const params = useParams()
@@ -84,6 +85,23 @@ export default function RemitoViewPage() {
   }
 
   const presupuesto = esPresupuesto(remito.estado)
+
+  const estadoLabel: Record<string, string> = {
+    Enviado: 'Enviado',
+    Aceptado: 'Aceptado',
+    Anulado: 'Anulado',
+    En_Revision: 'En Revisión',
+    A_Entregar: 'A Entregar',
+  }
+
+  const estadoColor: Record<string, string> = {
+    Enviado: 'bg-blue-100 text-blue-800 border border-blue-200',
+    Aceptado: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+    Anulado: 'bg-red-100 text-red-800 border border-red-200',
+    En_Revision: 'bg-amber-100 text-amber-800 border border-amber-200',
+    A_Entregar: 'bg-violet-100 text-violet-800 border border-violet-200',
+  }
+
   const ivaRate = remito.subtotalGeneral > 0
     ? ((remito.iva / remito.subtotalGeneral) * 100).toFixed(1)
     : '0.0'
@@ -297,15 +315,9 @@ export default function RemitoViewPage() {
               <div>
                 <p className="text-[8px] text-gray-500 uppercase tracking-wider mb-1">Estado</p>
                 <span
-                  className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-medium ${
-                    remito.estado === 'Pendiente'
-                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                      : remito.estado === 'Entregado'
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                        : 'bg-red-100 text-red-800 border border-red-200'
-                  }`}
+                  className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-medium ${estadoColor[remito.estado] || 'bg-gray-100 text-gray-800 border border-gray-200'}`}
                 >
-                  {remito.estado}
+                  {estadoLabel[remito.estado] || remito.estado}
                 </span>
               </div>
               <div className="text-center">
