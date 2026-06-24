@@ -321,8 +321,17 @@ export async function createRemito(data: {
   const year = now.getFullYear()
   const numeroRemito = await getNextNumeroRemito(year)
 
+  const IVA_RATES: Record<string, number> = {
+    A: 0.21,
+    B: 0.21,
+    C: 0,
+    E: 0.105,
+    M: 0.27,
+  }
+  const tipoFactura = data.clienteData.tipoFactura || 'B'
+  const ivaRate = IVA_RATES[tipoFactura] ?? 0.21
   const subtotalGeneral = data.items.reduce((sum, item) => sum + item.subtotal, 0)
-  const iva = subtotalGeneral * 0.21
+  const iva = subtotalGeneral * ivaRate
   const totalGeneral = subtotalGeneral + iva
 
   const docRef = await addDoc(collection(getDb(), COLECCIONES.remitos), {

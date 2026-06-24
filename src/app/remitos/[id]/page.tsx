@@ -84,6 +84,9 @@ export default function RemitoViewPage() {
   }
 
   const presupuesto = esPresupuesto(remito.estado)
+  const ivaRate = remito.subtotalGeneral > 0
+    ? ((remito.iva / remito.subtotalGeneral) * 100).toFixed(1)
+    : '0.0'
   const handlePrint = () => window.print()
 
   return (
@@ -109,56 +112,56 @@ export default function RemitoViewPage() {
 
       {/* Document */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="rounded-2xl overflow-hidden relative border border-white/10 bg-gradient-to-b from-[#12122A] to-[#0E0E22]">
+        <div className="rounded-2xl overflow-hidden relative border border-gray-300 bg-[#E8E8E8]">
           {/* PRESUPUESTO watermark */}
           {presupuesto && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 select-none">
               <span
-                className="text-[10rem] sm:text-[14rem] font-black uppercase tracking-[0.15em] opacity-[0.04] text-orange-400 rotate-[-25deg] whitespace-nowrap"
+                className="text-[5rem] sm:text-[7rem] font-black uppercase tracking-[0.2em] text-[#a0a0a0] opacity-20 rotate-[-30deg] whitespace-nowrap"
                 style={{ fontFamily: 'Inter, sans-serif' }}
               >
-                PRESUPUESTO
+                P R E S U P U E S T O
               </span>
             </div>
           )}
 
           {/* Decorative top bar */}
-          <div className="h-1.5 bg-gradient-to-r from-[#6C3CE1] via-[#00D4FF] to-[#6C3CE1]" />
+          <div className="h-1 bg-gradient-to-r from-[#6C3CE1] via-[#00D4FF] to-[#6C3CE1]" />
 
           {/* ─── HEADER ─── */}
-          <div className="px-8 pt-8 pb-6 border-b border-white/5">
-            <div className="flex flex-col sm:flex-row justify-between gap-6">
+          <div className="px-8 pt-6 pb-4 border-b border-gray-300">
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
               {/* Company Info */}
-              <div className="flex items-start gap-4">
+              <div className="flex items-center gap-3 min-w-0">
                 <div
-                  className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
+                  className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
                   style={{ background: 'linear-gradient(135deg, #6C3CE1, #00D4FF)' }}
                 >
-                  <Receipt className="h-7 w-7 text-white" />
+                  <Receipt className="h-5 w-5 text-white" />
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-white">
+                <div className="min-w-0">
+                  <h1 className="text-sm font-bold text-gray-800 truncate">
                     {empresa?.razonSocial || 'GRUPO FALPAT SRL'}
                   </h1>
-                  <p className="text-sm text-[#6B6B8A]">CUIT: {empresa?.cuit || '30-71784388-2'}</p>
-                  <div className="mt-2 space-y-1">
+                  <p className="text-[10px] text-gray-500">CUIT: {empresa?.cuit || '30-71784388-2'}</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0 mt-0.5">
                     {empresa?.direccion && (
-                      <p className="text-xs text-[#6B6B8A] flex items-center gap-1.5">
-                        <MapPin className="h-3 w-3 shrink-0" />
+                      <span className="text-[9px] text-gray-500 inline-flex items-center gap-1">
+                        <MapPin className="h-2.5 w-2.5 shrink-0" />
                         {empresa.direccion}
-                      </p>
+                      </span>
                     )}
                     {empresa?.telefono && (
-                      <p className="text-xs text-[#6B6B8A] flex items-center gap-1.5">
-                        <Phone className="h-3 w-3 shrink-0" />
+                      <span className="text-[9px] text-gray-500 inline-flex items-center gap-1">
+                        <Phone className="h-2.5 w-2.5 shrink-0" />
                         {empresa.telefono}
-                      </p>
+                      </span>
                     )}
                     {empresa?.email && (
-                      <p className="text-xs text-[#6B6B8A] flex items-center gap-1.5">
-                        <Mail className="h-3 w-3 shrink-0" />
+                      <span className="text-[9px] text-gray-500 inline-flex items-center gap-1">
+                        <Mail className="h-2.5 w-2.5 shrink-0" />
                         {empresa.email}
-                      </p>
+                      </span>
                     )}
                   </div>
                 </div>
@@ -167,23 +170,23 @@ export default function RemitoViewPage() {
               {/* Document Info */}
               <div className="text-left sm:text-right shrink-0">
                 <div
-                  className="inline-block px-6 py-3 rounded-xl text-center"
+                  className="inline-block px-4 py-2 rounded-lg text-center"
                   style={{
                     background: presupuesto
-                      ? 'linear-gradient(135deg, rgba(255,165,0,0.12), rgba(255,200,0,0.08))'
-                      : 'linear-gradient(135deg, rgba(108,60,225,0.15), rgba(0,212,255,0.1))',
+                      ? 'linear-gradient(135deg, rgba(255,165,0,0.15), rgba(255,200,0,0.1))'
+                      : 'linear-gradient(135deg, rgba(108,60,225,0.12), rgba(0,212,255,0.08))',
                     border: presupuesto
-                      ? '1px solid rgba(255,165,0,0.2)'
+                      ? '1px solid rgba(255,165,0,0.25)'
                       : '1px solid rgba(108,60,225,0.2)',
                   }}
                 >
-                  <p className="text-[10px] text-[#6B6B8A] uppercase tracking-[0.2em] mb-0.5">
+                  <p className="text-[9px] text-gray-500 uppercase tracking-[0.2em] mb-0.5">
                     {presupuesto ? 'Presupuesto' : 'Remito'}
                   </p>
-                  <p className="text-2xl font-black tracking-tight text-white">
+                  <p className="text-lg font-black tracking-tight text-gray-900">
                     N° {String(remito.numeroRemito).padStart(6, '0')}
                   </p>
-                  <p className="text-[10px] text-[#6B6B8A] mt-1">
+                  <p className="text-[9px] text-gray-500 mt-0.5">
                     {format(remito.fecha, "d 'de' MMMM 'de' yyyy", { locale: es })}
                   </p>
                 </div>
@@ -192,36 +195,36 @@ export default function RemitoViewPage() {
           </div>
 
           {/* ─── CLIENT DATA ─── */}
-          <div className="px-8 py-5 border-b border-white/5 bg-white/[0.015]">
-            <p className="text-[9px] font-semibold text-[#6B6B8A] uppercase tracking-[0.2em] mb-3">
+          <div className="px-8 py-3 border-b border-gray-300 bg-gray-100/50">
+            <p className="text-[8px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-2">
               Datos del Cliente
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2 text-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-1 text-xs">
               <div>
-                <p className="text-[9px] text-[#6B6B8A] uppercase tracking-wider">CUIT</p>
-                <p className="font-medium text-white">{remito.clienteData.cuit}</p>
+                <p className="text-[8px] text-gray-500 uppercase tracking-wider">CUIT</p>
+                <p className="font-medium text-gray-800">{remito.clienteData.cuit}</p>
               </div>
               <div>
-                <p className="text-[9px] text-[#6B6B8A] uppercase tracking-wider">Razón Social</p>
-                <p className="font-medium text-white">{remito.clienteData.razonSocial}</p>
+                <p className="text-[8px] text-gray-500 uppercase tracking-wider">Razón Social</p>
+                <p className="font-medium text-gray-800">{remito.clienteData.razonSocial}</p>
               </div>
               <div>
-                <p className="text-[9px] text-[#6B6B8A] uppercase tracking-wider">Dirección</p>
-                <p className="text-[#B0B0D0]">{remito.clienteData.direccion}</p>
+                <p className="text-[8px] text-gray-500 uppercase tracking-wider">Dirección</p>
+                <p className="text-gray-600">{remito.clienteData.direccion}</p>
               </div>
               <div>
-                <p className="text-[9px] text-[#6B6B8A] uppercase tracking-wider">Teléfono</p>
-                <p className="text-[#B0B0D0]">{remito.clienteData.telefono}</p>
+                <p className="text-[8px] text-gray-500 uppercase tracking-wider">Teléfono</p>
+                <p className="text-gray-600">{remito.clienteData.telefono}</p>
               </div>
               <div>
-                <p className="text-[9px] text-[#6B6B8A] uppercase tracking-wider">T. FAC</p>
-                <p className="font-medium text-white">{remito.clienteData.tipoFactura || '—'}</p>
+                <p className="text-[8px] text-gray-500 uppercase tracking-wider">T. FAC</p>
+                <p className="font-medium text-gray-800">{remito.clienteData.tipoFactura || '—'}</p>
               </div>
               {remito.vendedor && (
                 <div>
-                  <p className="text-[9px] text-[#6B6B8A] uppercase tracking-wider">Vendedor</p>
-                  <p className="font-medium text-white">
-                    {remito.vendedor.nombre} <span className="text-[#6B6B8A]">({remito.vendedor.codigo})</span>
+                  <p className="text-[8px] text-gray-500 uppercase tracking-wider">Vendedor</p>
+                  <p className="font-medium text-gray-800">
+                    {remito.vendedor.nombre} <span className="text-gray-500">({remito.vendedor.codigo})</span>
                   </p>
                 </div>
               )}
@@ -229,49 +232,48 @@ export default function RemitoViewPage() {
           </div>
 
           {/* ─── ITEMS TABLE ─── */}
-          <div className="px-8 py-6">
+          <div className="px-8 py-4">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left text-[9px] font-semibold text-[#6B6B8A] uppercase tracking-wider pb-3 w-14">Cant.</th>
-                  <th className="text-left text-[9px] font-semibold text-[#6B6B8A] uppercase tracking-wider pb-3">Descripción</th>
-                  <th className="text-right text-[9px] font-semibold text-[#6B6B8A] uppercase tracking-wider pb-3 w-28">P. Unitario</th>
-                  <th className="text-right text-[9px] font-semibold text-[#6B6B8A] uppercase tracking-wider pb-3 w-16">Bonif.</th>
-                  <th className="text-right text-[9px] font-semibold text-[#6B6B8A] uppercase tracking-wider pb-3 w-28">Subtotal</th>
+                <tr className="border-b border-gray-300">
+                  <th className="text-left text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2 w-12">Cant.</th>
+                  <th className="text-left text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2">Descripción</th>
+                  <th className="text-right text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2 w-24">P. Unitario</th>
+                  <th className="text-right text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2 w-14">Bonif.</th>
+                  <th className="text-right text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2 w-24">Subtotal</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-gray-200">
                 {remito.items.map((item, index) => (
-                  <tr key={index} className="bg-white/[0.015]">
-                    <td className="py-2.5 text-sm font-mono text-white">{item.cantidad}</td>
-                    <td className="py-2.5 text-sm text-white">{item.nombreProducto}</td>
-                    <td className="py-2.5 text-sm font-mono text-[#B0B0D0] text-right">${item.precioUnitario.toFixed(2)}</td>
-                    <td className="py-2.5 text-sm font-mono text-[#B0B0D0] text-right">
+                  <tr key={index} className="even:bg-gray-100/50">
+                    <td className="py-2 text-xs font-mono text-gray-800">{item.cantidad}</td>
+                    <td className="py-2 text-xs text-gray-800">{item.nombreProducto}</td>
+                    <td className="py-2 text-xs font-mono text-gray-500 text-right">${item.precioUnitario.toFixed(2)}</td>
+                    <td className="py-2 text-xs font-mono text-gray-500 text-right">
                       {item.bonificacion ? `${item.bonificacion}%` : '—'}
                     </td>
-                    <td className="py-2.5 text-sm font-mono text-white text-right font-semibold">${item.subtotal.toFixed(2)}</td>
+                    <td className="py-2 text-xs font-mono text-gray-800 text-right font-semibold">${item.subtotal.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
             {/* Totals */}
-            <div className="border-t border-white/10 mt-4 pt-4 ml-auto w-full sm:w-64 space-y-1.5">
-              <div className="flex justify-between text-sm">
-                <span className="text-[#6B6B8A]">Subtotal</span>
-                <span className="font-mono text-white">${remito.subtotalGeneral.toFixed(2)}</span>
+            <div className="border-t border-gray-300 mt-3 pt-3 ml-auto w-full sm:w-56 space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">Subtotal</span>
+                <span className="font-mono text-gray-800">${remito.subtotalGeneral.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-[#6B6B8A]">IVA (21%)</span>
-                <span className="font-mono text-white">${remito.iva.toFixed(2)}</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-500">IVA ({ivaRate}%)</span>
+                <span className="font-mono text-gray-800">${remito.iva.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-base font-bold border-t border-white/10 pt-2.5">
-                <span className="text-white">Total General</span>
+              <div className="flex justify-between text-sm font-bold border-t border-gray-300 pt-2">
+                <span className="text-gray-900">Total General</span>
                 <span
-                  className="font-mono px-3 py-1 rounded-lg text-white"
+                  className="font-mono px-2.5 py-0.5 rounded-lg text-white text-xs"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(108,60,225,0.2), rgba(0,212,255,0.15))',
-                    border: '1px solid rgba(108,60,225,0.3)',
+                    background: 'linear-gradient(135deg, #6C3CE1, #00D4FF)',
                   }}
                 >
                   ${remito.totalGeneral.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
@@ -281,34 +283,34 @@ export default function RemitoViewPage() {
           </div>
 
           {/* ─── FOOTER ─── */}
-          <div className="px-8 py-5 border-t border-white/5 bg-white/[0.015]">
+          <div className="px-8 py-4 border-t border-gray-300 bg-gray-100/50">
             {remito.observaciones && (
-              <div className="mb-5">
-                <p className="text-[9px] font-semibold text-[#6B6B8A] uppercase tracking-[0.2em] mb-2">
+              <div className="mb-4">
+                <p className="text-[8px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-1">
                   Observaciones
                 </p>
-                <p className="text-sm text-[#B0B0D0]">{remito.observaciones}</p>
+                <p className="text-xs text-gray-600">{remito.observaciones}</p>
               </div>
             )}
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
               <div>
-                <p className="text-[9px] text-[#6B6B8A] uppercase tracking-wider mb-1.5">Estado</p>
+                <p className="text-[8px] text-gray-500 uppercase tracking-wider mb-1">Estado</p>
                 <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                  className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-medium ${
                     remito.estado === 'Pendiente'
-                      ? 'badge-pendiente'
+                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
                       : remito.estado === 'Entregado'
-                        ? 'badge-entregado'
-                        : 'badge-anulado'
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-red-100 text-red-800 border border-red-200'
                   }`}
                 >
                   {remito.estado}
                 </span>
               </div>
               <div className="text-center">
-                <div className="border-t-2 border-white/10 w-48 pt-2">
-                  <p className="text-[9px] text-[#6B6B8A] uppercase tracking-wider">Firma y Acuse</p>
+                <div className="border-t-2 border-gray-300 w-44 pt-1.5">
+                  <p className="text-[8px] text-gray-500 uppercase tracking-wider">Firma y Acuse</p>
                 </div>
               </div>
             </div>
