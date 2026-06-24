@@ -571,10 +571,16 @@ a {
 
 /* ─── Print ─── */
 @media print {
-  body { background: white !important; color: black !important; }
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   body::before, body::after { display: none !important; }
   .no-print { display: none !important; }
   .print-only { display: block !important; }
   .glass-card { background: white !important; backdrop-filter: none !important; }
   .btn-nebula { background: #000 !important; }
+  @page { margin: 15mm; }
 }
