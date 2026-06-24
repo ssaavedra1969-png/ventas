@@ -395,20 +395,22 @@ export default function ProductosPage() {
                   <label className="block text-sm font-medium text-[#B0B0D0] mb-1">
                     Tipo *
                   </label>
-                  <select
-                    value={form.tipo}
-                    onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-                    className={`w-full px-3 py-2.5 rounded-xl bg-[#0A0A1A] border ${
-                      errors.tipo ? 'border-red-500/50' : 'border-white/5'
-                    } text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors`}
-                  >
-                    <option value="">Seleccionar</option>
-                    {tipos.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <input
+                      list="tipos-list"
+                      value={form.tipo}
+                      onChange={(e) => setForm({ ...form, tipo: e.target.value })}
+                      placeholder="Escribí o seleccioná..."
+                      className={`w-full px-3 py-2.5 rounded-xl bg-[#0A0A1A] border ${
+                        errors.tipo ? 'border-red-500/50' : 'border-white/5'
+                      } text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors`}
+                    />
+                    <datalist id="tipos-list">
+                      {tipos.map((t) => (
+                        <option key={t} value={t} />
+                      ))}
+                    </datalist>
+                  </div>
                   {errors.tipo && (
                     <p className="text-xs text-red-400 mt-1">{errors.tipo}</p>
                   )}

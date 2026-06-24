@@ -91,7 +91,6 @@ export default function ParallaxHero({ remitosMes, clientesActivos, totalFactura
     offset: ['start start', 'end start'],
   })
 
-  const truckY = useTransform(scrollYProgress, [0, 1], [0, 120])
   const bgY = useTransform(scrollYProgress, [0, 1], [0, 40])
   const cardOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0])
   const cardY = useTransform(scrollYProgress, [0, 0.6], [0, -40])
@@ -100,7 +99,7 @@ export default function ParallaxHero({ remitosMes, clientesActivos, totalFactura
   return (
     <div
       ref={sectionRef}
-      className="relative h-[90vh] min-h-[600px] overflow-hidden rounded-2xl mb-8"
+      className="relative min-h-[360px] overflow-hidden rounded-2xl mb-8"
     >
       {/* Background Image with Parallax */}
       <motion.div
@@ -130,19 +129,6 @@ export default function ParallaxHero({ remitosMes, clientesActivos, totalFactura
 
       {/* Floating Particles */}
       <FloatingParticles />
-
-      {/* Truck Layer with Parallax */}
-      <motion.div
-        className="absolute inset-x-0 bottom-0 h-full pointer-events-none z-20"
-        style={{ y: truckY }}
-      >
-        <img
-          src="https://roof-wish-40038865.figma.site/_components/v2/f31fd17907ce60745d45e83a61d44fd3810d5f25/truck_1.8c4bff83.png"
-          alt="Camión"
-          className="w-full h-full object-contain object-bottom origin-bottom scale-[1.5] sm:scale-110 md:scale-[1.8] lg:scale-105 opacity-60 sm:opacity-80"
-          loading="lazy"
-        />
-      </motion.div>
 
       {/* Foreground Card */}
       <motion.div
