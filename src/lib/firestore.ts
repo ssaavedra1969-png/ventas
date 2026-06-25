@@ -581,14 +581,17 @@ export async function agregarPago(
 
   const data = snap.data()
   const pagosActuales: Pago[] = data.pagos ?? []
-  const nuevoPago = {
+  interface PagoRaw {
+    id: string; monto: number; metodo: string; referencia?: string; fecha: Timestamp; createdAt: Timestamp
+  }
+  const nuevoPago: PagoRaw = {
     id: `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
     monto: pago.monto,
     metodo: pago.metodo,
-    referencia: pago.referencia,
     fecha: Timestamp.fromDate(pago.fecha),
     createdAt: Timestamp.now(),
   }
+  if (pago.referencia) nuevoPago.referencia = pago.referencia
   const nuevosPagos = [...pagosActuales, nuevoPago]
   const totalPagado = nuevosPagos.reduce((sum, p) => sum + p.monto, 0)
 
