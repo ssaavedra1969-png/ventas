@@ -42,4 +42,6 @@ next-env.d.ts
 
 # local backups (contiene service-account.json y datos exportados)
 /backups/backup-*/
+/backups/datos-*/
+/backups/proyecto-*/
 /backups/service-account.json

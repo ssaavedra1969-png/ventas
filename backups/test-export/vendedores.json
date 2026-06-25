@@ -1,0 +1,32 @@
+[
+  {
+    "_id": "ExVDYNDMHmeexNLV2RMf",
+    "_createdAt": "2026-06-24T11:54:12.929Z",
+    "_updatedAt": "2026-06-25T12:14:49.387Z",
+    "codigo": "V0002",
+    "createdAt": {
+      "_timestamp": "2026-06-24T11:54:12.726Z"
+    },
+    "nombre": "HABAN PIA"
+  },
+  {
+    "_id": "ZKi3HmPXqBom8d5HZNAg",
+    "_createdAt": "2026-06-24T11:53:54.584Z",
+    "_updatedAt": "2026-06-25T12:15:11.420Z",
+    "createdAt": {
+      "_timestamp": "2026-06-24T11:53:54.420Z"
+    },
+    "codigo": "V0003",
+    "nombre": "SAN CRUZ AGUSTINA"
+  },
+  {
+    "_id": "sLvHX4pHMDgN7AwaAsqB",
+    "_createdAt": "2026-06-24T11:55:10.998Z",
+    "_updatedAt": "2026-06-25T12:14:31.704Z",
+    "createdAt": {
+      "_timestamp": "2026-06-24T11:55:10.778Z"
+    },
+    "codigo": "V0001",
+    "nombre": "BRITEZ LEANDRO"
+  }
+]

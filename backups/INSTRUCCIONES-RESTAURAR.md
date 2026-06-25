@@ -1,251 +1,173 @@
 # Procedimiento de Restauración — FALPAT SRL
 
-Este documento explica cómo recuperar **todos los datos del sistema** a partir de un backup
-realizado con `backup.ps1`.
+Este documento explica cómo recuperar el sistema a partir de los backups
+realizados con los scripts de `backups/`.
+
+Existen **dos backups independientes**:
+
+| Backup | ¿Qué incluye? | ¿Cada cuánto? |
+|--------|---------------|---------------|
+| **Datos** (`backup-datos.ps1`) | Clientes, productos, vendedores, remitos, contadores (Firestore) | Diario / antes de cambios grandes |
+| **Proyecto** (`backup-proyecto.ps1`) | Código fuente, configuraciones, `.env.local` | Semanal / después de cambios de código |
 
 ---
 
-## 📦 Contenido del backup
+## 📦 Backup de DATOS
 
+Contenido:
 ```
-backup-2026-06-23_183551/
-├── source/                  ← Código fuente completo de la app
-│   ├── src/
-│   ├── scripts/
-│   ├── Clientes/
-│   ├── Productos/
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── vercel.json
-│   └── ...
-├── env/
-│   └── .env.local           ← Variables de entorno (API keys de Firebase)
-├── firestore/               ← Datos exportados de Firestore
+datos-2026-06-24_143000/
+├── firestore/
 │   ├── clientes.json
 │   ├── productos.json
 │   ├── vendedores.json
 │   ├── remitos.json
 │   ├── contadores.json
 │   └── service-account.json
-└── manifest.json            ← Resumen del backup
+└── manifest.json
 ```
+
+### Cómo hacerlo
+
+```powershell
+cd C:\AI\Antigravity\FALPAT Ventas
+.\backups\backup-datos.ps1
+```
+
+### Cómo restaurar
+
+Requisito: tener `service-account.json` en `backups/`.
+
+```powershell
+cd C:\AI\Antigravity\FALPAT Ventas
+npm run restore -- ".\backups\datos-2026-06-24_143000\firestore"
+```
+
+Reemplazá la fecha por la del backup que quieras usar.
+
+**Advertencia:** Sobrescribe los documentos existentes con el mismo ID.
 
 ---
 
-## 🔁 Escenario 1: Restaurar solo los datos de Firestore
+## 📦 Backup de PROYECTO
 
-Usar cuando el código ya existe pero los datos se perdieron o corrompieron.
+Contenido:
+```
+proyecto-2026-06-24_143000/
+├── source/
+│   ├── src/
+│   ├── scripts/
+│   ├── Clientes/
+│   ├── Productos/
+│   ├── public/
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── next.config.mjs
+│   ├── tailwind.config.ts
+│   ├── vercel.json
+│   └── ...
+├── env/
+│   └── .env.local
+└── manifest.json
+```
 
-### Requisito previo
-
-Tené el archivo `service-account.json` (clave privada de Firebase) en la raíz de `backups/`.
-
-Si no lo tenés:
-1. Andá a [Firebase Console](https://console.firebase.google.com)
-2. Proyecto: **leafy-valor-410916**
-3. ⚙️ Configuración del proyecto → **Cuentas de servicio**
-4. Hacé clic en **"Generar nueva clave privada"**
-5. Guardá el archivo como `backups/service-account.json`
-
-### Paso a paso
-
-1. Abrí **PowerShell** como administrador
-2. Navegá a la carpeta del proyecto:
-   ```powershell
-   cd C:\AI\Antigravity\FALPAT Ventas
-   ```
-3. Identificá la carpeta del backup que querés restaurar, por ejemplo:
-   ```
-   C:\AI\Antigravity\FALPAT Ventas\backups\backup-2026-06-23_183551\
-   ```
-4. Ejecutá el comando de restauración apuntando a la carpeta `firestore` del backup:
-   ```powershell
-   npm run restore -- ".\backups\backup-2026-06-23_183551\firestore"
-   ```
-   Reemplazá la fecha por la del backup que quieras usar.
-
-5. El script mostrará el progreso de cada colección:
-   ```
-   Restaurando clientes...
-     → 15/15 documentos restaurados
-   Restaurando productos...
-     → 42/42 documentos restaurados
-   ...
-   ✓ Restauración completada: 123/123 documentos restaurados
-   ```
-
-   **Advertencia:** La restauración **sobrescribe** los documentos existentes con el
-   mismo ID. Si un documento ya existe en Firestore con el mismo ID, será reemplazado.
-
----
-
-## 🔁 Escenario 2: Restaurar todo (código + datos + deploy)
-
-Usar cuando hay que reconstruir el sistema desde cero en una computadora nueva.
-
-### Paso 1: Instalar herramientas necesarias
+### Cómo hacerlo
 
 ```powershell
-# Instalar Node.js (versión 18 o superior)
-# Descargar desde: https://nodejs.org/
-
-# Instalar Git
-# Descargar desde: https://git-scm.com/
-
-# Verificar instalación
-node --version    # Debe mostrar v18.x o superior
-npm --version     # Debe mostrar 10.x o superior
-git --version     # Debe mostrar 2.x o superior
+cd C:\AI\Antigravity\FALPAT Ventas
+.\backups\backup-proyecto.ps1
 ```
 
-### Paso 2: Clonar el repositorio
+### Cómo restaurar (desde otra PC o desde cero)
+
+#### Paso 1: Instalar herramientas
 
 ```powershell
-cd C:\AI\Antigravity
-git clone https://github.com/ssaavedra1969-png/ventas.git
-cd ventas
+# Node.js 18+ desde https://nodejs.org/
+# Git desde https://git-scm.com/
+
+node --version   # v18.x o superior
+npm --version    # 10.x o superior
 ```
 
-### Paso 3: Restaurar el código desde el backup
-
-Si no podés clonar (no hay internet o el repo se perdió), copiá la carpeta `source/`
-del backup como reemplazo del proyecto:
+#### Paso 2: Copiar el proyecto
 
 ```powershell
-# Borrar lo clonado (si no hay repo, saltear este paso)
-Remove-Item -Recurse -Force "C:\AI\Antigravity\FALPAT Ventas\*"
+# Crear carpeta destino
+mkdir C:\AI\Antigravity\FALPAT Ventas
 
-# Copiar el código del backup
-Copy-Item -Recurse -Force ".\backups\backup-2026-06-23_183551\source\*" "C:\AI\Antigravity\FALPAT Ventas\"
+# Copiar el source del backup
+Copy-Item -Recurse -Force ".\proyecto-2026-06-24_143000\source\*" "C:\AI\Antigravity\FALPAT Ventas\"
+
+# Copiar variables de entorno
+Copy-Item ".\proyecto-2026-06-24_143000\env\.env.local" "C:\AI\Antigravity\FALPAT Ventas\.env.local"
 ```
 
-### Paso 4: Restaurar variables de entorno
-
-```powershell
-Copy-Item ".\backups\backup-2026-06-23_183551\env\.env.local" "C:\AI\Antigravity\FALPAT Ventas\.env.local"
-```
-
-**Importante:** Si las credenciales de Firebase cambiaron (otra cuenta, otro proyecto),
-actualizá el archivo `.env.local` con los nuevos valores. El formato es:
-
-```
-NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSy...
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
-NEXT_PUBLIC_FIREBASE_APP_ID=1:...
-```
-
-### Paso 5: Instalar dependencias
+#### Paso 3: Instalar dependencias
 
 ```powershell
 cd C:\AI\Antigravity\FALPAT Ventas
 npm install
 ```
 
-### Paso 6: Restaurar datos de Firestore
-
-Necesitás la clave de service account. Si no está en el backup, generala de nuevo
-desde Firebase Console (ver "Requisito previo" en Escenario 1).
+#### Paso 4: Restaurar datos (opcional, si también se perdieron)
 
 ```powershell
-# Copiar service-account.json al lugar esperado
-Copy-Item ".\backups\backup-2026-06-23_183551\firestore\service-account.json" ".\backups\service-account.json"
+# Copiar service-account.json del backup de datos
+Copy-Item ".\datos-2026-06-24_143000\firestore\service-account.json" ".\backups\service-account.json"
 
 # Restaurar datos
-npm run restore -- ".\backups\backup-2026-06-23_183551\firestore"
+npm run restore -- ".\datos-2026-06-24_143000\firestore"
 ```
 
-### Paso 7: Verificar la app localmente
+#### Paso 5: Verificar
 
 ```powershell
 npm run dev
+Abrir http://localhost:3000
 ```
 
-Abrí en el navegador: http://localhost:3000
-Verificá que:
-- El dashboard cargue sin errores
-- Los clientes, productos y vendedores estén visibles
-- Los remitos existentes se vean correctamente
-
-### Paso 8: Re-deploy a Vercel (opcional)
-
-Si el deploy también se perdió:
+#### Paso 6: Re-deploy a Vercel (opcional)
 
 ```powershell
-# Instalar Vercel CLI si no está
-npm install -g vercel
-
-# Hacer deploy
 vercel --prod
 ```
 
-O conectá el repositorio desde [Vercel Dashboard](https://vercel.com):
-1. Importá el repositorio `ssaavedra1969-png/ventas`
-2. Framework: **Next.js**
-3. Variables de entorno: copiá las de `.env.local`
-4. Deploy → la URL será: `https://ventas-falpat.vercel.app`
-
 ---
 
-## 🧪 Verificación post-restauración (checklist)
-
-Después de restaurar, marcá estos puntos:
+## 🧪 Checklist de verificación post-restauración
 
 - [ ] **Dashboard** carga sin errores
-- [ ] **Clientes**: lista completa con CUIT, razón social, dirección, teléfono
-- [ ] **Productos**: nombres, tipos, medidas, valores unitarios visibles
-- [ ] **Vendedores**: códigos y nombres correctos
-- [ ] **Remitos**: se abre la vista pública, items, vendedor, observaciones OK
-- [ ] **Crear remito**: se puede seleccionar cliente + vendedor, agregar productos,
-      vista previa con bonificación, generar remito y redirige correctamente
-- [ ] **Importación Excel**: drag & drop, preview, resultado registro por registro
+- [ ] **Clientes**: lista con CUIT, razón social, dirección, teléfono
+- [ ] **Productos**: nombres, tipos, medidas, valores unitarios
+- [ ] **Vendedores**: códigos y nombres
+- [ ] **Remitos**: vista pública funciona, items correctos
+- [ ] **Facturación**: pagos y estados visibles
+- [ ] **Crear remito**: selección de cliente + vendedor + productos
 
 ---
 
 ## ⚠️ Notas importantes
 
 ### Service account
+`service-account.json` **nunca debe subirse a git**. Ya está excluido en `.gitignore`.
+Mantenelo siempre solo en `backups/`.
 
-La clave `service-account.json` **nunca debe subirse a git**. Ya está excluida en
-`.gitignore`. Mantenela siempre fuera del repositorio, solo en `backups/`.
-
-### Los datos de Firestore son la fuente de verdad
-
-Todo lo que no está en Firestore se puede regenerar:
-- El código se vuelve a bajar de GitHub
-- Las dependencias se reinstalan con `npm install`
-- El deploy se hace con `vercel --prod`
-
-Pero los **datos** (clientes, productos, remitos, vendedores) solo existen en
-Firestore. Por eso es crítico tener backups periódicos.
-
-### Programa recordatorio de backups
-
-Ejecutá este comando periódicamente (ej: cada viernes):
-
-```powershell
-cd C:\AI\Antigravity\FALPAT Ventas
-.\backups\backup.ps1
-```
-
-Agendalo en Windows Task Scheduler para automatizarlo:
-1. Abrí **Task Scheduler**
-2. Crear tarea básica → nombre "Backup FALPAT"
-3. Disparador: semanal, viernes 18:00
-4. Acción: iniciar programa → `powershell.exe`
-5. Argumentos: `-NoProfile -File "C:\AI\Antigravity\FALPAT Ventas\backups\backup.ps1"`
+### Los datos son la fuente de verdad
+El código se puede regenerar (GitHub, backup de proyecto). Las dependencias se reinstalan
+con `npm install`. Pero los **datos** (clientes, productos, remitos) solo existen en
+Firestore. Por eso el backup de datos es el más crítico.
 
 ---
 
 ## 🔄 Resumen de comandos rápidos
 
 | Acción | Comando |
-|---|---|
-| Hacer backup completo | `.\backups\backup.ps1` |
-| Backup sin Firestore | `.\backups\backup.ps1 -SkipFirestore` |
-| Restaurar datos Firestore | `npm run restore -- ".\backups\backup-XXXX\firestore"` |
+|--------|---------|
+| Backup de DATOS | `.\backups\backup-datos.ps1` |
+| Backup de PROYECTO | `.\backups\backup-proyecto.ps1` |
+| Backup completo (original) | `.\backups\backup.ps1` |
+| Restaurar datos Firestore | `npm run restore -- ".\backups\datos-XXXX\firestore"` |
 | Iniciar app local | `npm run dev` |
 | Build producción | `npm run build` |
 | Deploy a Vercel | `vercel --prod` |

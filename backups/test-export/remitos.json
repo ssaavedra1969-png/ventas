@@ -1,0 +1,102 @@
+[
+  {
+    "_id": "JaIRjRHcm6tRHXxlAG6J",
+    "_createdAt": "2026-06-25T16:13:57.088Z",
+    "_updatedAt": "2026-06-25T16:15:39.448Z",
+    "numeroRemito": 1,
+    "fecha": {
+      "_timestamp": "2026-06-25T16:13:54.403Z"
+    },
+    "idCliente": "P6dvsdRjC4sQDbWAQmXr",
+    "clienteData": {
+      "codigoCliente": "02113",
+      "razonSocial": "Luna Giselle Mariana",
+      "tipoDocumento": "D.N.I.",
+      "numeroDocumento": "42428003",
+      "actividad": "",
+      "telefono": "",
+      "domicilio": "",
+      "localidad": "Pilar",
+      "condicionIVA": "CF"
+    },
+    "vendedor": {
+      "codigo": "V0001",
+      "nombre": "BRITEZ LEANDRO"
+    },
+    "items": [
+      {
+        "idProducto": "00020",
+        "nombreProducto": "H21",
+        "cantidad": 9,
+        "precioUnitario": 179324,
+        "bonificacion": 0,
+        "subtotal": 1613916
+      },
+      {
+        "idProducto": "00015",
+        "nombreProducto": "BOMBA ARRASTRE",
+        "cantidad": 1,
+        "precioUnitario": 605000,
+        "bonificacion": 0,
+        "subtotal": 605000
+      },
+      {
+        "idProducto": "00231",
+        "nombreProducto": "M3 BOMBEADO ARRASTRE ",
+        "cantidad": 9,
+        "precioUnitario": 4800,
+        "bonificacion": 0,
+        "subtotal": 43200
+      },
+      {
+        "idProducto": "00172",
+        "nombreProducto": "MICROFIBRA X M3",
+        "cantidad": 9,
+        "precioUnitario": 13000,
+        "bonificacion": 0,
+        "subtotal": 117000
+      }
+    ],
+    "subtotalGeneral": 2379116,
+    "iva": 0,
+    "totalGeneral": 2379116,
+    "observaciones": "",
+    "createdAt": {
+      "_timestamp": "2026-06-25T16:13:56.757Z"
+    },
+    "estado": "A_Entregar",
+    "facturaAnulada": false,
+    "nroFactura": "289",
+    "facturado": true,
+    "fechaFacturado": {
+      "_timestamp": "2026-06-25T16:14:55.302Z"
+    },
+    "totalPagado": 2379116,
+    "pagos": [
+      {
+        "createdAt": {
+          "_timestamp": "2026-06-25T16:15:14.697Z"
+        },
+        "monto": 1300000,
+        "referencia": "Pago Efectivo",
+        "fecha": {
+          "_timestamp": "2026-06-25T16:15:14.463Z"
+        },
+        "id": "1782404114697_jw3sfd8",
+        "metodo": "Efectivo"
+      },
+      {
+        "id": "1782404139157_0kcb7kh",
+        "monto": 1079116,
+        "metodo": "Credito",
+        "referencia": "Pago en 3 Cuotas",
+        "fecha": {
+          "_timestamp": "2026-06-25T16:15:38.770Z"
+        },
+        "createdAt": {
+          "_timestamp": "2026-06-25T16:15:39.158Z"
+        }
+      }
+    ]
+  }
+]

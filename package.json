@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "backup": "node scripts/export-firestore.mjs",
+    "backup:datos": ".\\backups\\backup-datos.ps1",
+    "backup:proyecto": ".\\backups\\backup-proyecto.ps1",
     "restore": "node scripts/import-firestore.mjs"
   },
   "dependencies": {

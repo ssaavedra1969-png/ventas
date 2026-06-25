@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { getRemito, getEmpresaConfig } from '@/lib/firestore'
+import { getRemito, getEmpresaConfig, getTipoFactura, CONDIVA_LABEL } from '@/lib/firestore'
 import type { Remito, EmpresaConfig } from '@/types'
 import {
   ArrowLeft,
@@ -53,7 +53,7 @@ export default function RemitoViewPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A1A] flex items-center justify-center">
+      <div className="min-h-screen bg-[#060612] flex items-center justify-center">
         <div className="text-center space-y-4">
           <motion.div
             animate={{ rotate: 360 }}
@@ -69,7 +69,7 @@ export default function RemitoViewPage() {
 
   if (notFound || !remito) {
     return (
-      <div className="min-h-screen bg-[#0A0A1A] flex items-center justify-center">
+      <div className="min-h-screen bg-[#060612] flex items-center justify-center">
         <motion.div
           className="text-center"
           initial={{ opacity: 0, scale: 0.95 }}
@@ -108,15 +108,12 @@ export default function RemitoViewPage() {
     A_Entregar: 'bg-violet-100 text-violet-800 border border-violet-200',
   }
 
-  const ivaRate = remito.subtotalGeneral > 0
-    ? ((remito.iva / remito.subtotalGeneral) * 100).toFixed(1)
-    : '0.0'
   const handlePrint = () => window.print()
 
   return (
-    <div className="min-h-screen bg-[#0A0A1A]">
+    <div className="min-h-screen bg-[#060612]">
       {/* Toolbar */}
-      <div className="no-print bg-[#0A0A1A]/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
+      <div className="no-print bg-[#060612]/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => router.push(from ? `/dashboard/remitos?tab=${from}` : '/dashboard')}
@@ -152,7 +149,7 @@ export default function RemitoViewPage() {
 
       {/* Document */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="rounded-2xl overflow-hidden relative border border-gray-200 bg-[#E8E8E8]">
+        <div className="rounded-2xl overflow-hidden relative border border-gray-200 bg-[#E8E8E8] print-remito">
           {/* PRESUPUESTO watermark */}
           {presupuesto && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 select-none">
@@ -241,24 +238,36 @@ export default function RemitoViewPage() {
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-1 text-xs">
               <div>
-                <p className="text-[8px] text-gray-500 uppercase tracking-wider">CUIT</p>
-                <p className="font-medium text-gray-800">{remito.clienteData.cuit}</p>
+                <p className="text-[8px] text-gray-500 uppercase tracking-wider">Cód. Cliente</p>
+                <p className="font-medium text-gray-800">{remito.clienteData.codigoCliente || '—'}</p>
               </div>
               <div>
                 <p className="text-[8px] text-gray-500 uppercase tracking-wider">Razón Social</p>
                 <p className="font-medium text-gray-800">{remito.clienteData.razonSocial}</p>
               </div>
               <div>
-                <p className="text-[8px] text-gray-500 uppercase tracking-wider">Dirección</p>
-                <p className="text-gray-600">{remito.clienteData.direccion}</p>
+                <p className="text-[8px] text-gray-500 uppercase tracking-wider">Documento</p>
+                <p className="font-medium text-gray-800">
+                  {remito.clienteData.tipoDocumento
+                    ? `${remito.clienteData.tipoDocumento} ${remito.clienteData.numeroDocumento}`
+                    : (remito.clienteData as { cuit?: string }).cuit || '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[8px] text-gray-500 uppercase tracking-wider">Domicilio</p>
+                <p className="text-gray-600">{remito.clienteData.domicilio || (remito.clienteData as { direccion?: string }).direccion || '—'}</p>
+              </div>
+              <div>
+                <p className="text-[8px] text-gray-500 uppercase tracking-wider">Localidad</p>
+                <p className="text-gray-600">{remito.clienteData.localidad || '—'}</p>
               </div>
               <div>
                 <p className="text-[8px] text-gray-500 uppercase tracking-wider">Teléfono</p>
-                <p className="text-gray-600">{remito.clienteData.telefono}</p>
+                <p className="text-gray-600">{remito.clienteData.telefono || '—'}</p>
               </div>
               <div>
-                <p className="text-[8px] text-gray-500 uppercase tracking-wider">T. FAC</p>
-                <p className="font-medium text-gray-800">{remito.clienteData.tipoFactura || '—'}</p>
+                <p className="text-[8px] text-gray-500 uppercase tracking-wider">Cond. IVA</p>
+                <p className="font-medium text-gray-800">{CONDIVA_LABEL[remito.clienteData.condicionIVA] || remito.clienteData.condicionIVA || (remito.clienteData as { tipoFactura?: string }).tipoFactura || '—'}</p>
               </div>
               {remito.vendedor && (
                 <div>
@@ -281,45 +290,77 @@ export default function RemitoViewPage() {
                   <th className="text-right text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2 w-24">P. Unitario</th>
                   <th className="text-right text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2 w-14">Bonif.</th>
                   <th className="text-right text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2 w-24">Subtotal</th>
+                  <th className="text-right text-[8px] font-semibold text-gray-500 uppercase tracking-wider pb-2 w-20">IVA (21%)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {remito.items.map((item, index) => (
-                  <tr key={index} className="even:bg-gray-100/50">
-                    <td className="py-2 text-xs font-mono text-gray-800">{item.cantidad}</td>
-                    <td className="py-2 text-xs text-gray-800">{item.nombreProducto}</td>
-                    <td className="py-2 text-xs font-mono text-gray-500 text-right">${item.precioUnitario.toFixed(2)}</td>
-                    <td className="py-2 text-xs font-mono text-gray-500 text-right">
-                      {item.bonificacion ? `${item.bonificacion}%` : '—'}
-                    </td>
-                    <td className="py-2 text-xs font-mono text-gray-800 text-right font-semibold">${item.subtotal.toFixed(2)}</td>
-                  </tr>
-                ))}
+                {remito.items.map((item, index) => {
+                  const isFA = getTipoFactura(remito.clienteData.condicionIVA) === 'A'
+                  const ivaLinea = isFA ? item.subtotal * 0.21 : 0
+                  return (
+                    <tr key={index} className="even:bg-gray-100/50">
+                      <td className="py-2 text-xs font-mono text-gray-800">{item.cantidad}</td>
+                      <td className="py-2 text-xs text-gray-800">{item.nombreProducto}</td>
+                      <td className="py-2 text-xs font-mono text-gray-500 text-right">${item.precioUnitario.toFixed(2)}</td>
+                      <td className="py-2 text-xs font-mono text-gray-500 text-right">
+                        {item.bonificacion ? `${item.bonificacion}%` : '—'}
+                      </td>
+                      <td className="py-2 text-xs font-mono text-gray-800 text-right font-semibold">${item.subtotal.toFixed(2)}</td>
+                      <td className="py-2 text-xs font-mono text-gray-500 text-right">
+                        {isFA ? `$${ivaLinea.toFixed(2)}` : '—'}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
 
             {/* Totals */}
-            <div className="border-t border-gray-200 mt-3 pt-3 ml-auto w-full sm:w-56 space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-500">Subtotal</span>
-                <span className="font-mono text-gray-800">${remito.subtotalGeneral.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-500">IVA ({ivaRate}%)</span>
-                <span className="font-mono text-gray-800">${remito.iva.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm font-bold border-t border-gray-200 pt-2">
-                <span className="text-gray-900">Total General</span>
-                <span
-                  className="font-mono px-2.5 py-0.5 rounded-lg text-white text-xs"
-                  style={{
-                    background: 'linear-gradient(135deg, #6C3CE1, #00D4FF)',
-                  }}
-                >
-                  ${remito.totalGeneral.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
+            {(() => {
+              const isFA = getTipoFactura(remito.clienteData.condicionIVA) === 'A'
+              if (isFA) {
+                const neto = remito.subtotalGeneral
+                return (
+                  <div className="border-t border-gray-200 mt-3 pt-3 ml-auto w-full sm:w-72 space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">Importe Neto Gravado</span>
+                      <span className="font-mono text-gray-800">${neto.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">IVA 21%</span>
+                      <span className="font-mono text-gray-800">${remito.iva.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs border-t border-dashed border-gray-200 pt-1">
+                      <span className="font-semibold text-gray-700">Importe Total</span>
+                      <span className="font-mono text-gray-800">${remito.totalGeneral.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold pt-1">
+                      <span className="text-gray-900">Total General</span>
+                      <span className="font-mono px-2.5 py-0.5 rounded-lg text-white text-xs"
+                        style={{ background: 'linear-gradient(135deg, #6C3CE1, #00D4FF)' }}>
+                        ${remito.totalGeneral.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                )
+              }
+              return (
+                <div className="border-t border-gray-200 mt-3 pt-3 ml-auto w-full sm:w-56 space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">Subtotal</span>
+                    <span className="font-mono text-gray-800">${remito.subtotalGeneral.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold border-t border-gray-200 pt-2">
+                    <span className="text-gray-900">Total General</span>
+                    <span className="font-mono px-2.5 py-0.5 rounded-lg text-white text-xs"
+                      style={{ background: 'linear-gradient(135deg, #6C3CE1, #00D4FF)' }}>
+                      ${remito.totalGeneral.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <p className="text-[7px] text-gray-400 text-right mt-1">IVA incluido</p>
+                </div>
+              )
+            })()}
           </div>
 
           {/* ─── FOOTER ─── */}
@@ -341,6 +382,18 @@ export default function RemitoViewPage() {
                 >
                   {estadoLabel[remito.estado] || remito.estado}
                 </span>
+                <div className="mt-2 space-y-0.5">
+                  {remito.nroFactura && (
+                    <p className={`text-[10px] font-mono ${remito.facturaAnulada ? 'text-red-500 line-through' : 'text-emerald-700'}`}>
+                      {remito.facturaAnulada ? `Factura N° ${remito.nroFactura} (Anulada)` : `Factura N° ${remito.nroFactura}`}
+                    </p>
+                  )}
+                  {remito.facturaAnulada && remito.nroNC && (
+                    <p className="text-[10px] font-mono text-red-600">
+                      N/C N° {remito.nroNC} — ${remito.montoNC?.toFixed(2)}
+                    </p>
+                  )}
+                </div>
               </div>
               <div className="text-center">
                 <div className="border-t-2 border-gray-200 w-44 pt-1.5">

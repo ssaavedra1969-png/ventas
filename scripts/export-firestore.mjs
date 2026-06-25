@@ -4,6 +4,7 @@ import { createRequire } from 'module'
 
 const require = createRequire(import.meta.url)
 const admin = require('firebase-admin')
+const { getFirestore, Timestamp, DocumentReference } = require('firebase-admin/firestore')
 
 const PROJECT_ID = 'leafy-valor-410916'
 
@@ -12,8 +13,8 @@ const DEFAULT_OUTPUT = resolve('backups')
 
 function serialize(data) {
   if (data === null || data === undefined) return data
-  if (data instanceof admin.firestore.Timestamp) return { _timestamp: data.toDate().toISOString() }
-  if (data instanceof admin.firestore.DocumentReference) return { _ref: data.path }
+  if (data instanceof Timestamp) return { _timestamp: data.toDate().toISOString() }
+  if (data instanceof DocumentReference) return { _ref: data.path }
   if (Array.isArray(data)) return data.map(serialize)
   if (typeof data === 'object') {
     const obj = {}
@@ -26,10 +27,11 @@ function serialize(data) {
 }
 
 function initApp() {
-  if (admin.apps.length > 0) return admin.apps[0]
+  if (admin.apps && admin.apps.length > 0) return admin.apps[0]
   if (existsSync(SERVICE_ACCOUNT_PATH)) {
     const serviceAccount = require(SERVICE_ACCOUNT_PATH)
-    return admin.initializeApp({ credential: admin.credential.cert(serviceAccount) })
+    const cred = admin.cert ? admin.cert(serviceAccount) : admin.credential.cert(serviceAccount)
+    return admin.initializeApp({ credential: cred })
   }
   return admin.initializeApp({ projectId: PROJECT_ID })
 }
@@ -73,7 +75,7 @@ async function main() {
     process.exit(1)
   }
 
-  const db = app.firestore()
+  const db = getFirestore(app)
 
   console.log(`\nExportando colecciones a: ${outDir}`)
   console.log('')

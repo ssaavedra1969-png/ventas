@@ -1,19 +1,25 @@
 export interface Cliente {
   id?: string
-  cuit: string
+  codigoCliente: string
   razonSocial: string
-  direccion: string
+  tipoDocumento: string
+  numeroDocumento: string
+  actividad: string
   telefono: string
-  tipoFactura: string
+  domicilio: string
+  localidad: string
+  condicionIVA: string
   createdAt?: Date
 }
 
 export interface Producto {
   id?: string
+  codigoProducto: string
   nombre: string
   tipo: string
   medida: string
   valorUnitario: number
+  precioSinIVA: number
   stock?: number
   createdAt?: Date
 }
@@ -35,17 +41,30 @@ export interface RemitoItem {
   subtotal: number
 }
 
+export interface Pago {
+  id: string
+  monto: number
+  metodo: 'Efectivo' | 'Transferencia' | 'Cheque' | 'Debito' | 'Credito'
+  referencia?: string
+  fecha: Date
+  createdAt: Date
+}
+
 export interface Remito {
   id?: string
   numeroRemito: number
   fecha: Date
   idCliente: string
   clienteData: {
-    cuit: string
+    codigoCliente: string
     razonSocial: string
-    direccion: string
+    tipoDocumento: string
+    numeroDocumento: string
+    actividad: string
     telefono: string
-    tipoFactura: string
+    domicilio: string
+    localidad: string
+    condicionIVA: string
   }
   vendedor?: {
     codigo: string
@@ -59,6 +78,14 @@ export interface Remito {
   usuarioCreador?: string
   createdAt?: Date
   observaciones?: string
+  nroFactura?: string
+  facturado?: boolean
+  fechaFacturado?: Date
+  facturaAnulada?: boolean
+  nroNC?: string
+  montoNC?: number
+  pagos?: Pago[]
+  totalPagado?: number
 }
 
 export interface DashboardStats {

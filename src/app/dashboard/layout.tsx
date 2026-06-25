@@ -13,6 +13,7 @@ import {
   UserCheck,
   Building2,
   ChevronRight,
+  DollarSign,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -30,6 +31,7 @@ const navigation = [
       { href: '/dashboard/clientes', label: 'Clientes', icon: Users, gradient: 'from-blue-400 to-cyan-400' },
       { href: '/dashboard/productos', label: 'Productos', icon: Package, gradient: 'from-amber-400 to-orange-400' },
       { href: '/dashboard/vendedores', label: 'Vendedores', icon: UserCheck, gradient: 'from-emerald-400 to-teal-400' },
+      { href: '/dashboard/facturacion', label: 'Facturación', icon: DollarSign, gradient: 'from-green-400 to-emerald-400' },
     ],
   },
   {
@@ -127,7 +129,7 @@ export default function DashboardLayout({
   }, [])
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0A0A1A]">
+    <div className="flex h-screen overflow-hidden bg-[#060612]">
       {/* Sidebar Overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -149,7 +151,7 @@ export default function DashboardLayout({
         transition={{ type: 'spring', stiffness: 350, damping: 30 }}
       >
         {/* Sidebar Glass Background */}
-        <div className="absolute inset-0 bg-[#0A0A1A]/90 backdrop-blur-2xl" />
+        <div className="absolute inset-0 bg-[#060612]/95 backdrop-blur-2xl" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#6C3CE1]/5 via-transparent to-[#00D4FF]/3 pointer-events-none" />
 
         {/* Sidebar Content */}
@@ -260,7 +262,7 @@ export default function DashboardLayout({
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
         <motion.header
-          className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-white/5 bg-[#0A0A1A]/70 backdrop-blur-xl px-4 sm:px-6"
+          className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-white/5 bg-[#060612]/80 backdrop-blur-xl px-4 sm:px-6"
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}

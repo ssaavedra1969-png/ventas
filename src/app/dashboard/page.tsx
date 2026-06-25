@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { getDashboardStats } from '@/lib/firestore'
 import type { Remito } from '@/types'
 import {
@@ -11,6 +12,10 @@ import {
   TrendingUp,
   Receipt,
   Building2,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  ScrollText,
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -18,8 +23,6 @@ import { es } from 'date-fns/locale'
 import { motion } from 'framer-motion'
 import TiltCard from '@/components/TiltCard'
 import AnimatedCounter from '@/components/AnimatedCounter'
-import ParallaxHero from '@/components/ParallaxHero'
-
 const container = {
   hidden: { opacity: 0 },
   show: {
@@ -63,7 +66,23 @@ function Sparkline({ color }: { color: string }) {
   )
 }
 
+const getEstadoCobranza = (remito: Remito) => {
+  const pagado = remito.totalPagado ?? 0
+  if (pagado <= 0) return { label: 'Pendiente', color: 'text-red-400 bg-red-500/10', icon: AlertCircle }
+  if (pagado >= remito.totalGeneral) return { label: 'Pagado', color: 'text-emerald-400 bg-emerald-500/10', icon: CheckCircle2 }
+  return { label: 'Parcial', color: 'text-amber-400 bg-amber-500/10', icon: Clock }
+}
+
+const estadosLegibles: Record<string, string> = {
+  Enviado: 'Presupuesto',
+  Aceptado: 'Aceptado',
+  Anulado: 'Anulado',
+  En_Revision: 'Revisión',
+  A_Entregar: 'A Entregar',
+}
+
 export default function DashboardPage() {
+  const router = useRouter()
   const [stats, setStats] = useState<{
     remitosMes: number
     totalFacturado: number
@@ -128,13 +147,6 @@ export default function DashboardPage() {
       initial="hidden"
       animate="show"
     >
-      {/* Parallax Hero */}
-      <ParallaxHero
-        remitosMes={stats?.remitosMes}
-        clientesActivos={stats?.clientesActivos}
-        totalFacturado={stats?.totalFacturado}
-      />
-
       {/* Hero Section */}
       <motion.div variants={itemAnim}>
         <div className="relative overflow-hidden rounded-2xl p-8 glass-card">
@@ -289,44 +301,85 @@ export default function DashboardPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 + i * 0.08, duration: 0.4 }}
               >
-                <Link href={`/remitos/${remito.id}`}>
-                  <motion.div
-                    className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer border border-white/5 hover:border-[#6C3CE1]/20"
-                    whileHover={{ x: 4, backgroundColor: 'rgba(108,60,225,0.04)' }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                  >
-                    <div className="flex items-center gap-4">
-                      <motion.div
-                        className="w-16 h-10 rounded-lg flex items-center justify-center text-white font-bold text-[11px] font-mono tracking-wider relative overflow-hidden"
-                        style={{ background: 'linear-gradient(135deg, #6C3CE1, #00D4FF)' }}
-                        whileHover={{ scale: 1.1, rotate: 5 }}
-                      >
-                        {String(remito.numeroRemito).padStart(6, '0')}
-                      </motion.div>
-                      <div>
-                        <p className="text-sm font-medium text-white">
-                          {remito.clienteData.razonSocial}
-                        </p>
-                        <p className="text-xs text-[#6B6B8A]">
-                          {format(remito.fecha, "d 'de' MMM 'de' yyyy", { locale: es })}
-                        </p>
+                <motion.div
+                  className="p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer border border-white/5 hover:border-[#6C3CE1]/20"
+                  whileHover={{ x: 4, backgroundColor: 'rgba(108,60,225,0.04)' }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                  onClick={() => router.push(`/remitos/${remito.id}`)}
+                >
+                  <div className="flex items-start gap-4">
+                    {/* N° Remito badge */}
+                    <motion.div
+                      className="w-14 h-9 rounded-lg flex items-center justify-center text-white font-bold text-[10px] font-mono tracking-wider shrink-0"
+                      style={{ background: 'linear-gradient(135deg, #6C3CE1, #00D4FF)' }}
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                    >
+                      {String(remito.numeroRemito).padStart(6, '0')}
+                    </motion.div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      {/* Line 1: Cliente + N° Factura */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-white truncate">{remito.clienteData.razonSocial}</span>
+                        {remito.nroFactura && (
+                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-md border border-emerald-500/20 shrink-0">
+                            Factura {remito.nroFactura}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Line 2: Datos secundarios */}
+                      <div className="flex items-center gap-3 text-[11px] text-[#6B6B8A] flex-wrap">
+                        <span>{format(remito.fecha, "d 'de' MMM 'de' yyyy", { locale: es })}</span>
+                        <span className="text-[#3A3A5A]">|</span>
+                        <span>{(remito.clienteData as { cuit?: string }).cuit || remito.clienteData.numeroDocumento || '—'}</span>
+                        {remito.vendedor?.nombre && (
+                          <>
+                            <span className="text-[#3A3A5A]">|</span>
+                            <span>Vendedor: {remito.vendedor.nombre}</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Line 3: Monto + Estados */}
+                      <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                        <span className="text-sm font-bold text-white font-mono">
+                          ${remito.totalGeneral.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full border border-white/10 text-[#B0B0D0] bg-white/5">
+                          {estadosLegibles[remito.estado] ?? remito.estado}
+                        </span>
+                        {(() => {
+                          const cob = getEstadoCobranza(remito)
+                          return (
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${cob.color}`}>
+                              <cob.icon className="h-3 w-3" />
+                              {cob.label}
+                            </span>
+                          )
+                        })()}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-white font-mono">
-                        ${remito.totalGeneral.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-                      </p>
-                      <span className="text-xs text-[#6B6B8A]">
-                        {remito.estado === 'Enviado' ? 'Presupuesto' :
-                         remito.estado === 'Aceptado' ? 'Aceptado' :
-                         remito.estado === 'Anulado' ? 'Anulado' :
-                         remito.estado === 'En_Revision' ? 'Revisión' :
-                         remito.estado === 'A_Entregar' ? 'A Entregar' :
-                         remito.estado}
-                      </span>
+
+                    {/* Acciones */}
+                    <div className="flex items-center gap-1 shrink-0 mt-1">
+                      {remito.facturado && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push('/dashboard/facturacion')
+                          }}
+                          className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition-colors"
+                          title="Ir a Facturación"
+                        >
+                          <DollarSign className="h-4 w-4" />
+                        </button>
+                      )}
+                      <ScrollText className="h-4 w-4 text-[#3A3A5A]" />
                     </div>
-                  </motion.div>
-                </Link>
+                  </div>
+                </motion.div>
               </motion.div>
             ))}
           </div>

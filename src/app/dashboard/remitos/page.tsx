@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { getRemitos, updateRemitoEstado, getEmpresaConfig } from '@/lib/firestore'
+import { getAllRemitos, clearCache, updateRemitoEstado, updateRemitoNroFactura, updateRemitoNC, getEmpresaConfig } from '@/lib/firestore'
 import type { Remito, EmpresaConfig } from '@/types'
 import {
   FileText,
@@ -17,6 +17,9 @@ import {
   Truck,
   Send,
   Smartphone,
+  FileSignature,
+  Ban,
+  RefreshCw,
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -27,7 +30,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 type Tab = 'presupuestos' | 'remitos'
 
 const ESTADOS_PRESUPUESTOS = ['Enviado', 'Anulado']
-const ESTADOS_REMITOS = ['Aceptado', 'En_Revision', 'A_Entregar']
+const ESTADOS_REMITOS = ['Aceptado', 'En_Revision', 'A_Entregar'] // Aceptado por backward compat
 
 const getEstadoColor = (estado: string) => {
   switch (estado) {
@@ -65,7 +68,16 @@ export default function RemitosPage() {
   const [filtroCliente, setFiltroCliente] = useState('')
   const [filtroFecha, setFiltroFecha] = useState('')
   const [anularConfirm, setAnularConfirm] = useState<string | null>(null)
+  const [aceptarConfirm, setAceptarConfirm] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
+  const [facturaInputs, setFacturaInputs] = useState<Record<string, string>>({})
+  const [facturando, setFacturando] = useState<string | null>(null)
+  const [ncPopup, setNcPopup] = useState<{
+    remitoId: string
+    nroNC: string
+    montoNC: number
+    totalGeneral: number
+  } | null>(null)
   const [wspPopup, setWspPopup] = useState<{
     remitoId: string
     phone: string
@@ -84,10 +96,10 @@ export default function RemitosPage() {
     }
   }, [])
 
-  const loadRemitos = useCallback(async () => {
+  const fetchRemitos = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getRemitos()
+      const data = await getAllRemitos()
       setRemitos(data)
     } catch {
       toast.error('Error al cargar remitos')
@@ -97,16 +109,16 @@ export default function RemitosPage() {
   }, [])
 
   useEffect(() => {
-    loadRemitos()
-  }, [loadRemitos])
+    fetchRemitos()
+  }, [fetchRemitos])
 
   const filtrados = remitos.filter((r) => {
     const estadosValidos = tab === 'presupuestos' ? ESTADOS_PRESUPUESTOS : ESTADOS_REMITOS
     if (!estadosValidos.includes(r.estado)) return false
     if (filtroCliente) {
       const s = filtroCliente.toLowerCase()
-      if (!r.clienteData.razonSocial.toLowerCase().includes(s) &&
-          !r.clienteData.cuit.toLowerCase().includes(s)) return false
+      if (!r.clienteData.razonSocial?.toLowerCase().includes(s) &&
+          !(r.clienteData.numeroDocumento || (r.clienteData as { cuit?: string }).cuit || '').toLowerCase().includes(s)) return false
     }
     if (filtroFecha) {
       const d = format(r.fecha, 'yyyy-MM-dd')
@@ -121,11 +133,63 @@ export default function RemitosPage() {
       await updateRemitoEstado(id, estado)
       toast.success(`Estado actualizado a "${getEstadoLabel(estado)}"`)
       setAnularConfirm(null)
-      loadRemitos()
+      setAceptarConfirm(null)
+      clearCache('allRemitos')
+      fetchRemitos()
     } catch {
       toast.error('Error al actualizar el estado')
     } finally {
       setUpdating(null)
+    }
+  }
+
+  const handleAceptarPresupuesto = (id: string) => {
+    setAceptarConfirm(id)
+  }
+
+  const confirmarAceptar = () => {
+    if (!aceptarConfirm) return
+    handleCambiarEstado(aceptarConfirm, 'En_Revision')
+  }
+
+  const handleGuardarNC = async () => {
+    if (!ncPopup) return
+    if (!ncPopup.nroNC.trim()) {
+      toast.error('Ingresá el número de Nota de Crédito')
+      return
+    }
+    if (ncPopup.montoNC <= 0) {
+      toast.error('El monto debe ser mayor a 0')
+      return
+    }
+    setFacturando(ncPopup.remitoId)
+    try {
+      await updateRemitoNC(ncPopup.remitoId, ncPopup.nroNC.trim(), ncPopup.montoNC)
+      toast.success('Nota de Crédito registrada')
+      setNcPopup(null)
+      clearCache('allRemitos')
+      fetchRemitos()
+    } catch {
+      toast.error('Error al guardar Nota de Crédito')
+    } finally {
+      setFacturando(null)
+    }
+  }
+
+  const handleGuardarFactura = async (id: string) => {
+    const nro = facturaInputs[id]?.trim()
+    if (!nro) return
+    setFacturando(id)
+    try {
+      await updateRemitoNroFactura(id, nro)
+      toast.success(`Factura N° ${nro} registrada`)
+      setFacturaInputs((prev) => ({ ...prev, [id]: '' }))
+      clearCache('allRemitos')
+      fetchRemitos()
+    } catch {
+      toast.error('Error al guardar factura')
+    } finally {
+      setFacturando(null)
     }
   }
 
@@ -150,7 +214,6 @@ export default function RemitosPage() {
     )
     window.open(`https://wa.me/${targetPhone}?text=${msg}`, '_blank')
     setWspPopup(null)
-    handleCambiarEstado(remitoId, tipo === 'presupuesto' ? 'Enviado' : 'A_Entregar')
   }
 
   const getTotalPorEstado = (estados: string[]) =>
@@ -161,14 +224,23 @@ export default function RemitosPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <FileText className="h-6 w-6 text-[#6C3CE1]" />
-        <div>
-          <h1 className="text-2xl font-bold text-white">Listado</h1>
-          <p className="text-[#B0B0D0] text-sm">
-            {tab === 'presupuestos' ? 'Presupuestos generados' : 'Remitos para entrega'}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <FileText className="h-6 w-6 text-[#6C3CE1]" />
+          <div>
+            <h1 className="text-2xl font-bold text-white">Listado</h1>
+            <p className="text-[#B0B0D0] text-sm">
+              {tab === 'presupuestos' ? 'Presupuestos generados' : 'Remitos para entrega'}
+            </p>
+          </div>
         </div>
+        <button
+          onClick={() => { clearCache('allRemitos'); fetchRemitos() }}
+          className="p-2 rounded-lg text-[#6B6B8A] hover:text-white hover:bg-white/5 transition-colors"
+          title="Actualizar"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Tabs */}
@@ -337,6 +409,7 @@ export default function RemitosPage() {
                   <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3">Cliente</th>
                   <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3 hidden sm:table-cell">Total</th>
                   <th className="text-center text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3">Estado</th>
+                  <th className="text-center text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3 hidden md:table-cell">N° Factura</th>
                   <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3">Acción</th>
                 </tr>
               </thead>
@@ -369,6 +442,11 @@ export default function RemitosPage() {
                         {getEstadoLabel(remito.estado)}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-center hidden md:table-cell">
+                      <span className={`text-xs font-mono ${remito.nroFactura ? 'text-emerald-400' : 'text-[#4A4A6A]'}`}>
+                        {remito.nroFactura || '—'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1.5">
                         {/* Presupuestos tab actions */}
@@ -389,7 +467,7 @@ export default function RemitosPage() {
                               <MessageCircle className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => handleCambiarEstado(remito.id!, 'Aceptado')}
+                              onClick={() => handleAceptarPresupuesto(remito.id!)}
                               disabled={updating === remito.id}
                               className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
                               title="Marcar como aceptado"
@@ -416,24 +494,7 @@ export default function RemitosPage() {
                         )}
 
                         {/* Remitos tab actions */}
-                        {tab === 'remitos' && remito.estado === 'Aceptado' && (
-                          <>
-                            <button
-                              onClick={() => handleCambiarEstado(remito.id!, 'En_Revision')}
-                              disabled={updating === remito.id}
-                              className="px-2 py-1 rounded-lg text-xs font-medium bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors disabled:opacity-50"
-                              title="Pasar a En Revisión"
-                            >
-                              {updating === remito.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                'Revisar'
-                              )}
-                            </button>
-                          </>
-                        )}
-
-                        {tab === 'remitos' && remito.estado === 'En_Revision' && (
+                        {tab === 'remitos' && (remito.estado === 'En_Revision' || remito.estado === 'Aceptado') && (
                           <>
                             <button
                               onClick={() =>
@@ -445,27 +506,106 @@ export default function RemitosPage() {
                               }
                               disabled={updating === remito.id}
                               className="p-1.5 rounded-lg text-green-400 hover:bg-green-500/20 transition-colors disabled:opacity-50"
-                              title="Enviar por WhatsApp a Administración"
+                              title="Enviar por WhatsApp a Ventas"
                             >
                               <MessageCircle className="h-4 w-4" />
                             </button>
-                            <button
-                              onClick={() => handleCambiarEstado(remito.id!, 'A_Entregar')}
-                              disabled={updating === remito.id}
-                              className="p-1.5 rounded-lg text-violet-400 hover:bg-violet-500/20 transition-colors disabled:opacity-50"
-                              title="Marcar como A Entregar"
-                            >
-                              {updating === remito.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Truck className="h-4 w-4" />
-                              )}
-                            </button>
+                            {!remito.facturado && (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  placeholder="N° Factura"
+                                  value={facturaInputs[remito.id!] ?? ''}
+                                  onChange={(e) =>
+                                    setFacturaInputs((prev) => ({ ...prev, [remito.id!]: e.target.value }))
+                                  }
+                                  className="w-20 px-2 py-1 rounded-lg bg-[#0A0A1A] border border-white/10 text-white text-xs text-center focus:outline-none focus:border-violet-500/50 transition-colors"
+                                />
+                                <button
+                                  onClick={() => handleGuardarFactura(remito.id!)}
+                                  disabled={facturando === remito.id || !facturaInputs[remito.id!]?.trim()}
+                                  className="p-1.5 rounded-lg text-violet-400 hover:bg-violet-500/20 transition-colors disabled:opacity-40"
+                                  title="Creación de factura"
+                                >
+                                  {facturando === remito.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <FileSignature className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                            {remito.estado !== 'Aceptado' && (
+                              <button
+                                onClick={() => handleCambiarEstado(remito.id!, 'A_Entregar')}
+                                disabled={updating === remito.id}
+                                className="p-1.5 rounded-lg text-violet-400 hover:bg-violet-500/20 transition-colors disabled:opacity-50"
+                                title="Marcar como A Entregar"
+                              >
+                                {updating === remito.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Truck className="h-4 w-4" />
+                                )}
+                              </button>
+                            )}
                           </>
                         )}
 
                         {tab === 'remitos' && remito.estado === 'A_Entregar' && (
-                          <span className="text-[10px] text-violet-400/60 italic mr-1">Listo</span>
+                          <>
+                            {!remito.facturado && !remito.facturaAnulada && (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  placeholder="N° Factura"
+                                  value={facturaInputs[remito.id!] ?? ''}
+                                  onChange={(e) =>
+                                    setFacturaInputs((prev) => ({ ...prev, [remito.id!]: e.target.value }))
+                                  }
+                                  className="w-20 px-2 py-1 rounded-lg bg-[#0A0A1A] border border-white/10 text-white text-xs text-center focus:outline-none focus:border-violet-500/50 transition-colors"
+                                />
+                                <button
+                                  onClick={() => handleGuardarFactura(remito.id!)}
+                                  disabled={facturando === remito.id || !facturaInputs[remito.id!]?.trim()}
+                                  className="p-1.5 rounded-lg text-violet-400 hover:bg-violet-500/20 transition-colors disabled:opacity-40"
+                                  title="Creación de factura"
+                                >
+                                  {facturando === remito.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <FileSignature className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                            {remito.facturado && !remito.facturaAnulada && (
+                              <>
+                                <span className="text-[10px] text-emerald-400/60 mr-1">
+                                  Facturado N° {remito.nroFactura}
+                                </span>
+                                <button
+                                  onClick={() =>
+                                    setNcPopup({
+                                      remitoId: remito.id!,
+                                      nroNC: '',
+                                      montoNC: remito.totalGeneral,
+                                      totalGeneral: remito.totalGeneral,
+                                    })
+                                  }
+                                  className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors"
+                                  title="Anular factura"
+                                >
+                                  <Ban className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
+                            {remito.facturaAnulada && (
+                              <span className="text-[10px] text-red-400/60 mr-1">
+                                Anulada N/C {remito.nroNC} ${remito.montoNC?.toFixed(2)}
+                              </span>
+                            )}
+                          </>
                         )}
 
                         <Link href={`/remitos/${remito.id}?from=${tab}`}>
@@ -519,6 +659,148 @@ export default function RemitosPage() {
                   className="flex-1 px-4 py-2.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 text-sm font-medium transition-colors"
                 >
                   Anular
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Aceptar Presupuesto Confirmation */}
+      <AnimatePresence>
+        {aceptarConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setAceptarConfirm(null)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            <motion.div
+              className="relative w-full max-w-sm glass-card rounded-2xl p-6 text-center"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+              </div>
+              <h2 className="text-lg font-semibold text-white mb-2">
+                Presupuesto Aprobado
+              </h2>
+              <p className="text-sm text-[#B0B0D0] mb-6">
+                Se generará Remito/Factura
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setAceptarConfirm(null)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmarAceptar}
+                  disabled={updating === aceptarConfirm}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                >
+                  {updating === aceptarConfirm ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Confirmar
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* NC (Nota de Crédito) Popup */}
+      <AnimatePresence>
+        {ncPopup && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setNcPopup(null)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            <motion.div
+              className="relative w-full max-w-sm glass-card rounded-2xl p-6"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+                <Ban className="h-6 w-6 text-red-400" />
+              </div>
+              <h2 className="text-lg font-semibold text-white mb-1 text-center">
+                Anular Factura
+              </h2>
+              <p className="text-sm text-[#B0B0D0] mb-4 text-center">
+                Ingresá los datos de la Nota de Crédito
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-medium text-[#B0B0D0] mb-1">
+                    N° de Nota de Crédito *
+                  </label>
+                  <input
+                    type="text"
+                    value={ncPopup.nroNC}
+                    onChange={(e) => setNcPopup({ ...ncPopup, nroNC: e.target.value })}
+                    placeholder="Ej: NC-0001-2024"
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-red-500/50 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-[#B0B0D0] mb-1">
+                    Monto *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={ncPopup.totalGeneral}
+                    value={ncPopup.montoNC}
+                    onChange={(e) =>
+                      setNcPopup({ ...ncPopup, montoNC: parseFloat(e.target.value) || 0 })
+                    }
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-red-500/50 transition-colors"
+                  />
+                  <p className="text-[10px] text-[#6B6B8A] mt-1">
+                    {ncPopup.montoNC >= ncPopup.totalGeneral
+                      ? 'Anulación total'
+                      : `Anulación parcial (${((ncPopup.montoNC / ncPopup.totalGeneral) * 100).toFixed(0)}% del total)`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-5">
+                <button
+                  onClick={() => setNcPopup(null)}
+                  disabled={facturando === ncPopup.remitoId}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleGuardarNC}
+                  disabled={facturando === ncPopup.remitoId}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                >
+                  {facturando === ncPopup.remitoId ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Ban className="h-4 w-4" />
+                      Anular Factura
+                    </>
+                  )}
                 </button>
               </div>
             </motion.div>

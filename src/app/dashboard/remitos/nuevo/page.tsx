@@ -8,6 +8,8 @@ import {
   getVendedores,
   createRemito,
   getEmpresaConfig,
+  getTipoFactura,
+  clearCache,
 } from '@/lib/firestore'
 import type { Cliente, Producto, RemitoItem, Vendedor, EmpresaConfig } from '@/types'
 import {
@@ -81,8 +83,9 @@ export default function NuevoRemitoPage() {
     const s = clienteSearch.toLowerCase()
     return clientes.filter(
       (c) =>
-        c.cuit.toLowerCase().includes(s) ||
-        c.razonSocial.toLowerCase().includes(s)
+        c.razonSocial.toLowerCase().includes(s) ||
+        c.numeroDocumento.toLowerCase().includes(s) ||
+        c.codigoCliente.toLowerCase().includes(s)
     )
   }, [clientes, clienteSearch])
 
@@ -191,8 +194,9 @@ export default function NuevoRemitoPage() {
     () => items.reduce((sum, item) => sum + item.subtotal, 0),
     [items]
   )
-  const iva = subtotalGeneral * 0.21
-  const totalGeneral = subtotalGeneral + iva
+  const isFA = selectedCliente ? getTipoFactura(selectedCliente.condicionIVA) === 'A' : true
+  const iva = isFA ? subtotalGeneral * 0.21 : 0
+  const totalGeneral = isFA ? subtotalGeneral + iva : subtotalGeneral
 
   const handleGenerate = async () => {
     if (!selectedCliente) {
@@ -209,11 +213,15 @@ export default function NuevoRemitoPage() {
       const result = await createRemito({
         idCliente: selectedCliente.id!,
         clienteData: {
-          cuit: selectedCliente.cuit,
+          codigoCliente: selectedCliente.codigoCliente,
           razonSocial: selectedCliente.razonSocial,
-          direccion: selectedCliente.direccion,
-          telefono: selectedCliente.telefono,
-          tipoFactura: selectedCliente.tipoFactura || '',
+          tipoDocumento: selectedCliente.tipoDocumento || '',
+          numeroDocumento: selectedCliente.numeroDocumento,
+          actividad: selectedCliente.actividad || '',
+          telefono: selectedCliente.telefono || '',
+          domicilio: selectedCliente.domicilio || '',
+          localidad: selectedCliente.localidad || '',
+          condicionIVA: selectedCliente.condicionIVA || '',
         },
         vendedor: selectedVendedor ? { codigo: selectedVendedor.codigo, nombre: selectedVendedor.nombre } : undefined,
         items,
@@ -222,6 +230,7 @@ export default function NuevoRemitoPage() {
       toast.success(
         `Remito N° ${String(result.numeroRemito).padStart(6, '0')} creado exitosamente`
       )
+      clearCache('allRemitos')
       router.push(`/remitos/${result.id}`)
     } catch {
       toast.error('Error al crear el remito')
@@ -337,7 +346,7 @@ export default function NuevoRemitoPage() {
                   >
                     <span className="font-medium">{cliente.razonSocial}</span>
                     <span className="text-[#6B6B8A] ml-2">
-                      {cliente.cuit}
+                      {cliente.numeroDocumento}
                     </span>
                   </button>
                 ))}
@@ -349,26 +358,30 @@ export default function NuevoRemitoPage() {
             <div className="p-4 rounded-xl bg-gradient-to-r from-[#6C3CE1]/10 to-[#00D4FF]/5 border border-[#6C3CE1]/20 animate-fadeInUp">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
+                  <p className="text-xs text-[#6B6B8A]">Cód. Cliente</p>
+                  <p className="text-sm text-white font-mono">{selectedCliente.codigoCliente}</p>
+                </div>
+                <div>
                   <p className="text-xs text-[#6B6B8A]">Razón Social</p>
-                  <p className="text-sm text-white font-medium">
-                    {selectedCliente.razonSocial}
-                  </p>
+                  <p className="text-sm text-white font-medium">{selectedCliente.razonSocial}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[#6B6B8A]">CUIT</p>
-                  <p className="text-sm text-white">{selectedCliente.cuit}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-[#6B6B8A]">Dirección</p>
+                  <p className="text-xs text-[#6B6B8A]">Documento</p>
                   <p className="text-sm text-white">
-                    {selectedCliente.direccion}
+                    {selectedCliente.tipoDocumento} {selectedCliente.numeroDocumento}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-[#6B6B8A]">Teléfono</p>
-                  <p className="text-sm text-white">
-                    {selectedCliente.telefono}
-                  </p>
+                  <p className="text-sm text-white">{selectedCliente.telefono || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#6B6B8A]">Domicilio</p>
+                  <p className="text-sm text-white">{selectedCliente.domicilio || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#6B6B8A]">Localidad</p>
+                  <p className="text-sm text-white">{selectedCliente.localidad || '—'}</p>
                 </div>
               </div>
             </div>
@@ -616,12 +629,17 @@ export default function NuevoRemitoPage() {
                       <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3">
                         Subtotal
                       </th>
+                      <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3 hidden sm:table-cell">
+                        IVA 21%
+                      </th>
                       <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-4 py-3">
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {items.map((item, index) => (
+                    {items.map((item, index) => {
+                      const ivaLinea = isFA ? item.subtotal * 0.21 : 0
+                      return (
                       <tr key={index} className={`hover:bg-white/5 transition-colors ${editItemIndex === index ? 'bg-[#6C3CE1]/5' : ''}`}>
                         <td className="px-4 py-3 text-sm text-white">
                           {item.nombreProducto}
@@ -637,6 +655,9 @@ export default function NuevoRemitoPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-white text-right font-mono">
                           ${item.subtotal.toFixed(2)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-[#B0B0D0] text-right font-mono hidden sm:table-cell">
+                          {isFA ? `$${ivaLinea.toFixed(2)}` : '—'}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -657,30 +678,40 @@ export default function NuevoRemitoPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    )})}
                   </tbody>
                 </table>
               </div>
 
               {/* Totales */}
               <div className="border-t border-white/5 p-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#B0B0D0]">Subtotal</span>
-                  <span className="text-white font-mono">
-                    ${subtotalGeneral.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#B0B0D0]">IVA (21%)</span>
-                  <span className="text-white font-mono">
-                    ${iva.toFixed(2)}
-                  </span>
-                </div>
+                {isFA ? (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#B0B0D0]">Importe Neto Gravado</span>
+                      <span className="text-white font-mono">${subtotalGeneral.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#B0B0D0]">IVA 21%</span>
+                      <span className="text-white font-mono">${iva.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm border-t border-dashed border-white/10 pt-1">
+                      <span className="text-[#B0B0D0]">Importe Total</span>
+                      <span className="text-white font-mono">${totalGeneral.toFixed(2)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#B0B0D0]">Subtotal</span>
+                      <span className="text-white font-mono">${subtotalGeneral.toFixed(2)}</span>
+                    </div>
+                    <p className="text-[10px] text-[#6B6B8A] text-right">IVA incluido</p>
+                  </>
+                )}
                 <div className="flex justify-between text-lg font-bold border-t border-white/5 pt-2">
-                  <span className="text-white">Total</span>
-                  <span className="text-white font-mono">
-                    ${totalGeneral.toFixed(2)}
-                  </span>
+                  <span className="text-white">Total General</span>
+                  <span className="text-white font-mono">${totalGeneral.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -752,20 +783,30 @@ export default function NuevoRemitoPage() {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                 <div>
-                  <p className="text-xs text-[#6B6B8A]">CUIT</p>
-                  <p className="text-sm font-medium text-white">{selectedCliente?.cuit}</p>
+                  <p className="text-xs text-[#6B6B8A]">Cód. Cliente</p>
+                  <p className="text-sm font-mono font-medium text-white">{selectedCliente?.codigoCliente}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#6B6B8A]">Documento</p>
+                  <p className="text-sm font-medium text-white">
+                    {selectedCliente?.tipoDocumento} {selectedCliente?.numeroDocumento}
+                  </p>
                 </div>
                 <div>
                   <p className="text-xs text-[#6B6B8A]">Razón Social</p>
                   <p className="text-sm font-medium text-white">{selectedCliente?.razonSocial}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[#6B6B8A]">Dirección</p>
-                  <p className="text-sm text-[#B0B0D0]">{selectedCliente?.direccion}</p>
+                  <p className="text-xs text-[#6B6B8A]">Teléfono</p>
+                  <p className="text-sm text-[#B0B0D0]">{selectedCliente?.telefono || '—'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-[#6B6B8A]">Teléfono</p>
-                  <p className="text-sm text-[#B0B0D0]">{selectedCliente?.telefono}</p>
+                  <p className="text-xs text-[#6B6B8A]">Domicilio</p>
+                  <p className="text-sm text-[#B0B0D0]">{selectedCliente?.domicilio || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#6B6B8A]">Localidad</p>
+                  <p className="text-sm text-[#B0B0D0]">{selectedCliente?.localidad || '—'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-[#6B6B8A]">Vendedor</p>
@@ -800,6 +841,9 @@ export default function NuevoRemitoPage() {
                       <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5 w-28">
                         Subtotal
                       </th>
+                      <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5 w-24">
+                        IVA 21%
+                      </th>
                       <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-2.5 w-16">
                       </th>
                     </tr>
@@ -807,6 +851,7 @@ export default function NuevoRemitoPage() {
                   <tbody className="divide-y divide-white/5">
                     {items.map((item, index) => {
                       const bonif = item.bonificacion || 0
+                      const ivaLinea = isFA ? item.subtotal * 0.21 : 0
                       return (
                       <tr key={index} className="hover:bg-white/5 transition-colors">
                         <td className="px-3 py-2">
@@ -860,6 +905,9 @@ export default function NuevoRemitoPage() {
                         <td className="px-3 py-2 text-sm text-white text-right font-mono">
                           ${item.subtotal.toFixed(2)}
                         </td>
+                        <td className="px-3 py-2 text-sm text-[#B0B0D0] text-right font-mono">
+                          {isFA ? `$${ivaLinea.toFixed(2)}` : '—'}
+                        </td>
                         <td className="px-3 py-2 text-right">
                           <button
                             onClick={() => removeItem(index)}
@@ -878,14 +926,30 @@ export default function NuevoRemitoPage() {
 
               {/* Totales */}
               <div className="ml-auto w-full sm:w-72 mt-4 space-y-1.5 p-4 rounded-xl bg-gradient-to-r from-[#6C3CE1]/10 to-[#00D4FF]/5 border border-[#6C3CE1]/20">
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#B0B0D0]">Subtotal</span>
-                  <span className="text-white font-mono">${subtotalGeneral.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-[#B0B0D0]">IVA (21%)</span>
-                  <span className="text-white font-mono">${iva.toFixed(2)}</span>
-                </div>
+                {isFA ? (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#B0B0D0]">Importe Neto Gravado</span>
+                      <span className="text-white font-mono">${subtotalGeneral.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#B0B0D0]">IVA 21%</span>
+                      <span className="text-white font-mono">${iva.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm border-t border-dashed border-white/10 pt-1">
+                      <span className="text-[#B0B0D0]">Importe Total</span>
+                      <span className="text-white font-mono">${totalGeneral.toFixed(2)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#B0B0D0]">Subtotal</span>
+                      <span className="text-white font-mono">${subtotalGeneral.toFixed(2)}</span>
+                    </div>
+                    <p className="text-[10px] text-[#6B6B8A] text-right">IVA incluido</p>
+                  </>
+                )}
                 <div className="flex justify-between text-lg font-bold border-t border-white/5 pt-2">
                   <span className="text-white">Total General</span>
                   <span className="text-white font-mono">${totalGeneral.toFixed(2)}</span>
