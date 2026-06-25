@@ -618,6 +618,68 @@ export async function vendedorCodigoExists(codigo: string, excludeId?: string) {
   }
 }
 
+export interface VendedorStats {
+  codigo: string
+  nombre: string
+  totalRemitos: number
+  totalFacturado: number
+  totalItems: number
+  remitosPorEstado: Record<string, number>
+  ultimoRemito: Date | null
+  remitoMasAlto: number
+}
+
+export async function getVendedoresStats(): Promise<VendedorStats[]> {
+  const _db = getDb()
+  const q = query(
+    collection(_db, COLECCIONES.remitos),
+    orderBy('createdAt', 'desc')
+  )
+  const snapshot = await getDocs(q)
+
+  const statsMap = new Map<string, VendedorStats>()
+
+  for (const doc of snapshot.docs) {
+    const data = doc.data()
+    const vendedor = data.vendedor
+    if (!vendedor?.codigo) continue
+
+    const key = vendedor.codigo
+    if (!statsMap.has(key)) {
+      statsMap.set(key, {
+        codigo: vendedor.codigo,
+        nombre: vendedor.nombre,
+        totalRemitos: 0,
+        totalFacturado: 0,
+        totalItems: 0,
+        remitosPorEstado: {},
+        ultimoRemito: null,
+        remitoMasAlto: 0,
+      })
+    }
+
+    const stat = statsMap.get(key)!
+    stat.totalRemitos++
+    if (data.estado !== 'Anulado') {
+      stat.totalFacturado += data.totalGeneral || 0
+    }
+    const items = (data.items || []) as RemitoItem[]
+    stat.totalItems += items.reduce((sum, item) => sum + item.cantidad, 0)
+    const estado: string = data.estado || 'Desconocido'
+    stat.remitosPorEstado[estado] = (stat.remitosPorEstado[estado] || 0) + 1
+
+    const total = data.totalGeneral || 0
+    if (total > stat.remitoMasAlto) stat.remitoMasAlto = total
+
+    const fecha = data.fecha?.toDate?.() ?? data.fecha
+    if (fecha && (!stat.ultimoRemito || fecha > stat.ultimoRemito)) {
+      stat.ultimoRemito = fecha
+    }
+  }
+
+  return Array.from(statsMap.values()).sort((a, b) => b.totalFacturado - a.totalFacturado)
+}
+
 export async function createMultipleVendedores(
   data: Omit<Vendedor, 'id' | 'createdAt'>[]
 ) {
