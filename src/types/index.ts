@@ -50,6 +50,19 @@ export interface Pago {
   createdAt: Date
 }
 
+export interface EntregaItem {
+  idProducto: string
+  nombreProducto: string
+  cantidad: number
+}
+
+export interface Entrega {
+  id: string
+  fecha: Date
+  createdAt: Date
+  items: EntregaItem[]
+}
+
 export interface Remito {
   id?: string
   numeroRemito: number
@@ -86,6 +99,7 @@ export interface Remito {
   montoNC?: number
   pagos?: Pago[]
   totalPagado?: number
+  entregas?: Entrega[]
 }
 
 export interface DashboardStats {

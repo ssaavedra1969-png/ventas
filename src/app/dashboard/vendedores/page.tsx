@@ -429,6 +429,12 @@ export default function VendedoresPage() {
           <>
             {/* Header */}
             <div className="glass-card rounded-xl p-5">
+              <button
+                onClick={() => setSelectedVendedorId(null)}
+                className="inline-flex items-center gap-1 text-[10px] text-[#6B6B8A] hover:text-white transition-colors mb-3"
+              >
+                ← Volver al ranking
+              </button>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6C3CE1] to-[#00D4FF] flex items-center justify-center text-white font-bold text-sm font-mono">
                   {selectedVendedor.codigo}

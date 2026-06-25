@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { getCached, setCache, clearCache } from './cache'
-import type { Cliente, Producto, Remito, RemitoItem, Vendedor, EmpresaConfig, Pago } from '@/types'
+import type { Cliente, Producto, Remito, RemitoItem, Vendedor, EmpresaConfig, Pago, Entrega } from '@/types'
 
 const CACHE_KEYS = {
   clientes: 'allClientes',
@@ -610,6 +610,42 @@ export async function eliminarPago(remitoId: string, pagoId: string) {
   const totalPagado = nuevosPagos.reduce((sum, p) => sum + p.monto, 0)
 
   await updateDoc(ref, { pagos: nuevosPagos, totalPagado })
+}
+
+export async function agregarEntrega(
+  remitoId: string,
+  data: { items: { idProducto: string; nombreProducto: string; cantidad: number }[]; fecha: Date }
+) {
+  const ref = doc(getDb(), COLECCIONES.remitos, remitoId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Remito no encontrado')
+
+  const remito = snap.data()
+  const entregasActuales: Entrega[] = remito.entregas ?? []
+  const nuevaEntrega: Entrega = {
+    id: `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+    fecha: data.fecha,
+    createdAt: new Date(),
+    items: data.items.map((item) => ({
+      idProducto: item.idProducto,
+      nombreProducto: item.nombreProducto,
+      cantidad: item.cantidad,
+    })),
+  }
+  const nuevasEntregas = [...entregasActuales, nuevaEntrega]
+  await updateDoc(ref, { entregas: nuevasEntregas })
+  return nuevaEntrega
+}
+
+export async function eliminarEntrega(remitoId: string, entregaId: string) {
+  const ref = doc(getDb(), COLECCIONES.remitos, remitoId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Remito no encontrado')
+
+  const data = snap.data()
+  const entregasActuales: Entrega[] = data.entregas ?? []
+  const nuevasEntregas = entregasActuales.filter((e) => e.id !== entregaId)
+  await updateDoc(ref, { entregas: nuevasEntregas })
 }
 
 export async function getDashboardStats(): Promise<{

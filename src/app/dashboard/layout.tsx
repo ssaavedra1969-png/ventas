@@ -14,6 +14,7 @@ import {
   Building2,
   ChevronRight,
   DollarSign,
+  Truck,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -32,6 +33,7 @@ const navigation = [
       { href: '/dashboard/productos', label: 'Productos', icon: Package, gradient: 'from-amber-400 to-orange-400' },
       { href: '/dashboard/vendedores', label: 'Vendedores', icon: UserCheck, gradient: 'from-emerald-400 to-teal-400' },
       { href: '/dashboard/facturacion', label: 'Facturación', icon: DollarSign, gradient: 'from-green-400 to-emerald-400' },
+      { href: '/dashboard/entregas', label: 'Entregas', icon: Truck, gradient: 'from-amber-400 to-yellow-400' },
     ],
   },
   {
