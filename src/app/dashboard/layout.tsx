@@ -18,6 +18,8 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import SyncStatus from '@/components/SyncStatus'
+import { syncManager } from '@/lib/sync'
 
 const navigation = [
   {
@@ -108,6 +110,8 @@ export default function DashboardLayout({
   const [clock, setClock] = useState('')
 
   useEffect(() => {
+    syncManager.start()
+
     const update = () => {
       const now = new Date()
       setClock(
@@ -127,7 +131,10 @@ export default function DashboardLayout({
     }
     update()
     const id = setInterval(update, 1000)
-    return () => clearInterval(id)
+    return () => {
+      clearInterval(id)
+      syncManager.stop()
+    }
   }, [])
 
   return (
@@ -302,6 +309,8 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex-1" />
+
+          <SyncStatus />
 
           <motion.div
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-xs text-[#6B6B8A]"
