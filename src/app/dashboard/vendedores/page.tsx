@@ -67,13 +67,17 @@ export default function VendedoresPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
+      clearCache('allRemitos')
       const [v, r] = await Promise.all([
         getVendedores(),
-        getAllRemitos(),
+        getAllRemitos(true),
       ])
       setVendedores(v)
       setAllRemitos(r)
-    } catch {
+      console.log('VendedoresPage — vendedores:', v.map(x => ({ id: x.id, codigo: x.codigo, nombre: x.nombre })))
+      console.log('VendedoresPage — remitos:', r.map(x => ({ nro: x.numeroRemito, vend: x.vendedor, total: x.totalGeneral })))
+    } catch (err) {
+      console.error('Error cargando datos de vendedores:', err)
       toast.error('Error al cargar datos')
     } finally {
       setLoading(false)
@@ -122,10 +126,16 @@ export default function VendedoresPage() {
     })
 
     allRemitos.forEach((r) => {
-      const cod = r.vendedor?.codigo
-      if (!cod) return
-      const vendedor = vendedores.find((v) => v.codigo === cod)
-      if (!vendedor?.id) return
+      const cod = r.vendedor?.codigo?.trim()
+      if (!cod) {
+        console.warn('VendedoresPage — remito sin vendedor:', r.numeroRemito, r.clienteData.razonSocial)
+        return
+      }
+      const vendedor = vendedores.find((v) => v.codigo.trim().toUpperCase() === cod.toUpperCase())
+      if (!vendedor?.id) {
+        console.warn('VendedoresPage — vendedor no encontrado para codigo:', cod)
+        return
+      }
       const s = map.get(vendedor.id)
       if (!s) return
 
