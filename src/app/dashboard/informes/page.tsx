@@ -144,34 +144,53 @@ export default function InformesPage() {
   const hayFiltros = Object.values(filtros).some(Boolean)
 
   const filas = useMemo(() => {
-    return remitosFiltrados.map((r) => ({
-      numeroRemito: r.numeroRemito,
-      fecha: formatDate(r.fecha),
-      cliente: r.clienteData.razonSocial,
-      documento: r.clienteData.tipoDocumento
-        ? `${r.clienteData.tipoDocumento} ${r.clienteData.numeroDocumento}`
-        : r.clienteData.numeroDocumento,
-      localidad: r.clienteData.localidad || '—',
-      condicionIVA: condIVALabel[r.clienteData.condicionIVA] || r.clienteData.condicionIVA || '—',
-      vendedor: r.vendedor?.nombre || '—',
-      estado: r.estado,
-      subtotal: r.subtotalGeneral ?? 0,
-      iva: r.iva ?? 0,
-      total: r.totalGeneral ?? 0,
-      nroFactura: r.facturado ? (r.nroFactura || 'S/N') : '—',
-      fechaFactura: r.facturado ? formatDate(r.fechaFacturado) : '—',
-      totalPagado: r.totalPagado ?? 0,
-      saldo: (r.totalGeneral ?? 0) - (r.totalPagado ?? 0),
-      metodosPago: (r.pagos ?? []).map(p => p.metodo).filter((v, i, a) => a.indexOf(v) === i).join(', ') || '—',
-      cantidadPagos: (r.pagos ?? []).length,
-      cantidadEntregas: (r.entregas ?? []).length,
-      estadoEntregas: (r.entregas ?? []).length > 0
-        ? (r.entregas ?? []).length === r.items.length ? 'Completa' : 'Parcial'
-        : 'Sin entregas',
-      items: r.items.length,
-      nroNC: r.facturaAnulada ? (r.nroNC || 'S/N') : '—',
-      montoNC: r.facturaAnulada ? (r.montoNC ?? 0) : 0,
-    }))
+    return remitosFiltrados.map((r) => {
+      const pagos = r.pagos ?? []
+      const entregas = r.entregas ?? []
+      const refPagos = pagos
+        .filter(p => p.referencia)
+        .map(p => `${p.metodo}: ${p.referencia}`)
+        .join(' | ') || '—'
+      const idsEntrega = entregas
+        .map(e => e.id.slice(-6).toUpperCase())
+        .join(', ') || '—'
+      const facturaDisplay = r.facturado
+        ? `Rto #${r.numeroRemito} → Fact ${r.nroFactura || 'S/N'}`
+        : r.facturaAnulada
+          ? `Rto #${r.numeroRemito} → NC ${r.nroNC || 'S/N'}`
+          : `Rto #${r.numeroRemito} → —`
+      return {
+        numeroRemito: r.numeroRemito,
+        fecha: formatDate(r.fecha),
+        cliente: r.clienteData.razonSocial,
+        documento: r.clienteData.tipoDocumento
+          ? `${r.clienteData.tipoDocumento} ${r.clienteData.numeroDocumento}`
+          : r.clienteData.numeroDocumento,
+        localidad: r.clienteData.localidad || '—',
+        condicionIVA: condIVALabel[r.clienteData.condicionIVA] || r.clienteData.condicionIVA || '—',
+        vendedor: r.vendedor?.nombre || '—',
+        estado: r.estado,
+        subtotal: r.subtotalGeneral ?? 0,
+        iva: r.iva ?? 0,
+        total: r.totalGeneral ?? 0,
+        nroFactura: r.facturado ? (r.nroFactura || 'S/N') : '—',
+        fechaFactura: r.facturado ? formatDate(r.fechaFacturado) : '—',
+        facturaDisplay,
+        totalPagado: r.totalPagado ?? 0,
+        saldo: (r.totalGeneral ?? 0) - (r.totalPagado ?? 0),
+        metodosPago: pagos.map(p => p.metodo).filter((v, i, a) => a.indexOf(v) === i).join(', ') || '—',
+        cantidadPagos: pagos.length,
+        refPagos,
+        cantidadEntregas: entregas.length,
+        estadoEntregas: entregas.length > 0
+          ? entregas.length === r.items.length ? 'Completa' : 'Parcial'
+          : 'Sin entregas',
+        idsEntrega,
+        items: r.items.length,
+        nroNC: r.facturaAnulada ? (r.nroNC || 'S/N') : '—',
+        montoNC: r.facturaAnulada ? (r.montoNC ?? 0) : 0,
+      }
+    })
   }, [remitosFiltrados])
 
   const handleExportXLSX = () => {
@@ -190,13 +209,16 @@ export default function InformesPage() {
           'Subtotal': f.subtotal,
           'IVA': f.iva,
           'Total': f.total,
+          'Factura / Referencias': f.facturaDisplay,
           'N° Factura': f.nroFactura,
           'Fecha Factura': f.fechaFactura,
           'Total Pagado': f.totalPagado,
           'Saldo': f.saldo,
           'Métodos de Pago': f.metodosPago,
+          'Ref. Pagos': f.refPagos,
           'Cant. Pagos': f.cantidadPagos,
           'Cant. Entregas': f.cantidadEntregas,
+          'IDs Entrega': f.idsEntrega,
           'Estado Entregas': f.estadoEntregas,
           'Items': f.items,
           'N° NC': f.nroNC,
@@ -428,11 +450,11 @@ export default function InformesPage() {
                   <td className="px-3 py-2.5 text-right font-mono text-emerald-400 font-medium">{formatCurrency(f.total)}</td>
                   <td className="px-3 py-2.5 text-center">
                     {f.nroFactura !== '—' ? (
-                      <span className="text-[10px] text-sky-400 font-mono">{f.nroFactura}</span>
+                      <span className="text-[10px] text-sky-400 font-mono" title={f.facturaDisplay}>{f.facturaDisplay}</span>
                     ) : f.nroNC !== '—' ? (
-                      <span className="text-[10px] text-red-400 font-mono" title={`NC: ${f.nroNC} - $${f.montoNC.toFixed(2)}`}>NC: {f.nroNC}</span>
+                      <span className="text-[10px] text-red-400 font-mono" title={`NC: ${f.nroNC} - $${f.montoNC.toFixed(2)}`}>{f.facturaDisplay}</span>
                     ) : (
-                      <span className="text-[10px] text-[#3A3A5A]">—</span>
+                      <span className="text-[10px] text-[#3A3A5A]">{f.facturaDisplay}</span>
                     )}
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono text-sky-400">{formatCurrency(f.totalPagado)}</td>
@@ -441,14 +463,14 @@ export default function InformesPage() {
                   </td>
                   <td className="px-3 py-2.5 text-center text-[#6B6B8A]">
                     {f.cantidadPagos > 0 ? (
-                      <span title={f.metodosPago}>{f.cantidadPagos}</span>
+                      <span title={`${f.metodosPago}${f.refPagos !== '—' ? `\n${f.refPagos}` : ''}`}>{f.cantidadPagos}</span>
                     ) : (
                       <span className="text-[#3A3A5A]">—</span>
                     )}
                   </td>
                   <td className="px-3 py-2.5 text-center">
                     {f.cantidadEntregas > 0 ? (
-                      <span className="text-amber-400" title={f.estadoEntregas}>{f.cantidadEntregas}</span>
+                      <span className="text-amber-400" title={`${f.estadoEntregas}\n${f.idsEntrega}`}>{f.cantidadEntregas}</span>
                     ) : (
                       <span className="text-[#3A3A5A]">—</span>
                     )}
@@ -506,11 +528,11 @@ export default function InformesPage() {
                 <td>{f.vendedor}</td>
                 <td>{f.estado}</td>
                 <td style={{ textAlign: 'right' }}>${f.total.toFixed(2)}</td>
-                <td>{f.nroFactura}</td>
+                <td style={{ fontSize: '7pt' }}>{f.facturaDisplay}</td>
                 <td style={{ textAlign: 'right' }}>${f.totalPagado.toFixed(2)}</td>
                 <td style={{ textAlign: 'right' }}>${f.saldo.toFixed(2)}</td>
-                <td style={{ textAlign: 'center' }}>{f.cantidadPagos}</td>
-                <td style={{ textAlign: 'center' }}>{f.cantidadEntregas}</td>
+                <td style={{ textAlign: 'center' }} title={f.refPagos !== '—' ? f.refPagos : undefined}>{f.cantidadPagos}</td>
+                <td style={{ textAlign: 'center' }} title={f.idsEntrega !== '—' ? f.idsEntrega : undefined}>{f.cantidadEntregas}</td>
                 <td style={{ textAlign: 'center' }}>{f.items}</td>
               </tr>
             ))}
