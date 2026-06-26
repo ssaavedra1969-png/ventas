@@ -97,10 +97,8 @@ async function main() {
   let app
   try {
     app = initApp()
-  } catch (err) {
+  } catch {
     console.error(`\nNo se pudieron cargar las credenciales de Firebase.`)
-    console.error(`Error: ${err.message}`)
-    console.error(`Stack: ${err.stack?.substring(0, 500)}`)
     console.error(``)
     console.error(`Para configurar la clave de service account:`)
     console.error(`  1. Andá a Firebase Console → Project Settings → Service Accounts`)
