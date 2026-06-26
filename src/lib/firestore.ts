@@ -16,10 +16,9 @@ import {
   runTransaction,
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { getCached, setCache, clearCache } from './cache'
+import { clearCache } from './cache'
 import {
   localGetAll, localGet, localSet, localDelete,
-  localSetMeta, localGetMeta,
   enqueueOperation, generateLocalId,
 } from './db'
 import { syncManager } from './sync'
@@ -33,7 +32,6 @@ const CACHE_KEYS = {
   remitos: 'allRemitos',
 } as const
 
-const IDB_STALENESS = 5 * 60 * 1000 // 5 minutos: desde IndexedDB sin Firebase si fue refrescado hace < 5min
 
 const COLECCIONES = {
   clientes: 'clientes',
@@ -223,20 +221,7 @@ export async function getClientes(search?: string, page = 1, pageSize = 10) {
   }
 }
 
-export async function getAllClientes(force = false) {
-  if (!force) {
-    const cached = getCached<Cliente[]>(CACHE_KEYS.clientes)
-    if (cached) return cached
-
-    const lastUpdated = await localGetMeta('clientes_updated_at').catch(() => null) as number | null
-    if (lastUpdated && Date.now() - lastUpdated < IDB_STALENESS) {
-      const localData = await localGetAll<Cliente>('clientes')
-      if (localData.length > 0) {
-        setCache(CACHE_KEYS.clientes, localData)
-        return localData
-      }
-    }
-  }
+export async function getAllClientes() {
   try {
     const q = query(
       collection(getDb(), COLECCIONES.clientes),
@@ -247,16 +232,11 @@ export async function getAllClientes(force = false) {
       id: doc.id,
       ...doc.data(),
     })) as Cliente[]
-    setCache(CACHE_KEYS.clientes, data)
     await syncManager.cacheCollection('clientes', data.map(c => ({ ...c, id: c.id! })))
-    await localSetMeta('clientes_updated_at', Date.now()).catch(() => {})
     return data
   } catch (error) {
     const localData = await localGetAll<Cliente>('clientes')
-    if (localData.length > 0) {
-      setCache(CACHE_KEYS.clientes, localData)
-      return localData
-    }
+    if (localData.length > 0) return localData
     throw error
   }
 }
@@ -278,51 +258,29 @@ export async function getCliente(id: string) {
 export async function createCliente(data: Omit<Cliente, 'id' | 'createdAt' | 'codigoCliente'>) {
   const codigoCliente = await getNextCodigoCliente()
   const fullData = { ...data, codigoCliente, createdAt: Timestamp.now() }
-  const tempId = generateLocalId()
-
-  await localSet('clientes', { id: tempId, ...fullData })
-  clearCache(CACHE_KEYS.clientes)
 
   try {
     const docRef = await addDoc(collection(getDb(), COLECCIONES.clientes), fullData)
-    await localDelete('clientes', tempId)
     await localSet('clientes', { id: docRef.id, ...fullData })
     return docRef.id
   } catch {
-    await enqueueOperation({
-      collection: 'clientes', docId: tempId, operation: 'create',
-      data: fullData, timestamp: Date.now(), retryCount: 0,
-    })
-    return tempId
+    throw new Error('Error al crear cliente en Firebase')
   }
 }
 
 export async function updateCliente(id: string, data: Partial<Cliente>) {
-  const existing = await localGet<any>('clientes', id)
-  if (existing) {
-    await localSet('clientes', { ...existing, ...data, id })
-  }
-  clearCache(CACHE_KEYS.clientes)
   try {
     await updateDoc(doc(getDb(), COLECCIONES.clientes, id), data)
   } catch {
-    await enqueueOperation({
-      collection: 'clientes', docId: id, operation: 'update',
-      data, timestamp: Date.now(), retryCount: 0,
-    })
+    throw new Error('Error al actualizar cliente en Firebase')
   }
 }
 
 export async function deleteCliente(id: string) {
-  await localDelete('clientes', id)
-  clearCache(CACHE_KEYS.clientes)
   try {
     await deleteDoc(doc(getDb(), COLECCIONES.clientes, id))
   } catch {
-    await enqueueOperation({
-      collection: 'clientes', docId: id, operation: 'delete',
-      timestamp: Date.now(), retryCount: 0,
-    })
+    throw new Error('Error al eliminar cliente en Firebase')
   }
 }
 
@@ -456,20 +414,7 @@ export async function getProductos(search?: string, page = 1, pageSize = 10) {
   }
 }
 
-export async function getAllProductos(force = false) {
-  if (!force) {
-    const cached = getCached<Producto[]>(CACHE_KEYS.productos)
-    if (cached) return cached
-
-    const lastUpdated = await localGetMeta('productos_updated_at').catch(() => null) as number | null
-    if (lastUpdated && Date.now() - lastUpdated < IDB_STALENESS) {
-      const localData = await localGetAll<Producto>('productos')
-      if (localData.length > 0) {
-        setCache(CACHE_KEYS.productos, localData)
-        return localData
-      }
-    }
-  }
+export async function getAllProductos() {
   try {
     const q = query(
       collection(getDb(), COLECCIONES.productos),
@@ -480,16 +425,11 @@ export async function getAllProductos(force = false) {
       id: doc.id,
       ...doc.data(),
     })) as Producto[]
-    setCache(CACHE_KEYS.productos, data)
     await syncManager.cacheCollection('productos', data.map(p => ({ ...p, id: p.id! })))
-    await localSetMeta('productos_updated_at', Date.now()).catch(() => {})
     return data
   } catch (error) {
     const localData = await localGetAll<Producto>('productos')
-    if (localData.length > 0) {
-      setCache(CACHE_KEYS.productos, localData)
-      return localData
-    }
+    if (localData.length > 0) return localData
     throw error
   }
 }
@@ -502,22 +442,12 @@ export async function createProducto(data: Omit<Producto, 'id' | 'createdAt'>) {
     stock: data.stock ?? 0,
     createdAt: Timestamp.now(),
   }
-  const tempId = generateLocalId()
-
-  await localSet('productos', { id: tempId, ...fullData })
-  clearCache(CACHE_KEYS.productos)
-
   try {
     const docRef = await addDoc(collection(getDb(), COLECCIONES.productos), fullData)
-    await localDelete('productos', tempId)
     await localSet('productos', { id: docRef.id, ...fullData })
     return docRef.id
   } catch {
-    await enqueueOperation({
-      collection: 'productos', docId: tempId, operation: 'create',
-      data: fullData, timestamp: Date.now(), retryCount: 0,
-    })
-    return tempId
+    throw new Error('Error al crear producto en Firebase')
   }
 }
 
@@ -526,31 +456,18 @@ export async function updateProducto(id: string, data: Partial<Producto>) {
   if (updateData.valorUnitario !== undefined && updateData.precioSinIVA === undefined) {
     updateData.precioSinIVA = Math.round((updateData.valorUnitario / 1.21) * 100) / 100
   }
-  const existing = await localGet<any>('productos', id)
-  if (existing) {
-    await localSet('productos', { ...existing, ...updateData, id })
-  }
-  clearCache(CACHE_KEYS.productos)
   try {
     await updateDoc(doc(getDb(), COLECCIONES.productos, id), updateData)
   } catch {
-    await enqueueOperation({
-      collection: 'productos', docId: id, operation: 'update',
-      data: updateData, timestamp: Date.now(), retryCount: 0,
-    })
+    throw new Error('Error al actualizar producto en Firebase')
   }
 }
 
 export async function deleteProducto(id: string) {
-  await localDelete('productos', id)
-  clearCache(CACHE_KEYS.productos)
   try {
     await deleteDoc(doc(getDb(), COLECCIONES.productos, id))
   } catch {
-    await enqueueOperation({
-      collection: 'productos', docId: id, operation: 'delete',
-      timestamp: Date.now(), retryCount: 0,
-    })
+    throw new Error('Error al eliminar producto en Firebase')
   }
 }
 
@@ -702,31 +619,34 @@ export async function getVendedoresStats(): Promise<VendedorStats[]> {
 
 export async function getAllVehiculos(): Promise<Vehiculo[]> {
   try {
+    const snapshot = await getDocs(collection(getDb(), 'vehiculos'))
+    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vehiculo))
+    data.sort((a, b) => a.patente.localeCompare(b.patente))
+    await syncManager.cacheCollection('vehiculos', data.map(v => ({ ...v, id: v.id! })))
+    return data
+  } catch {
     const result = await localGetAll<Vehiculo>('vehiculos')
     return result.sort((a, b) => a.patente.localeCompare(b.patente))
-  } catch {
-    return []
   }
 }
 
 export async function createVehiculo(data: Omit<Vehiculo, 'id' | 'createdAt'>): Promise<string> {
-  const id = generateLocalId()
-  const fullData: Vehiculo = { ...data, id, createdAt: new Date() }
-  await localSet('vehiculos', fullData as any)
   try {
-    await setDoc(doc(getDb(), 'vehiculos', id), {
-      ...data, createdAt: Timestamp.now(),
-    })
-    await localDelete('vehiculos', id)
-    await localSet('vehiculos', { ...fullData, id } as any)
+    const ref = doc(collection(getDb(), 'vehiculos'))
+    const id = ref.id
+    await setDoc(ref, { ...data, createdAt: Timestamp.now() })
+    await localSet('vehiculos', { ...data, id, createdAt: new Date() } as any)
     return id
   } catch {
-    await enqueueOperation({
-      collection: 'vehiculos', docId: id, operation: 'create',
-      data: { ...data, createdAt: Timestamp.now() },
-      timestamp: Date.now(), retryCount: 0,
-    })
-    return id
+    throw new Error('Error al crear vehículo en Firebase')
+  }
+}
+
+export async function deleteVehiculo(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(getDb(), 'vehiculos', id))
+  } catch {
+    throw new Error('Error al eliminar vehículo en Firebase')
   }
 }
 
@@ -743,62 +663,59 @@ export async function importVehiculos(data: { patente: string; marca: string }[]
   return results
 }
 
+export async function importChoferes(data: { nombre: string; documento?: string; telefono?: string }[]): Promise<{ label: string; ok: boolean; error?: string }[]> {
+  const results: { label: string; ok: boolean; error?: string }[] = []
+  for (const c of data) {
+    try {
+      await createChofer(c)
+      results.push({ label: c.nombre, ok: true })
+    } catch (err) {
+      results.push({ label: c.nombre, ok: false, error: String(err) })
+    }
+  }
+  return results
+}
+
 // ============ CHOFERES ============
 
 export async function getAllChoferes(): Promise<Chofer[]> {
   try {
+    const snapshot = await getDocs(collection(getDb(), 'choferes'))
+    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Chofer))
+    data.sort((a, b) => a.nombre.localeCompare(b.nombre))
+    await syncManager.cacheCollection('choferes', data.map(c => ({ ...c, id: c.id! })))
+    return data
+  } catch {
     const result = await localGetAll<Chofer>('choferes')
     return result.sort((a, b) => a.nombre.localeCompare(b.nombre))
-  } catch {
-    return []
   }
 }
 
 export async function createChofer(data: Omit<Chofer, 'id' | 'createdAt'>): Promise<string> {
-  const id = generateLocalId()
-  const fullData: Chofer = { ...data, id, createdAt: new Date() }
-  await localSet('choferes', fullData as any)
   try {
-    await setDoc(doc(getDb(), 'choferes', id), {
-      ...data, createdAt: Timestamp.now(),
-    })
-    await localDelete('choferes', id)
-    await localSet('choferes', { ...fullData, id } as any)
+    const ref = doc(collection(getDb(), 'choferes'))
+    const id = ref.id
+    await setDoc(ref, { ...data, createdAt: Timestamp.now() })
+    await localSet('choferes', { ...data, id, createdAt: new Date() } as any)
     return id
   } catch {
-    await enqueueOperation({
-      collection: 'choferes', docId: id, operation: 'create',
-      data: { ...data, createdAt: Timestamp.now() },
-      timestamp: Date.now(), retryCount: 0,
-    })
-    return id
+    throw new Error('Error al crear chofer en Firebase')
   }
 }
 
 export async function updateChofer(id: string, data: Partial<Chofer>): Promise<void> {
-  const existing = await localGet<Chofer>('choferes', id)
-  if (existing) {
-    await localSet('choferes', { ...existing, ...data, id } as any)
-  }
   try {
     await updateDoc(doc(getDb(), 'choferes', id), data)
   } catch {
-    await enqueueOperation({
-      collection: 'choferes', docId: id, operation: 'update',
-      data, timestamp: Date.now(), retryCount: 0,
-    })
+    throw new Error('Error al actualizar chofer en Firebase')
   }
 }
 
 export async function deleteChofer(id: string): Promise<void> {
-  await localDelete('choferes', id)
   try {
     await deleteDoc(doc(getDb(), 'choferes', id))
   } catch {
-    await enqueueOperation({
-      collection: 'choferes', docId: id, operation: 'delete',
-      data: null, timestamp: Date.now(), retryCount: 0,
-    })
+    throw new Error('Error al eliminar chofer en Firebase')
   }
 }
 
@@ -1037,22 +954,7 @@ export async function getRemitos(filters?: {
   }
 }
 
-export async function getAllRemitos(force = false) {
-  if (!force) {
-    const cached = getCached<Remito[]>(CACHE_KEYS.remitos)
-    if (cached) return cached
-
-    // IndexedDB-first: si fue refrescado hace < IDB_STALENESS, servimos desde ahí (0 lecturas Firebase)
-    const lastUpdated = await localGetMeta('remitos_updated_at').catch(() => null) as number | null
-    if (lastUpdated && Date.now() - lastUpdated < IDB_STALENESS) {
-      const localData = await localGetAll<Remito>('remitos')
-      if (localData.length > 0) {
-        localData.sort((a, b) => (b.numeroRemito ?? 0) - (a.numeroRemito ?? 0))
-        setCache(CACHE_KEYS.remitos, localData)
-        return localData
-      }
-    }
-  }
+export async function getAllRemitos() {
   try {
     const q = query(
       collection(getDb(), COLECCIONES.remitos),
@@ -1073,17 +975,12 @@ export async function getAllRemitos(force = false) {
         })),
       } as Remito
     })
-    setCache(CACHE_KEYS.remitos, data)
     await syncManager.cacheCollection('remitos', data.map(r => ({ ...r, id: r.id! })))
-    await localSetMeta('remitos_updated_at', Date.now()).catch(() => {})
     return data
   } catch (error) {
     const localData = await localGetAll<Remito>('remitos')
     localData.sort((a, b) => (b.numeroRemito ?? 0) - (a.numeroRemito ?? 0))
-    if (localData.length > 0) {
-      setCache(CACHE_KEYS.remitos, localData)
-      return localData
-    }
+    if (localData.length > 0) return localData
     throw error
   }
 }
@@ -1301,66 +1198,32 @@ export async function agregarEntrega(
     choferNombre: data.choferNombre,
   }
 
-  const existing = await localGet<any>('remitos', remitoId)
-  if (existing) {
-    const entregasActuales: Entrega[] = existing.entregas ?? []
-    await localSet('remitos', {
-      ...existing, entregas: [...entregasActuales, nuevaEntrega], id: remitoId,
-    })
-  }
-
-  clearCache(CACHE_KEYS.remitos)
-  await localSetMeta('remitos_updated_at', Date.now()).catch(() => {})
-
   try {
     const ref = doc(getDb(), COLECCIONES.remitos, remitoId)
     const snap = await getDoc(ref)
     if (!snap.exists()) throw new Error('Remito no encontrado')
-
     const remito = snap.data()
     const entregasActuales: Entrega[] = remito.entregas ?? []
     const nuevasEntregas = [...entregasActuales, nuevaEntrega]
     await updateDoc(ref, { entregas: nuevasEntregas })
   } catch {
-    const updated = await localGet<any>('remitos', remitoId)
-    await enqueueOperation({
-      collection: 'remitos', docId: remitoId, operation: 'update',
-      data: { entregas: updated?.entregas ?? [] },
-      timestamp: Date.now(), retryCount: 0,
-    })
+    throw new Error('Error al guardar entrega en Firebase')
   }
 
   return nuevaEntrega
 }
 
 export async function eliminarEntrega(remitoId: string, entregaId: string) {
-  let nuevasEntregas: Entrega[] = []
-
-  const existing = await localGet<any>('remitos', remitoId)
-  if (existing) {
-    const entregasActuales: Entrega[] = existing.entregas ?? []
-    nuevasEntregas = entregasActuales.filter((e) => e.id !== entregaId)
-    await localSet('remitos', { ...existing, entregas: nuevasEntregas, id: remitoId })
-  }
-
-  clearCache(CACHE_KEYS.remitos)
-  await localSetMeta('remitos_updated_at', Date.now()).catch(() => {})
-
   try {
     const ref = doc(getDb(), COLECCIONES.remitos, remitoId)
     const snap = await getDoc(ref)
     if (!snap.exists()) throw new Error('Remito no encontrado')
-
     const data = snap.data()
     const entregasActuales: Entrega[] = data.entregas ?? []
-    nuevasEntregas = entregasActuales.filter((e) => e.id !== entregaId)
+    const nuevasEntregas = entregasActuales.filter((e) => e.id !== entregaId)
     await updateDoc(ref, { entregas: nuevasEntregas })
   } catch {
-    await enqueueOperation({
-      collection: 'remitos', docId: remitoId, operation: 'update',
-      data: { entregas: nuevasEntregas },
-      timestamp: Date.now(), retryCount: 0,
-    })
+    throw new Error('Error al eliminar entrega en Firebase')
   }
 }
 
@@ -1375,39 +1238,20 @@ export async function actualizarEntrega(
     choferNombre?: string
   }
 ) {
-  const existing = await localGet<any>('remitos', remitoId)
-  let entregasActualizadas: Entrega[] = []
-  if (existing) {
-    const entregasActuales: Entrega[] = existing.entregas ?? []
-    entregasActualizadas = entregasActuales.map((e) =>
-      e.id === entregaId
-        ? { ...e, fecha: data.fecha, items: data.items.map((item) => ({ idProducto: item.idProducto, nombreProducto: item.nombreProducto, cantidad: item.cantidad })), vehiculoPatente: data.vehiculoPatente, vehiculoMarca: data.vehiculoMarca, choferNombre: data.choferNombre }
-        : e
-    )
-    await localSet('remitos', { ...existing, entregas: entregasActualizadas, id: remitoId })
-  }
-
-  clearCache(CACHE_KEYS.remitos)
-  await localSetMeta('remitos_updated_at', Date.now()).catch(() => {})
-
   try {
     const ref = doc(getDb(), COLECCIONES.remitos, remitoId)
     const snap = await getDoc(ref)
     if (!snap.exists()) throw new Error('Remito no encontrado')
     const remito = snap.data()
     const entregasActuales: Entrega[] = remito.entregas ?? []
-    entregasActualizadas = entregasActuales.map((e) =>
+    const entregasActualizadas = entregasActuales.map((e) =>
       e.id === entregaId
         ? { ...e, fecha: data.fecha, items: data.items.map((item) => ({ idProducto: item.idProducto, nombreProducto: item.nombreProducto, cantidad: item.cantidad })), vehiculoPatente: data.vehiculoPatente, vehiculoMarca: data.vehiculoMarca, choferNombre: data.choferNombre }
         : e
     )
     await updateDoc(ref, { entregas: entregasActualizadas })
   } catch {
-    await enqueueOperation({
-      collection: 'remitos', docId: remitoId, operation: 'update',
-      data: { entregas: entregasActualizadas },
-      timestamp: Date.now(), retryCount: 0,
-    })
+    throw new Error('Error al actualizar entrega en Firebase')
   }
 }
 

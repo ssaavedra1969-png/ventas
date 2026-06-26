@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getAllVehiculos, createVehiculo, getAllChoferes, createChofer, updateChofer, deleteChofer, importVehiculos } from '@/lib/firestore'
+import { getAllVehiculos, createVehiculo, deleteVehiculo, getAllChoferes, createChofer, updateChofer, deleteChofer, importVehiculos, importChoferes } from '@/lib/firestore'
 import type { Vehiculo, Chofer } from '@/types'
 import { Truck, User, Plus, Pencil, Trash2, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
@@ -29,6 +29,8 @@ export default function VehiculosPage() {
   const [choferTel, setChoferTel] = useState('')
   const [showFormChofer, setShowFormChofer] = useState(false)
   const [guardandoChofer, setGuardandoChofer] = useState(false)
+  const [importandoChoferes, setImportandoChoferes] = useState(false)
+  const [importChoferesResults, setImportChoferesResults] = useState<{ label: string; ok: boolean; error?: string }[] | null>(null)
 
   const loadData = async () => {
     setLoading(true)
@@ -123,6 +125,16 @@ export default function VehiculosPage() {
     }
   }
 
+  const handleEliminarVehiculo = async (id: string) => {
+    try {
+      await deleteVehiculo(id)
+      toast.success('Vehículo eliminado')
+      await loadData()
+    } catch {
+      toast.error('Error al eliminar vehículo')
+    }
+  }
+
   const handleGuardarChofer = async () => {
     if (!choferNombre.trim()) {
       toast.error('El nombre del chofer es obligatorio')
@@ -165,6 +177,29 @@ export default function VehiculosPage() {
       await loadData()
     } catch {
       toast.error('Error al eliminar chofer')
+    }
+  }
+
+  const handleImportarChoferes = async () => {
+    const input = prompt('Ingresá los nombres de los choferes (uno por línea):')
+    if (!input || !input.trim()) return
+    const lines = input.split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length === 0) return
+    setImportandoChoferes(true)
+    setImportChoferesResults(null)
+    try {
+      const toImport = lines.map(nombre => ({ nombre }))
+      const results = await importChoferes(toImport)
+      const ok = results.filter(r => r.ok).length
+      const fail = results.filter(r => !r.ok).length
+      setImportChoferesResults(results)
+      if (fail === 0) toast.success(`${ok} choferes importados`)
+      else toast.warning(`${ok} importados, ${fail} fallaron`)
+      await loadData()
+    } catch {
+      toast.error('Error al importar choferes')
+    } finally {
+      setImportandoChoferes(false)
     }
   }
 
@@ -289,6 +324,12 @@ export default function VehiculosPage() {
                   </div>
                   <span className="text-xs font-mono font-bold text-white flex-1">{v.patente}</span>
                   <span className="text-[10px] text-[#6B6B8A]">{v.marca}</span>
+                  <button
+                    onClick={() => { if (confirm(`Eliminar ${v.patente}?`)) handleEliminarVehiculo(v.id!) }}
+                    className="p-1 rounded-lg hover:bg-white/5 text-[#6B6B8A] hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
                 </div>
               ))
             )}
@@ -303,12 +344,22 @@ export default function VehiculosPage() {
               <h2 className="text-sm font-semibold text-white">Choferes</h2>
               <span className="text-[10px] text-[#6B6B8A]">{choferes.length}</span>
             </div>
-            <button
-              onClick={() => { setShowFormChofer(!showFormChofer); setEditChoferId(null); setChoferNombre(''); setChoferDoc(''); setChoferTel('') }}
-              className="p-1.5 rounded-lg hover:bg-white/5 text-[#6B6B8A] hover:text-white transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleImportarChoferes}
+                disabled={importandoChoferes}
+                className="p-1.5 rounded-lg hover:bg-white/5 text-[#6B6B8A] hover:text-emerald-400 transition-colors"
+                title="Importar choferes"
+              >
+                {importandoChoferes ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              </button>
+              <button
+                onClick={() => { setShowFormChofer(!showFormChofer); setEditChoferId(null); setChoferNombre(''); setChoferDoc(''); setChoferTel('') }}
+                className="p-1.5 rounded-lg hover:bg-white/5 text-[#6B6B8A] hover:text-white transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <AnimatePresence>
@@ -355,6 +406,31 @@ export default function VehiculosPage() {
                       {guardandoChofer ? 'Guardando...' : editChoferId ? 'Actualizar' : 'Agregar'}
                     </button>
                   </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Import results choferes */}
+          <AnimatePresence>
+            {importChoferesResults && importChoferesResults.length > 0 && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="p-3 max-h-40 overflow-y-auto space-y-1 border-b border-white/5">
+                  {importChoferesResults.map(r => (
+                    <div key={r.label} className="flex items-center gap-2 text-xs">
+                      {r.ok
+                        ? <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />
+                        : <AlertCircle className="h-3 w-3 text-red-400 shrink-0" />
+                      }
+                      <span className="text-[#B0B0D0]">{r.label}</span>
+                      {!r.ok && <span className="text-red-400">{r.error}</span>}
+                    </div>
+                  ))}
                 </div>
               </motion.div>
             )}

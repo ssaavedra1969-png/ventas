@@ -39,10 +39,10 @@ export default function FacturacionPage() {
   const [nuevoPago, setNuevoPago] = useState<Record<string, { monto: string; metodo: string; referencia: string }>>({})
   const [guardando, setGuardando] = useState<string | null>(null)
 
-  const fetchRemitos = useCallback(async (force = false) => {
+  const fetchRemitos = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getAllRemitos(force)
+      const data = await getAllRemitos()
       setRemitos(data.filter((r) => r.facturado))
     } catch {
       toast.error('Error al cargar facturación')
@@ -81,7 +81,7 @@ export default function FacturacionPage() {
       })
       setNuevoPago((prev) => ({ ...prev, [remitoId]: { monto: '', metodo: '', referencia: '' } }))
       toast.success('Pago registrado')
-      fetchRemitos(true)
+      fetchRemitos()
     } catch (err) {
       console.error('Error al registrar pago:', err)
       toast.error('Error al registrar pago')
@@ -94,7 +94,7 @@ export default function FacturacionPage() {
     try {
       await eliminarPago(remitoId, pagoId)
       toast.success('Pago eliminado')
-      fetchRemitos(true)
+      fetchRemitos()
     } catch {
       toast.error('Error al eliminar pago')
     }
@@ -121,7 +121,7 @@ export default function FacturacionPage() {
           </div>
         </div>
         <button
-          onClick={() => fetchRemitos(true)}
+          onClick={() => fetchRemitos()}
           className="p-2 rounded-lg text-[#6B6B8A] hover:text-white hover:bg-white/5 transition-colors"
           title="Actualizar"
         >

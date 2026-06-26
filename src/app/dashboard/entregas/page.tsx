@@ -123,10 +123,10 @@ export default function EntregasPage() {
   const [entregaVehiculoMarca, setEntregaVehiculoMarca] = useState('')
   const [entregaChofer, setEntregaChofer] = useState('')
 
-  const fetchData = useCallback(async (force = false) => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const r = await getAllRemitos(force)
+      const r = await getAllRemitos()
       setRemitos(r)
     } catch {
       toast.error('Error al cargar datos')
@@ -378,7 +378,7 @@ export default function EntregasPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => fetchData(true)}
+            onClick={() => fetchData()}
             className="p-2 rounded-lg text-[#6B6B8A] hover:text-white hover:bg-white/5 transition-colors"
             title="Actualizar"
           >

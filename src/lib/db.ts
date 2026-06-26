@@ -137,6 +137,14 @@ export async function getQueueCount(): Promise<number> {
   return all.length
 }
 
+export async function clearQueue(): Promise<void> {
+  const db = await getDb()
+  const all = await db.getAll('syncQueue')
+  for (const item of all) {
+    if (item.id !== undefined) await db.delete('syncQueue', item.id)
+  }
+}
+
 export function generateLocalId(): string {
   return `local_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
 }

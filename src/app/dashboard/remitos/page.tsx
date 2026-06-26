@@ -96,10 +96,10 @@ export default function RemitosPage() {
     }
   }, [])
 
-  const fetchRemitos = useCallback(async (force = false) => {
+  const fetchRemitos = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getAllRemitos(force)
+      const data = await getAllRemitos()
       setRemitos(data)
     } catch {
       toast.error('Error al cargar remitos')
@@ -134,7 +134,7 @@ export default function RemitosPage() {
       toast.success(`Estado actualizado a "${getEstadoLabel(estado)}"`)
       setAnularConfirm(null)
       setAceptarConfirm(null)
-      fetchRemitos(true)
+      fetchRemitos()
     } catch {
       toast.error('Error al actualizar el estado')
     } finally {
@@ -166,7 +166,7 @@ export default function RemitosPage() {
       await updateRemitoNC(ncPopup.remitoId, ncPopup.nroNC.trim(), ncPopup.montoNC)
       toast.success('Nota de Crédito registrada')
       setNcPopup(null)
-      fetchRemitos(true)
+      fetchRemitos()
     } catch {
       toast.error('Error al guardar Nota de Crédito')
     } finally {
@@ -182,7 +182,7 @@ export default function RemitosPage() {
       await updateRemitoNroFactura(id, nro)
       toast.success(`Factura N° ${nro} registrada`)
       setFacturaInputs((prev) => ({ ...prev, [id]: '' }))
-      fetchRemitos(true)
+      fetchRemitos()
     } catch {
       toast.error('Error al guardar factura')
     } finally {
@@ -232,7 +232,7 @@ export default function RemitosPage() {
           </div>
         </div>
         <button
-          onClick={() => fetchRemitos(true)}
+          onClick={() => fetchRemitos()}
           className="p-2 rounded-lg text-[#6B6B8A] hover:text-white hover:bg-white/5 transition-colors"
           title="Actualizar"
         >
