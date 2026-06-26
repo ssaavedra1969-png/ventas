@@ -4,6 +4,7 @@ import { createRequire } from 'module'
 
 const require = createRequire(import.meta.url)
 const admin = require('firebase-admin')
+const { Timestamp, getFirestore } = require('firebase-admin/firestore')
 
 const PROJECT_ID = 'leafy-valor-410916'
 const SERVICE_ACCOUNT_PATH = resolve('backups/service-account.json')
@@ -13,7 +14,7 @@ function deserialize(data) {
   if (data === null || data === undefined) return data
   if (Array.isArray(data)) return data.map(deserialize)
   if (typeof data === 'object' && !(data instanceof Date)) {
-    if (data._timestamp) return admin.firestore.Timestamp.fromDate(new Date(data._timestamp))
+    if (data._timestamp) return Timestamp.fromDate(new Date(data._timestamp))
     if (data._ref) return null
     const obj = {}
     for (const [k, v] of Object.entries(data)) {
@@ -26,10 +27,11 @@ function deserialize(data) {
 }
 
 function initApp() {
-  if (admin.apps.length > 0) return admin.apps[0]
+  if (admin.apps && admin.apps.length > 0) return admin.apps[0]
   if (existsSync(SERVICE_ACCOUNT_PATH)) {
     const serviceAccount = require(SERVICE_ACCOUNT_PATH)
-    return admin.initializeApp({ credential: admin.credential.cert(serviceAccount) })
+    const cred = admin.cert ? admin.cert(serviceAccount) : admin.credential.cert(serviceAccount)
+    return admin.initializeApp({ credential: cred })
   }
   return admin.initializeApp({ projectId: PROJECT_ID })
 }
@@ -95,8 +97,10 @@ async function main() {
   let app
   try {
     app = initApp()
-  } catch {
+  } catch (err) {
     console.error(`\nNo se pudieron cargar las credenciales de Firebase.`)
+    console.error(`Error: ${err.message}`)
+    console.error(`Stack: ${err.stack?.substring(0, 500)}`)
     console.error(``)
     console.error(`Para configurar la clave de service account:`)
     console.error(`  1. Andá a Firebase Console → Project Settings → Service Accounts`)
@@ -107,7 +111,7 @@ async function main() {
     process.exit(1)
   }
 
-  const db = app.firestore()
+  const db = getFirestore(app)
 
   console.log(`\nRestaurando colecciones desde: ${inputDir}`)
   console.log('')
