@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { getAllRemitos, clearCache, agregarPago, eliminarPago } from '@/lib/firestore'
+import { getAllRemitos, agregarPago, eliminarPago } from '@/lib/firestore'
 import type { Remito, Pago } from '@/types'
 import {
   DollarSign,
@@ -39,10 +39,10 @@ export default function FacturacionPage() {
   const [nuevoPago, setNuevoPago] = useState<Record<string, { monto: string; metodo: string; referencia: string }>>({})
   const [guardando, setGuardando] = useState<string | null>(null)
 
-  const fetchRemitos = useCallback(async () => {
+  const fetchRemitos = useCallback(async (force = false) => {
     setLoading(true)
     try {
-      const data = await getAllRemitos()
+      const data = await getAllRemitos(force)
       setRemitos(data.filter((r) => r.facturado))
     } catch {
       toast.error('Error al cargar facturación')
@@ -81,8 +81,7 @@ export default function FacturacionPage() {
       })
       setNuevoPago((prev) => ({ ...prev, [remitoId]: { monto: '', metodo: '', referencia: '' } }))
       toast.success('Pago registrado')
-      clearCache('allRemitos')
-      fetchRemitos()
+      fetchRemitos(true)
     } catch (err) {
       console.error('Error al registrar pago:', err)
       toast.error('Error al registrar pago')
@@ -95,8 +94,7 @@ export default function FacturacionPage() {
     try {
       await eliminarPago(remitoId, pagoId)
       toast.success('Pago eliminado')
-      clearCache('allRemitos')
-      fetchRemitos()
+      fetchRemitos(true)
     } catch {
       toast.error('Error al eliminar pago')
     }
@@ -123,7 +121,7 @@ export default function FacturacionPage() {
           </div>
         </div>
         <button
-          onClick={() => { clearCache('allRemitos'); fetchRemitos() }}
+          onClick={() => fetchRemitos(true)}
           className="p-2 rounded-lg text-[#6B6B8A] hover:text-white hover:bg-white/5 transition-colors"
           title="Actualizar"
         >

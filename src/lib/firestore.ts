@@ -13,12 +13,13 @@ import {
   QueryConstraint,
   setDoc,
   writeBatch,
-  limit,
+  runTransaction,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { getCached, setCache, clearCache } from './cache'
 import {
   localGetAll, localGet, localSet, localDelete,
+  localSetMeta, localGetMeta,
   enqueueOperation, generateLocalId,
 } from './db'
 import { syncManager } from './sync'
@@ -31,6 +32,8 @@ const CACHE_KEYS = {
   productos: 'allProductos',
   remitos: 'allRemitos',
 } as const
+
+const IDB_STALENESS = 5 * 60 * 1000 // 5 minutos: desde IndexedDB sin Firebase si fue refrescado hace < 5min
 
 const COLECCIONES = {
   clientes: 'clientes',
@@ -122,29 +125,30 @@ export function condicaToLabel(v: string): string {
 
 async function getNextCodigoCliente(): Promise<string> {
   try {
-    const contadorRef = doc(getDb(), COLECCIONES.contadores, 'cliente')
-    const snap = await getDoc(contadorRef)
-
-    if (!snap.exists()) {
-      const snapshot = await getDocs(collection(getDb(), COLECCIONES.clientes))
-      let maxNumeric = 0
-      snapshot.docs.forEach(d => {
-        const cod = d.data().codigoCliente
-        if (cod) {
-          const num = parseInt(cod, 10)
-          if (!isNaN(num) && num > maxNumeric) maxNumeric = num
-        }
-      })
-      const next = maxNumeric + 1
-      await setDoc(contadorRef, { ultimo: next })
-      await localSet('contadores', { id: 'cliente', ultimo: next })
-      return String(next).padStart(5, '0')
-    }
-
-    const ultimo = snap.data().ultimo + 1
-    await updateDoc(contadorRef, { ultimo })
-    await localSet('contadores', { id: 'cliente', ultimo: snap.data().ultimo + 1 })
-    return String(ultimo).padStart(5, '0')
+    const _db = getDb()
+    const contadorRef = doc(_db, COLECCIONES.contadores, 'cliente')
+    const next = await runTransaction(_db, async (transaction) => {
+      const snap = await transaction.get(contadorRef)
+      if (!snap.exists()) {
+        const allSnap = await getDocs(collection(_db, COLECCIONES.clientes))
+        let maxNumeric = 0
+        allSnap.docs.forEach(d => {
+          const cod = d.data().codigoCliente
+          if (cod) {
+            const num = parseInt(cod, 10)
+            if (!isNaN(num) && num > maxNumeric) maxNumeric = num
+          }
+        })
+        const n = maxNumeric + 1
+        transaction.set(contadorRef, { ultimo: n })
+        return n
+      }
+      const n = snap.data().ultimo + 1
+      transaction.update(contadorRef, { ultimo: n })
+      return n
+    })
+    await localSet('contadores', { id: 'cliente', ultimo: next })
+    return String(next).padStart(5, '0')
   } catch {
     const local = await localGet<{ id: string; ultimo: number }>('contadores', 'cliente')
     let next: number
@@ -223,6 +227,15 @@ export async function getAllClientes(force = false) {
   if (!force) {
     const cached = getCached<Cliente[]>(CACHE_KEYS.clientes)
     if (cached) return cached
+
+    const lastUpdated = await localGetMeta('clientes_updated_at').catch(() => null) as number | null
+    if (lastUpdated && Date.now() - lastUpdated < IDB_STALENESS) {
+      const localData = await localGetAll<Cliente>('clientes')
+      if (localData.length > 0) {
+        setCache(CACHE_KEYS.clientes, localData)
+        return localData
+      }
+    }
   }
   try {
     const q = query(
@@ -235,7 +248,8 @@ export async function getAllClientes(force = false) {
       ...doc.data(),
     })) as Cliente[]
     setCache(CACHE_KEYS.clientes, data)
-    syncManager.cacheCollection('clientes', data.map(c => ({ ...c, id: c.id! }))).catch(() => {})
+    await syncManager.cacheCollection('clientes', data.map(c => ({ ...c, id: c.id! })))
+    await localSetMeta('clientes_updated_at', Date.now()).catch(() => {})
     return data
   } catch (error) {
     const localData = await localGetAll<Cliente>('clientes')
@@ -446,6 +460,15 @@ export async function getAllProductos(force = false) {
   if (!force) {
     const cached = getCached<Producto[]>(CACHE_KEYS.productos)
     if (cached) return cached
+
+    const lastUpdated = await localGetMeta('productos_updated_at').catch(() => null) as number | null
+    if (lastUpdated && Date.now() - lastUpdated < IDB_STALENESS) {
+      const localData = await localGetAll<Producto>('productos')
+      if (localData.length > 0) {
+        setCache(CACHE_KEYS.productos, localData)
+        return localData
+      }
+    }
   }
   try {
     const q = query(
@@ -458,7 +481,8 @@ export async function getAllProductos(force = false) {
       ...doc.data(),
     })) as Producto[]
     setCache(CACHE_KEYS.productos, data)
-    syncManager.cacheCollection('productos', data.map(p => ({ ...p, id: p.id! }))).catch(() => {})
+    await syncManager.cacheCollection('productos', data.map(p => ({ ...p, id: p.id! })))
+    await localSetMeta('productos_updated_at', Date.now()).catch(() => {})
     return data
   } catch (error) {
     const localData = await localGetAll<Producto>('productos')
@@ -630,17 +654,11 @@ export interface VendedorStats {
 }
 
 export async function getVendedoresStats(): Promise<VendedorStats[]> {
-  const _db = getDb()
-  const q = query(
-    collection(_db, COLECCIONES.remitos),
-    orderBy('createdAt', 'desc')
-  )
-  const snapshot = await getDocs(q)
+  const allRemitos = await getAllRemitos()
 
   const statsMap = new Map<string, VendedorStats>()
 
-  for (const doc of snapshot.docs) {
-    const data = doc.data()
+  for (const data of allRemitos) {
     const vendedor = data.vendedor
     if (!vendedor?.codigo) continue
 
@@ -671,7 +689,7 @@ export async function getVendedoresStats(): Promise<VendedorStats[]> {
     const total = data.totalGeneral || 0
     if (total > stat.remitoMasAlto) stat.remitoMasAlto = total
 
-    const fecha = data.fecha?.toDate?.() ?? data.fecha
+    const fecha = data.fecha
     if (fecha && (!stat.ultimoRemito || fecha > stat.ultimoRemito)) {
       stat.ultimoRemito = fecha
     }
@@ -770,19 +788,20 @@ export async function createMultipleProductos(
 
 async function getNextNumeroRemito(year: number): Promise<number> {
   try {
-    const contadorRef = doc(getDb(), COLECCIONES.contadores, `remito_${year}`)
-    const snap = await getDoc(contadorRef)
-
-    if (!snap.exists()) {
-      await setDoc(contadorRef, { ultimo: 1 })
-      await localSet('contadores', { id: `remito_${year}`, ultimo: 1 })
-      return 1
-    }
-
-    const ultimo = snap.data().ultimo + 1
-    await updateDoc(contadorRef, { ultimo })
-    await localSet('contadores', { id: `remito_${year}`, ultimo })
-    return ultimo
+    const _db = getDb()
+    const contadorRef = doc(_db, COLECCIONES.contadores, `remito_${year}`)
+    const next = await runTransaction(_db, async (transaction) => {
+      const snap = await transaction.get(contadorRef)
+      if (!snap.exists()) {
+        transaction.set(contadorRef, { ultimo: 1 })
+        return 1
+      }
+      const n = snap.data().ultimo + 1
+      transaction.update(contadorRef, { ultimo: n })
+      return n
+    })
+    await localSet('contadores', { id: `remito_${year}`, ultimo: next })
+    return next
   } catch {
     const local = await localGet<{ id: string; ultimo: number }>('contadores', `remito_${year}`)
     const next = (local?.ultimo ?? 0) + 1
@@ -918,6 +937,17 @@ export async function getAllRemitos(force = false) {
   if (!force) {
     const cached = getCached<Remito[]>(CACHE_KEYS.remitos)
     if (cached) return cached
+
+    // IndexedDB-first: si fue refrescado hace < IDB_STALENESS, servimos desde ahí (0 lecturas Firebase)
+    const lastUpdated = await localGetMeta('remitos_updated_at').catch(() => null) as number | null
+    if (lastUpdated && Date.now() - lastUpdated < IDB_STALENESS) {
+      const localData = await localGetAll<Remito>('remitos')
+      if (localData.length > 0) {
+        localData.sort((a, b) => (b.numeroRemito ?? 0) - (a.numeroRemito ?? 0))
+        setCache(CACHE_KEYS.remitos, localData)
+        return localData
+      }
+    }
   }
   try {
     const q = query(
@@ -940,7 +970,8 @@ export async function getAllRemitos(force = false) {
       } as Remito
     })
     setCache(CACHE_KEYS.remitos, data)
-    syncManager.cacheCollection('remitos', data.map(r => ({ ...r, id: r.id! }))).catch(() => {})
+    await syncManager.cacheCollection('remitos', data.map(r => ({ ...r, id: r.id! })))
+    await localSetMeta('remitos_updated_at', Date.now()).catch(() => {})
     return data
   } catch (error) {
     const localData = await localGetAll<Remito>('remitos')
@@ -1263,42 +1294,28 @@ export async function getDashboardStats(): Promise<{
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
   try {
-    const q = query(
-      collection(getDb(), COLECCIONES.remitos),
-      orderBy('createdAt', 'desc'),
-      limit(5)
-    )
-    const snapshot = await getDocs(q)
-    const ultimosRemitos = snapshot.docs.map((doc) => {
-      const d = doc.data()
-      return {
-        id: doc.id,
-        ...d,
-        fecha: d.fecha?.toDate?.() ?? d.fecha,
-        createdAt: d.createdAt?.toDate?.() ?? d.createdAt,
-      } as Remito
+    const allRemitos = await getAllRemitos()
+    const clientes = await getAllClientes()
+
+    const sorted = [...allRemitos].sort((a, b) => {
+      const da = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const db = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      return db - da
     })
 
-    const qMes = query(
-      collection(getDb(), COLECCIONES.remitos),
-      where('createdAt', '>=', Timestamp.fromDate(startOfMonth)),
-      orderBy('createdAt', 'desc')
-    )
-    const snapMes = await getDocs(qMes)
+    const ultimosRemitos = sorted.slice(0, 5)
+
     let remitosMes = 0
     let totalFacturado = 0
-    snapMes.docs.forEach((doc) => {
-      const d = doc.data()
-      if (d.estado !== 'Anulado') {
+    for (const r of allRemitos) {
+      const d = r.createdAt ? new Date(r.createdAt) : new Date(r.fecha)
+      if (d >= startOfMonth && r.estado !== 'Anulado') {
         remitosMes++
-        totalFacturado += d.totalGeneral ?? 0
+        totalFacturado += r.totalGeneral ?? 0
       }
-    })
+    }
 
-    const clientes = await getAllClientes()
-    const clientesActivos = clientes.length
-
-    return { remitosMes, totalFacturado, clientesActivos, ultimosRemitos }
+    return { remitosMes, totalFacturado, clientesActivos: clientes.length, ultimosRemitos }
   } catch {
     const remitos = await localGetAll<Remito>('remitos')
 

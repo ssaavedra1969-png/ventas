@@ -17,7 +17,7 @@ export type SyncStatus = {
 
 type SyncCallback = (status: SyncStatus) => void
 
-const SYNC_INTERVAL = 60000
+const SYNC_INTERVAL = 300000 // 5 minutos
 
 class SyncManager {
   private _online: boolean = typeof navigator !== 'undefined' ? navigator.onLine : true

@@ -122,7 +122,7 @@ export default function ClientesPage() {
     loadAllClientes()
   }, [loadAllClientes])
 
-  useBackgroundSync(syncClientes, 120000, !loading)
+  useBackgroundSync(syncClientes, 600000, !loading)
 
   const validate = (): boolean => {
     return true

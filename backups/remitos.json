@@ -1,0 +1,434 @@
+[
+  {
+    "_id": "AcQBRsEBkiyd0ST28xwA",
+    "_createdAt": "2026-06-25T19:40:43.253Z",
+    "_updatedAt": "2026-06-26T00:43:31.766Z",
+    "numeroRemito": 3,
+    "fecha": {
+      "_timestamp": "2026-06-25T19:40:39.339Z"
+    },
+    "idCliente": "00445",
+    "clienteData": {
+      "codigoCliente": "00445",
+      "razonSocial": "Dartco Sa",
+      "tipoDocumento": "C.U.I.T.",
+      "numeroDocumento": "30-71659425-0",
+      "actividad": "Fabricación De Envases Plásticos",
+      "telefono": "",
+      "domicilio": "Libertador Del Av. 2200 Piso:7",
+      "localidad": "",
+      "condicionIVA": "RI"
+    },
+    "vendedor": {
+      "codigo": "V0002",
+      "nombre": "HABAN PIA"
+    },
+    "items": [
+      {
+        "idProducto": "00029",
+        "nombreProducto": "H25 ",
+        "cantidad": 10,
+        "precioUnitario": 147500,
+        "bonificacion": 0,
+        "subtotal": 1475000
+      },
+      {
+        "idProducto": "00015",
+        "nombreProducto": "BOMBA ARRASTRE",
+        "cantidad": 1,
+        "precioUnitario": 500000,
+        "bonificacion": 0,
+        "subtotal": 500000
+      },
+      {
+        "idProducto": "00231",
+        "nombreProducto": "M3 BOMBEADO ARRASTRE ",
+        "cantidad": 42,
+        "precioUnitario": 5000,
+        "bonificacion": 0,
+        "subtotal": 210000
+      }
+    ],
+    "subtotalGeneral": 2185000,
+    "iva": 458850,
+    "totalGeneral": 2643850,
+    "observaciones": "",
+    "createdAt": {
+      "_timestamp": "2026-06-25T19:40:42.585Z"
+    },
+    "estado": "A_Entregar",
+    "facturaAnulada": false,
+    "nroFactura": "1006",
+    "facturado": true,
+    "fechaFacturado": {
+      "_timestamp": "2026-06-25T19:41:43.930Z"
+    },
+    "entregas": [
+      {
+        "items": [
+          {
+            "nombreProducto": "H25 ",
+            "idProducto": "00029",
+            "cantidad": 3
+          },
+          {
+            "idProducto": "00015",
+            "nombreProducto": "BOMBA ARRASTRE",
+            "cantidad": 1
+          },
+          {
+            "idProducto": "00231",
+            "nombreProducto": "M3 BOMBEADO ARRASTRE ",
+            "cantidad": 12
+          }
+        ],
+        "id": "1782427411943_oqxd2im",
+        "createdAt": {
+          "_timestamp": "2026-06-25T22:43:31.943Z"
+        },
+        "fecha": {
+          "_timestamp": "2026-06-25T22:43:30.515Z"
+        }
+      },
+      {
+        "items": [
+          {
+            "cantidad": 3,
+            "nombreProducto": "H25 ",
+            "idProducto": "00029"
+          },
+          {
+            "cantidad": 12,
+            "idProducto": "00231",
+            "nombreProducto": "M3 BOMBEADO ARRASTRE "
+          }
+        ],
+        "createdAt": {
+          "_timestamp": "2026-06-26T00:32:50.403Z"
+        },
+        "fecha": {
+          "_timestamp": "2026-06-26T15:00:00.000Z"
+        },
+        "id": "1782433970403_6pbxx8t"
+      },
+      {
+        "fecha": {
+          "_timestamp": "2026-06-27T15:00:00.000Z"
+        },
+        "createdAt": {
+          "_timestamp": "2026-06-26T00:33:29.243Z"
+        },
+        "id": "1782434009243_2cx580l",
+        "items": [
+          {
+            "idProducto": "00029",
+            "nombreProducto": "H25 ",
+            "cantidad": 4
+          },
+          {
+            "cantidad": 13,
+            "idProducto": "00231",
+            "nombreProducto": "M3 BOMBEADO ARRASTRE "
+          }
+        ]
+      },
+      {
+        "id": "1782434610026_zv05kuu",
+        "fecha": {
+          "_timestamp": "2026-06-29T15:00:00.000Z"
+        },
+        "createdAt": {
+          "_timestamp": "2026-06-26T00:43:30.026Z"
+        },
+        "items": [
+          {
+            "idProducto": "00231",
+            "nombreProducto": "M3 BOMBEADO ARRASTRE ",
+            "cantidad": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "_id": "JaIRjRHcm6tRHXxlAG6J",
+    "_createdAt": "2026-06-25T16:13:57.088Z",
+    "_updatedAt": "2026-06-26T00:44:32.988Z",
+    "numeroRemito": 1,
+    "fecha": {
+      "_timestamp": "2026-06-25T16:13:54.403Z"
+    },
+    "idCliente": "P6dvsdRjC4sQDbWAQmXr",
+    "clienteData": {
+      "codigoCliente": "02113",
+      "razonSocial": "Luna Giselle Mariana",
+      "tipoDocumento": "D.N.I.",
+      "numeroDocumento": "42428003",
+      "actividad": "",
+      "telefono": "",
+      "domicilio": "",
+      "localidad": "Pilar",
+      "condicionIVA": "CF"
+    },
+    "vendedor": {
+      "codigo": "V0001",
+      "nombre": "BRITEZ LEANDRO"
+    },
+    "items": [
+      {
+        "idProducto": "00020",
+        "nombreProducto": "H21",
+        "cantidad": 9,
+        "precioUnitario": 179324,
+        "bonificacion": 0,
+        "subtotal": 1613916
+      },
+      {
+        "idProducto": "00015",
+        "nombreProducto": "BOMBA ARRASTRE",
+        "cantidad": 1,
+        "precioUnitario": 605000,
+        "bonificacion": 0,
+        "subtotal": 605000
+      },
+      {
+        "idProducto": "00231",
+        "nombreProducto": "M3 BOMBEADO ARRASTRE ",
+        "cantidad": 9,
+        "precioUnitario": 4800,
+        "bonificacion": 0,
+        "subtotal": 43200
+      },
+      {
+        "idProducto": "00172",
+        "nombreProducto": "MICROFIBRA X M3",
+        "cantidad": 9,
+        "precioUnitario": 13000,
+        "bonificacion": 0,
+        "subtotal": 117000
+      }
+    ],
+    "subtotalGeneral": 2379116,
+    "iva": 0,
+    "totalGeneral": 2379116,
+    "observaciones": "",
+    "createdAt": {
+      "_timestamp": "2026-06-25T16:13:56.757Z"
+    },
+    "estado": "A_Entregar",
+    "facturaAnulada": false,
+    "nroFactura": "289",
+    "facturado": true,
+    "fechaFacturado": {
+      "_timestamp": "2026-06-25T16:14:55.302Z"
+    },
+    "totalPagado": 2379116,
+    "pagos": [
+      {
+        "createdAt": {
+          "_timestamp": "2026-06-25T16:15:14.697Z"
+        },
+        "monto": 1300000,
+        "referencia": "Pago Efectivo",
+        "fecha": {
+          "_timestamp": "2026-06-25T16:15:14.463Z"
+        },
+        "id": "1782404114697_jw3sfd8",
+        "metodo": "Efectivo"
+      },
+      {
+        "id": "1782404139157_0kcb7kh",
+        "monto": 1079116,
+        "metodo": "Credito",
+        "referencia": "Pago en 3 Cuotas",
+        "fecha": {
+          "_timestamp": "2026-06-25T16:15:38.770Z"
+        },
+        "createdAt": {
+          "_timestamp": "2026-06-25T16:15:39.158Z"
+        }
+      }
+    ],
+    "entregas": [
+      {
+        "fecha": {
+          "_timestamp": "2026-06-30T15:00:00.000Z"
+        },
+        "createdAt": {
+          "_timestamp": "2026-06-26T00:44:02.193Z"
+        },
+        "id": "1782434642193_budwar8",
+        "items": [
+          {
+            "nombreProducto": "H21",
+            "idProducto": "00020",
+            "cantidad": 3
+          },
+          {
+            "cantidad": 1,
+            "nombreProducto": "BOMBA ARRASTRE",
+            "idProducto": "00015"
+          },
+          {
+            "idProducto": "00231",
+            "nombreProducto": "M3 BOMBEADO ARRASTRE ",
+            "cantidad": 6
+          },
+          {
+            "cantidad": 4,
+            "idProducto": "00172",
+            "nombreProducto": "MICROFIBRA X M3"
+          }
+        ]
+      },
+      {
+        "id": "1782434672097_dz2xdj2",
+        "fecha": {
+          "_timestamp": "2026-07-01T15:00:00.000Z"
+        },
+        "createdAt": {
+          "_timestamp": "2026-06-26T00:44:32.097Z"
+        },
+        "items": [
+          {
+            "idProducto": "00020",
+            "nombreProducto": "H21",
+            "cantidad": 6
+          },
+          {
+            "idProducto": "00231",
+            "nombreProducto": "M3 BOMBEADO ARRASTRE ",
+            "cantidad": 3
+          },
+          {
+            "idProducto": "00172",
+            "nombreProducto": "MICROFIBRA X M3",
+            "cantidad": 5
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "_id": "xFD2ng3D303VQRZTDwDt",
+    "_createdAt": "2026-06-25T19:34:52.968Z",
+    "_updatedAt": "2026-06-26T00:44:18.361Z",
+    "numeroRemito": 2,
+    "fecha": {
+      "_timestamp": "2026-06-25T19:34:50.322Z"
+    },
+    "idCliente": "Sx5MVaaJFfFI7ZYD8T3x",
+    "clienteData": {
+      "codigoCliente": "02114",
+      "razonSocial": "Dayplas S.A.",
+      "tipoDocumento": "C.U.I.T.",
+      "numeroDocumento": "33582498739",
+      "actividad": "",
+      "telefono": "",
+      "domicilio": "Combat. de Malvinas 3197",
+      "localidad": "Caba",
+      "condicionIVA": "RI"
+    },
+    "vendedor": {
+      "codigo": "V0003",
+      "nombre": "SAN CRUZ AGUSTINA"
+    },
+    "items": [
+      {
+        "idProducto": "00013",
+        "nombreProducto": "H30 GUNITADO ",
+        "cantidad": 13,
+        "precioUnitario": 166587.6,
+        "bonificacion": 0,
+        "subtotal": 2165638.8000000003
+      },
+      {
+        "idProducto": "00037",
+        "nombreProducto": "MINI MIXER ",
+        "cantidad": 13,
+        "precioUnitario": 9397,
+        "bonificacion": 0,
+        "subtotal": 122161
+      }
+    ],
+    "subtotalGeneral": 2287799.8000000003,
+    "iva": 480437.95800000004,
+    "totalGeneral": 2768237.7580000004,
+    "observaciones": "",
+    "createdAt": {
+      "_timestamp": "2026-06-25T19:34:52.677Z"
+    },
+    "facturaAnulada": false,
+    "nroFactura": "1003",
+    "facturado": true,
+    "fechaFacturado": {
+      "_timestamp": "2026-06-25T19:35:32.530Z"
+    },
+    "estado": "A_Entregar",
+    "entregas": [
+      {
+        "createdAt": {
+          "_timestamp": "2026-06-25T23:26:27.185Z"
+        },
+        "fecha": {
+          "_timestamp": "2026-06-25T15:00:00.000Z"
+        },
+        "id": "1782429987185_v1vdji4",
+        "items": [
+          {
+            "cantidad": 5,
+            "idProducto": "00013",
+            "nombreProducto": "H30 GUNITADO "
+          },
+          {
+            "cantidad": 3,
+            "nombreProducto": "MINI MIXER ",
+            "idProducto": "00037"
+          }
+        ]
+      },
+      {
+        "items": [
+          {
+            "nombreProducto": "H30 GUNITADO ",
+            "idProducto": "00013",
+            "cantidad": 4
+          },
+          {
+            "cantidad": 5,
+            "nombreProducto": "MINI MIXER ",
+            "idProducto": "00037"
+          }
+        ],
+        "createdAt": {
+          "_timestamp": "2026-06-26T00:43:46.169Z"
+        },
+        "fecha": {
+          "_timestamp": "2026-06-30T15:00:00.000Z"
+        },
+        "id": "1782434626169_0zt9a16"
+      },
+      {
+        "id": "1782434657993_5uq9ev5",
+        "fecha": {
+          "_timestamp": "2026-07-01T15:00:00.000Z"
+        },
+        "createdAt": {
+          "_timestamp": "2026-06-26T00:44:17.993Z"
+        },
+        "items": [
+          {
+            "idProducto": "00013",
+            "nombreProducto": "H30 GUNITADO ",
+            "cantidad": 4
+          },
+          {
+            "idProducto": "00037",
+            "nombreProducto": "MINI MIXER ",
+            "cantidad": 5
+          }
+        ]
+      }
+    ]
+  }
+]

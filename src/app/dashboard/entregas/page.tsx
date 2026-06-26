@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAllRemitos, clearCache, agregarEntrega, actualizarEntrega, eliminarEntrega } from '@/lib/firestore'
+import { getAllRemitos, agregarEntrega, actualizarEntrega, eliminarEntrega } from '@/lib/firestore'
 import type { Remito, RemitoItem, Entrega } from '@/types'
 import {
   Truck,
@@ -118,10 +118,10 @@ export default function EntregasPage() {
   const [deleteForRemito, setDeleteForRemito] = useState<string | null>(null)
   const [topFilter, setTopFilter] = useState<'todas' | 'pendientes'>('pendientes')
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (force = false) => {
     setLoading(true)
     try {
-      const r = await getAllRemitos()
+      const r = await getAllRemitos(force)
       setRemitos(r)
     } catch {
       toast.error('Error al cargar datos')
@@ -313,8 +313,7 @@ export default function EntregasPage() {
       setModalAbierto(false)
       setModalRemitoId(null)
       setEditandoEntregaId(null)
-      clearCache('allRemitos')
-      fetchData()
+      fetchData(true)
     } catch {
       toast.error('Error al guardar entrega')
     } finally {
@@ -327,8 +326,7 @@ export default function EntregasPage() {
       await eliminarEntrega(remitoId, entregaId)
       toast.success('Entrega eliminada')
       setDeleteConfirm(null)
-      clearCache('allRemitos')
-      fetchData()
+      fetchData(true)
     } catch {
       toast.error('Error al eliminar entrega')
     }
@@ -351,7 +349,7 @@ export default function EntregasPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { clearCache('allRemitos'); fetchData() }}
+            onClick={() => fetchData(true)}
             className="p-2 rounded-lg text-[#6B6B8A] hover:text-white hover:bg-white/5 transition-colors"
             title="Actualizar"
           >

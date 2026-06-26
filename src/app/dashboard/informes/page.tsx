@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
-import { getAllRemitos, clearCache } from '@/lib/firestore'
+import { getAllRemitos } from '@/lib/firestore'
 import type { Remito } from '@/types'
 import {
   BarChart3,
@@ -78,10 +78,10 @@ export default function InformesPage() {
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(true)
   const printRef = useRef<HTMLDivElement>(null)
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (force = false) => {
     setLoading(true)
     try {
-      const r = await getAllRemitos(true)
+      const r = await getAllRemitos(force)
       setRemitos(r)
     } catch {
       toast.error('Error al cargar datos')
@@ -260,7 +260,7 @@ export default function InformesPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { clearCache('allRemitos'); fetchData() }}
+            onClick={() => fetchData(true)}
             disabled={loading}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-[#B0B0D0] hover:text-white transition-colors"
             title="Actualizar datos"

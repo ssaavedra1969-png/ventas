@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { getAllRemitos, clearCache, updateRemitoEstado, updateRemitoNroFactura, updateRemitoNC, getEmpresaConfig } from '@/lib/firestore'
+import { getAllRemitos, updateRemitoEstado, updateRemitoNroFactura, updateRemitoNC, getEmpresaConfig } from '@/lib/firestore'
 import type { Remito, EmpresaConfig } from '@/types'
 import {
   FileText,
@@ -96,10 +96,10 @@ export default function RemitosPage() {
     }
   }, [])
 
-  const fetchRemitos = useCallback(async () => {
+  const fetchRemitos = useCallback(async (force = false) => {
     setLoading(true)
     try {
-      const data = await getAllRemitos()
+      const data = await getAllRemitos(force)
       setRemitos(data)
     } catch {
       toast.error('Error al cargar remitos')
@@ -134,8 +134,7 @@ export default function RemitosPage() {
       toast.success(`Estado actualizado a "${getEstadoLabel(estado)}"`)
       setAnularConfirm(null)
       setAceptarConfirm(null)
-      clearCache('allRemitos')
-      fetchRemitos()
+      fetchRemitos(true)
     } catch {
       toast.error('Error al actualizar el estado')
     } finally {
@@ -167,8 +166,7 @@ export default function RemitosPage() {
       await updateRemitoNC(ncPopup.remitoId, ncPopup.nroNC.trim(), ncPopup.montoNC)
       toast.success('Nota de Crédito registrada')
       setNcPopup(null)
-      clearCache('allRemitos')
-      fetchRemitos()
+      fetchRemitos(true)
     } catch {
       toast.error('Error al guardar Nota de Crédito')
     } finally {
@@ -184,8 +182,7 @@ export default function RemitosPage() {
       await updateRemitoNroFactura(id, nro)
       toast.success(`Factura N° ${nro} registrada`)
       setFacturaInputs((prev) => ({ ...prev, [id]: '' }))
-      clearCache('allRemitos')
-      fetchRemitos()
+      fetchRemitos(true)
     } catch {
       toast.error('Error al guardar factura')
     } finally {
@@ -235,7 +232,7 @@ export default function RemitosPage() {
           </div>
         </div>
         <button
-          onClick={() => { clearCache('allRemitos'); fetchRemitos() }}
+          onClick={() => fetchRemitos(true)}
           className="p-2 rounded-lg text-[#6B6B8A] hover:text-white hover:bg-white/5 transition-colors"
           title="Actualizar"
         >
