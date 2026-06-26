@@ -22,6 +22,12 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { motion } from 'framer-motion'
 
+function toDate(v: Date | string | { toDate?: () => Date }): Date {
+  if (v instanceof Date) return v
+  if (typeof v === 'object' && v?.toDate) return v.toDate()
+  return new Date(v as string)
+}
+
 export default function EntregaSalidaPage() {
   const params = useParams()
   const router = useRouter()
@@ -100,7 +106,7 @@ export default function EntregaSalidaPage() {
     return total
   }
 
-  const fechaEntrega = format(new Date(entrega.fecha), "dd 'de' MMMM 'de' yyyy", { locale: es })
+  const fechaEntrega = format(toDate(entrega.fecha), "dd 'de' MMMM 'de' yyyy", { locale: es })
   const totalUnidades = entrega.items.reduce((s, i) => s + i.cantidad, 0)
 
   return (

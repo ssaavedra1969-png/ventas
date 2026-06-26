@@ -959,6 +959,11 @@ export async function getRemito(id: string) {
       ...data,
       fecha: data.fecha?.toDate?.() ?? data.fecha,
       createdAt: data.createdAt?.toDate?.() ?? data.createdAt,
+      entregas: (data.entregas ?? []).map((e: Record<string, unknown>) => ({
+        ...e,
+        fecha: (e.fecha as { toDate?: () => Date })?.toDate?.() ?? e.fecha,
+        createdAt: (e.createdAt as { toDate?: () => Date })?.toDate?.() ?? e.createdAt,
+      })),
     } as Remito
     await localSet('remitos', remito as any)
     return remito
