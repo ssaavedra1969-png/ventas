@@ -25,7 +25,7 @@ import {
 import { syncManager } from './sync'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { Cliente, Producto, Remito, RemitoItem, Vendedor, EmpresaConfig, Pago, Entrega } from '@/types'
+import type { Cliente, Producto, Remito, RemitoItem, Vendedor, EmpresaConfig, Pago, Entrega, Vehiculo, Chofer } from '@/types'
 
 const CACHE_KEYS = {
   clientes: 'allClientes',
@@ -698,6 +698,110 @@ export async function getVendedoresStats(): Promise<VendedorStats[]> {
   return Array.from(statsMap.values()).sort((a, b) => b.totalFacturado - a.totalFacturado)
 }
 
+// ============ VEHÍCULOS ============
+
+export async function getAllVehiculos(): Promise<Vehiculo[]> {
+  try {
+    const result = await localGetAll<Vehiculo>('vehiculos')
+    return result.sort((a, b) => a.patente.localeCompare(b.patente))
+  } catch {
+    return []
+  }
+}
+
+export async function createVehiculo(data: Omit<Vehiculo, 'id' | 'createdAt'>): Promise<string> {
+  const id = generateLocalId()
+  const fullData: Vehiculo = { ...data, id, createdAt: new Date() }
+  await localSet('vehiculos', fullData as any)
+  try {
+    await setDoc(doc(getDb(), 'vehiculos', id), {
+      ...data, createdAt: Timestamp.now(),
+    })
+    await localDelete('vehiculos', id)
+    await localSet('vehiculos', { ...fullData, id } as any)
+    return id
+  } catch {
+    await enqueueOperation({
+      collection: 'vehiculos', docId: id, operation: 'create',
+      data: { ...data, createdAt: Timestamp.now() },
+      timestamp: Date.now(), retryCount: 0,
+    })
+    return id
+  }
+}
+
+export async function importVehiculos(data: { patente: string; marca: string }[]): Promise<{ label: string; ok: boolean; error?: string }[]> {
+  const results: { label: string; ok: boolean; error?: string }[] = []
+  for (const v of data) {
+    try {
+      await createVehiculo(v)
+      results.push({ label: v.patente, ok: true })
+    } catch (err) {
+      results.push({ label: v.patente, ok: false, error: String(err) })
+    }
+  }
+  return results
+}
+
+// ============ CHOFERES ============
+
+export async function getAllChoferes(): Promise<Chofer[]> {
+  try {
+    const result = await localGetAll<Chofer>('choferes')
+    return result.sort((a, b) => a.nombre.localeCompare(b.nombre))
+  } catch {
+    return []
+  }
+}
+
+export async function createChofer(data: Omit<Chofer, 'id' | 'createdAt'>): Promise<string> {
+  const id = generateLocalId()
+  const fullData: Chofer = { ...data, id, createdAt: new Date() }
+  await localSet('choferes', fullData as any)
+  try {
+    await setDoc(doc(getDb(), 'choferes', id), {
+      ...data, createdAt: Timestamp.now(),
+    })
+    await localDelete('choferes', id)
+    await localSet('choferes', { ...fullData, id } as any)
+    return id
+  } catch {
+    await enqueueOperation({
+      collection: 'choferes', docId: id, operation: 'create',
+      data: { ...data, createdAt: Timestamp.now() },
+      timestamp: Date.now(), retryCount: 0,
+    })
+    return id
+  }
+}
+
+export async function updateChofer(id: string, data: Partial<Chofer>): Promise<void> {
+  const existing = await localGet<Chofer>('choferes', id)
+  if (existing) {
+    await localSet('choferes', { ...existing, ...data, id } as any)
+  }
+  try {
+    await updateDoc(doc(getDb(), 'choferes', id), data)
+  } catch {
+    await enqueueOperation({
+      collection: 'choferes', docId: id, operation: 'update',
+      data, timestamp: Date.now(), retryCount: 0,
+    })
+  }
+}
+
+export async function deleteChofer(id: string): Promise<void> {
+  await localDelete('choferes', id)
+  try {
+    await deleteDoc(doc(getDb(), 'choferes', id))
+  } catch {
+    await enqueueOperation({
+      collection: 'choferes', docId: id, operation: 'delete',
+      data: null, timestamp: Date.now(), retryCount: 0,
+    })
+  }
+}
+
 export async function createMultipleVendedores(
   data: Omit<Vendedor, 'id' | 'createdAt'>[]
 ) {
@@ -1175,7 +1279,13 @@ export async function eliminarPago(remitoId: string, pagoId: string) {
 
 export async function agregarEntrega(
   remitoId: string,
-  data: { items: { idProducto: string; nombreProducto: string; cantidad: number }[]; fecha: Date }
+  data: {
+    items: { idProducto: string; nombreProducto: string; cantidad: number }[]
+    fecha: Date
+    vehiculoPatente?: string
+    vehiculoMarca?: string
+    choferNombre?: string
+  }
 ) {
   const nuevaEntrega: Entrega = {
     id: `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
@@ -1186,6 +1296,9 @@ export async function agregarEntrega(
       nombreProducto: item.nombreProducto,
       cantidad: item.cantidad,
     })),
+    vehiculoPatente: data.vehiculoPatente,
+    vehiculoMarca: data.vehiculoMarca,
+    choferNombre: data.choferNombre,
   }
 
   const existing = await localGet<any>('remitos', remitoId)
@@ -1247,7 +1360,13 @@ export async function eliminarEntrega(remitoId: string, entregaId: string) {
 export async function actualizarEntrega(
   remitoId: string,
   entregaId: string,
-  data: { items: { idProducto: string; nombreProducto: string; cantidad: number }[]; fecha: Date }
+  data: {
+    items: { idProducto: string; nombreProducto: string; cantidad: number }[]
+    fecha: Date
+    vehiculoPatente?: string
+    vehiculoMarca?: string
+    choferNombre?: string
+  }
 ) {
   const existing = await localGet<any>('remitos', remitoId)
   let entregasActualizadas: Entrega[] = []
@@ -1255,7 +1374,7 @@ export async function actualizarEntrega(
     const entregasActuales: Entrega[] = existing.entregas ?? []
     entregasActualizadas = entregasActuales.map((e) =>
       e.id === entregaId
-        ? { ...e, fecha: data.fecha, items: data.items.map((item) => ({ idProducto: item.idProducto, nombreProducto: item.nombreProducto, cantidad: item.cantidad })) }
+        ? { ...e, fecha: data.fecha, items: data.items.map((item) => ({ idProducto: item.idProducto, nombreProducto: item.nombreProducto, cantidad: item.cantidad })), vehiculoPatente: data.vehiculoPatente, vehiculoMarca: data.vehiculoMarca, choferNombre: data.choferNombre }
         : e
     )
     await localSet('remitos', { ...existing, entregas: entregasActualizadas, id: remitoId })
@@ -1269,7 +1388,7 @@ export async function actualizarEntrega(
     const entregasActuales: Entrega[] = remito.entregas ?? []
     entregasActualizadas = entregasActuales.map((e) =>
       e.id === entregaId
-        ? { ...e, fecha: data.fecha, items: data.items.map((item) => ({ idProducto: item.idProducto, nombreProducto: item.nombreProducto, cantidad: item.cantidad })) }
+        ? { ...e, fecha: data.fecha, items: data.items.map((item) => ({ idProducto: item.idProducto, nombreProducto: item.nombreProducto, cantidad: item.cantidad })), vehiculoPatente: data.vehiculoPatente, vehiculoMarca: data.vehiculoMarca, choferNombre: data.choferNombre }
         : e
     )
     await updateDoc(ref, { entregas: entregasActualizadas })

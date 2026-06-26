@@ -284,6 +284,12 @@ export default function EntregaSalidaPage() {
             <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[10px] text-gray-500 pt-2 border-t border-gray-100">
               <span>Total productos: <strong className="text-gray-800">{entrega.items.length}</strong></span>
               <span>Unidades entregadas: <strong className="text-gray-800">{totalUnidades}</strong></span>
+              {entrega.vehiculoPatente && (
+                <span>Vehículo: <strong className="text-gray-800">{entrega.vehiculoPatente}{entrega.vehiculoMarca ? ` (${entrega.vehiculoMarca})` : ''}</strong></span>
+              )}
+              {entrega.choferNombre && (
+                <span>Chofer: <strong className="text-gray-800">{entrega.choferNombre}</strong></span>
+              )}
             </div>
           </div>
 

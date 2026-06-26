@@ -61,6 +61,25 @@ export interface Entrega {
   fecha: Date
   createdAt: Date
   items: EntregaItem[]
+  vehiculoPatente?: string
+  vehiculoMarca?: string
+  choferNombre?: string
+}
+
+export interface Vehiculo {
+  id?: string
+  patente: string
+  marca: string
+  createdAt?: Date
+}
+
+export interface Chofer {
+  id?: string
+  nombre: string
+  documento?: string
+  telefono?: string
+  activo?: boolean
+  createdAt?: Date
 }
 
 export interface Remito {

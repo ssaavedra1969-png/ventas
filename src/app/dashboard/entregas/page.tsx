@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAllRemitos, agregarEntrega, actualizarEntrega, eliminarEntrega } from '@/lib/firestore'
-import type { Remito, RemitoItem, Entrega } from '@/types'
+import { getAllRemitos, agregarEntrega, actualizarEntrega, eliminarEntrega, getAllVehiculos, getAllChoferes } from '@/lib/firestore'
+import type { Remito, RemitoItem, Entrega, Vehiculo, Chofer } from '@/types'
 import {
   Truck,
   Printer,
@@ -117,6 +117,11 @@ export default function EntregasPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [deleteForRemito, setDeleteForRemito] = useState<string | null>(null)
   const [topFilter, setTopFilter] = useState<'todas' | 'pendientes'>('pendientes')
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
+  const [choferes, setChoferes] = useState<Chofer[]>([])
+  const [entregaVehiculoPatente, setEntregaVehiculoPatente] = useState('')
+  const [entregaVehiculoMarca, setEntregaVehiculoMarca] = useState('')
+  const [entregaChofer, setEntregaChofer] = useState('')
 
   const fetchData = useCallback(async (force = false) => {
     setLoading(true)
@@ -131,6 +136,8 @@ export default function EntregasPage() {
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => { getAllVehiculos().then(setVehiculos).catch(() => {}) }, [])
+  useEffect(() => { getAllChoferes().then(setChoferes).catch(() => {}) }, [])
 
   const remitosConEstado = useMemo(() => {
     return remitos
@@ -246,18 +253,6 @@ export default function EntregasPage() {
     setDiaSeleccionado(prev => prev === dateKey ? null : dateKey)
   }
 
-  const abrirModalNuevaEntrega = (fecha?: string, remitoId?: string) => {
-    setEditandoEntregaId(null)
-    if (remitoId) {
-      seleccionarRemitoParaEntrega(remitoId)
-    } else {
-      setModalRemitoId(null)
-      setEntregaItems([])
-    }
-    setEntregaFecha(fecha ?? format(new Date(), 'yyyy-MM-dd'))
-    setModalAbierto(true)
-  }
-
   const abrirModalEditarEntrega = (remitoId: string, entregaId: string) => {
     const remito = remitosConEstado.find(r => r.id === remitoId)
     if (!remito) return
@@ -269,6 +264,24 @@ export default function EntregasPage() {
       entrega.items.map((i) => ({ idProducto: i.idProducto, cantidad: String(i.cantidad) }))
     )
     setEntregaFecha(format(toDate(entrega.fecha), 'yyyy-MM-dd'))
+    setEntregaVehiculoPatente(entrega.vehiculoPatente ?? '')
+    setEntregaVehiculoMarca(entrega.vehiculoMarca ?? '')
+    setEntregaChofer(entrega.choferNombre ?? '')
+    setModalAbierto(true)
+  }
+
+  const abrirModalNuevaEntrega = (fecha?: string, remitoId?: string) => {
+    setEditandoEntregaId(null)
+    setEntregaVehiculoPatente('')
+    setEntregaVehiculoMarca('')
+    setEntregaChofer('')
+    if (remitoId) {
+      seleccionarRemitoParaEntrega(remitoId)
+    } else {
+      setModalRemitoId(null)
+      setEntregaItems([])
+    }
+    setEntregaFecha(fecha ?? format(new Date(), 'yyyy-MM-dd'))
     setModalAbierto(true)
   }
 
@@ -303,11 +316,18 @@ export default function EntregasPage() {
     }
     setGuardando(true)
     try {
+      const entregaData = {
+        items,
+        fecha: new Date(entregaFecha + 'T12:00:00'),
+        vehiculoPatente: entregaVehiculoPatente || undefined,
+        vehiculoMarca: entregaVehiculoMarca || undefined,
+        choferNombre: entregaChofer || undefined,
+      }
       if (editandoEntregaId) {
-        await actualizarEntrega(modalRemitoId, editandoEntregaId, { items, fecha: new Date(entregaFecha + 'T12:00:00') })
+        await actualizarEntrega(modalRemitoId, editandoEntregaId, entregaData)
         toast.success('Entrega actualizada')
       } else {
-        await agregarEntrega(modalRemitoId, { items, fecha: new Date(entregaFecha + 'T12:00:00') })
+        await agregarEntrega(modalRemitoId, entregaData)
         toast.success('Entrega registrada')
       }
       setModalAbierto(false)
@@ -841,6 +861,40 @@ export default function EntregasPage() {
                         )
                       })}
                     </div>
+
+                    {/* Vehículo */}
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-[#6B6B8A] mb-1">Vehículo (patente)</label>
+                        <select
+                          value={entregaVehiculoPatente}
+                          onChange={(e) => {
+                            const v = vehiculos.find(v => v.patente === e.target.value)
+                            setEntregaVehiculoPatente(e.target.value)
+                            setEntregaVehiculoMarca(v?.marca ?? '')
+                          }}
+                          className="w-full px-3 py-2 rounded-xl bg-[#12122A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                        >
+                          <option value="">Sin vehículo</option>
+                          {vehiculos.map((v) => (
+                            <option key={v.id} value={v.patente}>{v.patente} — {v.marca}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-[#6B6B8A] mb-1">Chofer</label>
+                        <select
+                          value={entregaChofer}
+                          onChange={(e) => setEntregaChofer(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl bg-[#12122A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                        >
+                          <option value="">Sin chofer</option>
+                          {choferes.map((c) => (
+                            <option key={c.id} value={c.nombre}>{c.nombre}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -967,6 +1021,14 @@ function DeliveryCard({
             <span>{entrega.items.length} producto{entrega.items.length !== 1 ? 's' : ''}</span>
             <span>·</span>
             <span>{entrega.items.reduce((s, i) => s + i.cantidad, 0)} unidades</span>
+            {(entrega.vehiculoPatente || entrega.choferNombre) && (
+              <>
+                <span className="text-[#3A3A5A]">·</span>
+                <span className="text-amber-400/70">
+                  {[entrega.vehiculoPatente, entrega.choferNombre].filter(Boolean).join(' / ')}
+                </span>
+              </>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

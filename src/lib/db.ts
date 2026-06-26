@@ -11,6 +11,8 @@ const STORES = [
   'remitos_facturados',
   'contadores',
   'configuracion',
+  'vehiculos',
+  'choferes',
   'syncQueue',
   'meta',
 ] as const
