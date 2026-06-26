@@ -20,6 +20,8 @@ import {
   Package,
   BarChart3,
   Zap,
+  Target,
+  TrendingUp,
 } from 'lucide-react'
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, endOfWeek } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -42,6 +44,27 @@ type DayData = {
   deliveries: DayDelivery[]
   totalItems: number
   clientes: Set<string>
+}
+
+const REMITO_COLORS = [
+  { dot: 'bg-amber-400', bg: 'bg-amber-500', light: 'bg-amber-500/15', border: 'border-amber-500/25', text: 'text-amber-400', gradient: 'from-amber-500 to-orange-500', glow: 'shadow-amber-500/20', ring: 'ring-amber-400/30' },
+  { dot: 'bg-blue-400', bg: 'bg-blue-500', light: 'bg-blue-500/15', border: 'border-blue-500/25', text: 'text-blue-400', gradient: 'from-blue-500 to-cyan-500', glow: 'shadow-blue-500/20', ring: 'ring-blue-400/30' },
+  { dot: 'bg-emerald-400', bg: 'bg-emerald-500', light: 'bg-emerald-500/15', border: 'border-emerald-500/25', text: 'text-emerald-400', gradient: 'from-emerald-500 to-teal-500', glow: 'shadow-emerald-500/20', ring: 'ring-emerald-400/30' },
+  { dot: 'bg-violet-400', bg: 'bg-violet-500', light: 'bg-violet-500/15', border: 'border-violet-500/25', text: 'text-violet-400', gradient: 'from-violet-500 to-purple-500', glow: 'shadow-violet-500/20', ring: 'ring-violet-400/30' },
+  { dot: 'bg-rose-400', bg: 'bg-rose-500', light: 'bg-rose-500/15', border: 'border-rose-500/25', text: 'text-rose-400', gradient: 'from-rose-500 to-pink-500', glow: 'shadow-rose-500/20', ring: 'ring-rose-400/30' },
+  { dot: 'bg-cyan-400', bg: 'bg-cyan-500', light: 'bg-cyan-500/15', border: 'border-cyan-500/25', text: 'text-cyan-400', gradient: 'from-cyan-500 to-sky-500', glow: 'shadow-cyan-500/20', ring: 'ring-cyan-400/30' },
+  { dot: 'bg-orange-400', bg: 'bg-orange-500', light: 'bg-orange-500/15', border: 'border-orange-500/25', text: 'text-orange-400', gradient: 'from-orange-500 to-red-500', glow: 'shadow-orange-500/20', ring: 'ring-orange-400/30' },
+  { dot: 'bg-teal-400', bg: 'bg-teal-500', light: 'bg-teal-500/15', border: 'border-teal-500/25', text: 'text-teal-400', gradient: 'from-teal-500 to-emerald-500', glow: 'shadow-teal-500/20', ring: 'ring-teal-400/30' },
+  { dot: 'bg-fuchsia-400', bg: 'bg-fuchsia-500', light: 'bg-fuchsia-500/15', border: 'border-fuchsia-500/25', text: 'text-fuchsia-400', gradient: 'from-fuchsia-500 to-pink-500', glow: 'shadow-fuchsia-500/20', ring: 'ring-fuchsia-400/30' },
+  { dot: 'bg-lime-400', bg: 'bg-lime-500', light: 'bg-lime-500/15', border: 'border-lime-500/25', text: 'text-lime-400', gradient: 'from-lime-500 to-green-500', glow: 'shadow-lime-500/20', ring: 'ring-lime-400/30' },
+] as const
+
+function getRemitoColor(remitoId: string): typeof REMITO_COLORS[number] {
+  let hash = 0
+  for (let i = 0; i < remitoId.length; i++) {
+    hash = remitoId.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return REMITO_COLORS[Math.abs(hash) % REMITO_COLORS.length]
 }
 
 function calcEntregado(remito: Remito, idProducto: string): number {
@@ -88,6 +111,7 @@ export default function EntregasPage() {
   const [guardando, setGuardando] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [deleteForRemito, setDeleteForRemito] = useState<string | null>(null)
+  const [topFilter, setTopFilter] = useState<'todas' | 'pendientes'>('pendientes')
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -128,6 +152,10 @@ export default function EntregasPage() {
         String(r.numeroRemito).includes(s)
     )
   }, [remitosConEstado, search])
+
+  const remitosPendientes = useMemo(() => {
+    return remitosFiltrados.filter((r) => !r.completada)
+  }, [remitosFiltrados])
 
   const calendarDays = useMemo(() => {
     return buildCalendarDays(añoActual, mesActual)
@@ -176,12 +204,17 @@ export default function EntregasPage() {
     monthDays.forEach(d => d.deliveries.forEach(dd => remitosUnicos.add(dd.remito.id!)))
     const completadas = remitosConEstado.filter(r => r.completada).length
     const pendientes = remitosConEstado.filter(r => !r.completada).length
+    const pendientesParcial = remitosConEstado.filter(r => r.enProgreso).length
+    const avancePct = remitosConEstado.length > 0
+      ? Math.round((completadas / remitosConEstado.length) * 100)
+      : 0
     return {
       totalDeliveries, totalItems, daysWithDeliveries,
       remitosUnicos: remitosUnicos.size,
       completadas, pendientes,
-      enProgreso: remitosConEstado.filter(r => r.enProgreso).length,
+      enProgreso: pendientesParcial,
       totalPendiente: remitosConEstado.reduce((s, r) => s + r.totalPendiente, 0),
+      avancePct,
     }
   }, [dayDataMap, remitosConEstado])
 
@@ -208,10 +241,14 @@ export default function EntregasPage() {
     setDiaSeleccionado(prev => prev === dateKey ? null : dateKey)
   }
 
-  const abrirModalNuevaEntrega = (fecha?: string) => {
-    setModalRemitoId(null)
+  const abrirModalNuevaEntrega = (fecha?: string, remitoId?: string) => {
+    if (remitoId) {
+      seleccionarRemitoParaEntrega(remitoId)
+    } else {
+      setModalRemitoId(null)
+      setEntregaItems([])
+    }
     setEntregaFecha(fecha ?? format(new Date(), 'yyyy-MM-dd'))
-    setEntregaItems([])
     setModalAbierto(true)
   }
 
@@ -274,7 +311,7 @@ export default function EntregasPage() {
   const diaSeleccionadoData = diaSeleccionado ? dayDataMap.get(diaSeleccionado) : null
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* ─────── HEADER ─────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -304,22 +341,117 @@ export default function EntregasPage() {
         </div>
       </div>
 
+      {/* ─────── TOP: REMITOS PENDIENTES ─────── */}
+      {remitosPendientes.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-amber-400" />
+              <h2 className="text-sm font-semibold text-white">Entregas Pendientes</h2>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium">{remitosPendientes.length}</span>
+            </div>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setTopFilter('pendientes')}
+                className={`text-[10px] px-2 py-1 rounded-lg transition-colors ${topFilter === 'pendientes' ? 'bg-amber-500/15 text-amber-400' : 'text-[#6B6B8A] hover:text-white'}`}
+              >
+                Pendientes
+              </button>
+              <button
+                onClick={() => setTopFilter('todas')}
+                className={`text-[10px] px-2 py-1 rounded-lg transition-colors ${topFilter === 'todas' ? 'bg-amber-500/15 text-amber-400' : 'text-[#6B6B8A] hover:text-white'}`}
+              >
+                Todas
+              </button>
+            </div>
+          </div>
+          <div className="overflow-x-auto -mx-1 scrollbar-thin">
+            <div className="flex gap-3 pb-1 px-1 min-w-min">
+              {(topFilter === 'pendientes' ? remitosPendientes : remitosFiltrados).map((r, idx) => {
+                const c = getRemitoColor(r.id!)
+                const entregadoTotal = r.productosConEntrega.reduce((s, p) => s + p.entregado, 0)
+                const totalItems = r.productosConEntrega.reduce((s, p) => s + p.cantidad, 0)
+                const pct = totalItems > 0 ? Math.round((entregadoTotal / totalItems) * 100) : 0
+                const lastEntrega = r.entregas && r.entregas.length > 0
+                  ? toDate(r.entregas[r.entregas.length - 1].fecha)
+                  : null
+                return (
+                  <motion.div
+                    key={r.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.03, duration: 0.3 }}
+                    className={`flex-shrink-0 w-64 rounded-2xl border ${c.border} bg-[#0D0D1F]/80 backdrop-blur-sm overflow-hidden hover:shadow-lg hover:shadow-black/30 transition-all duration-300 group`}
+                  >
+                    <div className={`h-1 w-full bg-gradient-to-r ${c.gradient}`} />
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[10px] font-mono font-bold ${c.text}`}>#{r.numeroRemito}</span>
+                          <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-medium ${c.light} ${c.text}`}>
+                            {r.totalPendiente} pend.
+                          </span>
+                        </div>
+                        {lastEntrega && (
+                          <span className="text-[8px] text-[#6B6B8A]">{format(lastEntrega, 'd MMM', { locale: es })}</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-white font-medium truncate mb-2">{r.clienteData.razonSocial}</p>
+                      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mb-2.5">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 0.8, delay: idx * 0.05, ease: 'easeOut' }}
+                          className={`h-full rounded-full bg-gradient-to-r ${c.gradient}`}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-[#6B6B8A] mb-3">
+                        <span>{entregadoTotal}/{totalItems} unidades</span>
+                        <span>{pct}%</span>
+                      </div>
+                      <button
+                        onClick={() => abrirModalNuevaEntrega(format(new Date(), 'yyyy-MM-dd'), r.id!)}
+                        className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-medium ${c.light} ${c.text} hover:brightness-125 transition-all`}
+                      >
+                        <Plus className="h-3 w-3" />
+                        Programar Entrega
+                      </button>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* ─────── STATS ─────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
         {[
-          { label: 'Este Mes', value: statsMes.totalDeliveries, sub: 'entregas', color: 'text-amber-400', icon: CalendarDays },
-          { label: 'Unidades', value: statsMes.totalItems, sub: 'productos', color: 'text-blue-400', icon: Package },
-          { label: 'Días activos', value: statsMes.daysWithDeliveries, sub: `de ${calendarDays.filter(d => isSameMonth(d, new Date(añoActual, mesActual))).length} días`, color: 'text-emerald-400', icon: BarChart3 },
+          { label: 'Entregas', value: statsMes.totalDeliveries, sub: 'este mes', color: 'text-amber-400', icon: CalendarDays },
+          { label: 'Unidades', value: statsMes.totalItems, sub: 'entregadas', color: 'text-blue-400', icon: Package },
+          { label: 'Días activos', value: statsMes.daysWithDeliveries, sub: `de ${calendarDays.filter(d => isSameMonth(d, new Date(añoActual, mesActual))).length}`, color: 'text-emerald-400', icon: BarChart3 },
           { label: 'Remitos', value: statsMes.remitosUnicos, sub: 'con entregas', color: 'text-violet-400', icon: Truck },
           { label: 'Pendientes', value: statsMes.pendientes, sub: 'remitos', color: 'text-amber-400', icon: Clock },
           { label: 'En Progreso', value: statsMes.enProgreso, sub: 'parciales', color: 'text-blue-400', icon: Zap },
           { label: 'Completadas', value: statsMes.completadas, sub: 'remitos', color: 'text-emerald-400', icon: CheckCircle2 },
-        ].map((s) => (
-          <div key={s.label} className="glass-card rounded-xl p-3 text-center">
+          { label: 'Avance', value: `${statsMes.avancePct}%`, sub: 'general', color: 'text-fuchsia-400', icon: TrendingUp },
+        ].map((s, i) => (
+          <motion.div
+            key={s.label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.03, duration: 0.3 }}
+            className="glass-card rounded-xl p-3 text-center"
+          >
             <s.icon className={`h-4 w-4 ${s.color} mx-auto mb-1`} />
             <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
             <p className="text-[10px] text-[#6B6B8A] leading-tight">{s.sub}</p>
-          </div>
+          </motion.div>
         ))}
       </div>
 
@@ -342,7 +474,6 @@ export default function EntregasPage() {
 
       {/* ─────── CALENDAR ─────── */}
       <div className="glass-card rounded-2xl overflow-hidden">
-        {/* Month Navigation */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-[#12122A]/50">
           <div className="flex items-center gap-1">
             <button
@@ -364,10 +495,9 @@ export default function EntregasPage() {
           <h2 className="text-lg font-bold text-white">
             {MESES[mesActual]} <span className="text-[#6B6B8A] font-normal">{añoActual}</span>
           </h2>
-          <div className="w-20" />
+          <div className="w-20 hidden sm:block" />
         </div>
 
-        {/* Calendar Grid */}
         <AnimatePresence mode="wait">
           <motion.div
             key={`${mesActual}-${añoActual}`}
@@ -376,7 +506,6 @@ export default function EntregasPage() {
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            {/* Day headers */}
             <div className="grid grid-cols-7 border-b border-white/5">
               {DIAS_SEMANA.map((d) => (
                 <div key={d} className="px-1 py-2 text-center text-[10px] font-semibold text-[#6B6B8A] uppercase tracking-wider">
@@ -385,7 +514,6 @@ export default function EntregasPage() {
               ))}
             </div>
 
-            {/* Day cells */}
             <div className="grid grid-cols-7">
               {calendarDays.map((date) => {
                 const key = format(date, 'yyyy-MM-dd')
@@ -399,49 +527,42 @@ export default function EntregasPage() {
                 return (
                   <button
                     key={key}
-                    onClick={() => {
-                      if (isCurrent) toggleDia(key)
-                    }}
+                    onClick={() => { if (isCurrent) toggleDia(key) }}
                     className={`
                       relative min-h-[90px] sm:min-h-[110px] p-1.5 border-b border-r border-white/[0.03]
                       transition-all duration-200 group text-left
                       ${isCurrent ? 'cursor-pointer' : 'cursor-default'}
-                      ${isSelected ? 'bg-[#6C3CE1]/10 z-10' : 'hover:bg-white/[0.02]'}
+                      ${isSelected ? 'bg-[#6C3CE1]/10 z-10 ring-1 ring-[#6C3CE1]/20' : 'hover:bg-white/[0.02]'}
                     `}
                   >
-                    {/* Day number */}
                     <div className={`
                       inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-medium mb-1
                       ${!isCurrent ? 'text-[#3A3A5A]' : ''}
-                      ${isTodayDate ? 'bg-gradient-to-br from-[#6C3CE1] to-[#00D4FF] text-white shadow-lg shadow-[#6C3CE1]/25' : isCurrent ? 'text-[#B0B0D0]' : ''}
+                      ${isTodayDate
+                        ? 'bg-gradient-to-br from-[#6C3CE1] to-[#00D4FF] text-white shadow-lg shadow-[#6C3CE1]/25'
+                        : isCurrent ? 'text-[#B0B0D0]' : ''
+                      }
                     `}>
                       {format(date, 'd')}
                     </div>
 
-                    {/* Delivery indicators */}
                     {hasDeliveries && isCurrent && (
-                      <div className="space-y-0.5">
-                        <div className="flex -space-x-1">
-                          {data!.deliveries.slice(0, 4).map((dd, i) => {
-                            const colors = ['bg-amber-500', 'bg-blue-500', 'bg-emerald-500', 'bg-violet-500']
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap gap-0.5">
+                          {data!.deliveries.slice(0, 6).map((dd) => {
+                            const c = getRemitoColor(dd.remito.id!)
                             const isCompletada = dd.remito.completada
                             return (
                               <div
-                                key={i}
-                                className={`w-4 h-4 rounded-full ${colors[i % 4]} border border-[#0D0D1F] flex items-center justify-center ${isCompletada ? 'opacity-60' : ''}`}
+                                key={`${dd.remito.id}-${dd.entrega.id}`}
+                                className={`w-3.5 h-3.5 rounded-sm ${c.bg} ${isCompletada ? 'opacity-50' : ''} ring-1 ${c.ring} transition-transform hover:scale-125`}
                                 title={`#${dd.remito.numeroRemito} - ${dd.remito.clienteData.razonSocial}`}
-                              >
-                                {isCompletada ? (
-                                  <CheckCircle2 className="h-2.5 w-2.5 text-white" />
-                                ) : (
-                                  <Package className="h-2 w-2 text-white" />
-                                )}
-                              </div>
+                              />
                             )
                           })}
-                          {data!.deliveries.length > 4 && (
-                            <div className="w-4 h-4 rounded-full bg-[#2A2A4A] border border-[#0D0D1F] flex items-center justify-center">
-                              <span className="text-[8px] text-[#6B6B8A] font-bold">+{data!.deliveries.length - 4}</span>
+                          {data!.deliveries.length > 6 && (
+                            <div className="w-3.5 h-3.5 rounded-sm bg-[#2A2A4A] flex items-center justify-center">
+                              <span className="text-[7px] text-[#6B6B8A] font-bold">+{data!.deliveries.length - 6}</span>
                             </div>
                           )}
                         </div>
@@ -459,28 +580,34 @@ export default function EntregasPage() {
                       </div>
                     )}
 
-                    {/* Hover preview */}
                     {hasDeliveries && isCurrent && (
-                      <div className="absolute inset-x-0 bottom-full left-1/2 -translate-x-1/2 mb-1 w-[200px] hidden group-hover:block z-20">
-                        <div className="bg-[#1A1A3A] border border-white/10 rounded-xl p-2 shadow-2xl shadow-black/50">
-                          <p className="text-xs font-semibold text-white mb-1">
+                      <div className="absolute inset-x-0 bottom-full left-1/2 -translate-x-1/2 mb-1 w-[220px] hidden group-hover:block z-20">
+                        <div className="bg-[#1A1A3A] border border-white/10 rounded-xl p-2.5 shadow-2xl shadow-black/50">
+                          <p className="text-xs font-semibold text-white mb-1.5">
                             {format(date, "d 'de' MMMM", { locale: es })}
                           </p>
-                          {data!.deliveries.slice(0, 3).map((dd) => (
-                            <div key={`${dd.remito.id}-${dd.entrega.id}`} className="flex items-center gap-2 py-0.5">
-                              <span className="text-[10px] font-mono text-[#6C3CE1]">#{dd.remito.numeroRemito}</span>
-                              <span className="text-[10px] text-[#B0B0D0] truncate">{dd.remito.clienteData.razonSocial}</span>
-                              <span className="text-[10px] text-[#6B6B8A] ml-auto">{dd.entrega.items.length} prod.</span>
-                            </div>
-                          ))}
-                          {data!.deliveries.length > 3 && (
-                            <p className="text-[10px] text-[#6B6B8A] text-center pt-1">+{data!.deliveries.length - 3} más</p>
+                          <div className="space-y-1">
+                            {data!.deliveries.slice(0, 4).map((dd) => {
+                              const c = getRemitoColor(dd.remito.id!)
+                              return (
+                                <div key={`${dd.remito.id}-${dd.entrega.id}`} className="flex items-center gap-2 py-0.5">
+                                  <div className={`w-2 h-2 rounded-full ${c.dot} shrink-0`} />
+                                  <span className={`text-[10px] font-mono font-bold ${c.text}`}>#{dd.remito.numeroRemito}</span>
+                                  <span className="text-[10px] text-[#B0B0D0] truncate">{dd.remito.clienteData.razonSocial}</span>
+                                  <span className="text-[10px] text-[#6B6B8A] ml-auto">{dd.entrega.items.length} prod.</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                          {data!.deliveries.length > 4 && (
+                            <p className="text-[10px] text-[#6B6B8A] text-center pt-1 border-t border-white/5 mt-1">
+                              +{data!.deliveries.length - 4} más
+                            </p>
                           )}
                         </div>
                       </div>
                     )}
 
-                    {/* Add button on hover for empty days */}
                     {isCurrent && !hasDeliveries && (
                       <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
@@ -555,28 +682,32 @@ export default function EntregasPage() {
                   </button>
                 </div>
               ) : (
-                diaSeleccionadoData.deliveries.map((dd) => (
-                  <DeliveryCard
-                    key={`${dd.remito.id}-${dd.entrega.id}`}
-                    remito={dd.remito}
-                    entrega={dd.entrega}
-                    onDelete={(entregaId) => {
-                      setDeleteConfirm(entregaId)
-                      setDeleteForRemito(dd.remito.id!)
-                    }}
-                    onAddMore={() => {
-                      seleccionarRemitoParaEntrega(dd.remito.id!)
-                      setModalAbierto(true)
-                    }}
-                  />
-                ))
+                diaSeleccionadoData.deliveries.map((dd) => {
+                  const c = getRemitoColor(dd.remito.id!)
+                  return (
+                    <DeliveryCard
+                      key={`${dd.remito.id}-${dd.entrega.id}`}
+                      remito={dd.remito}
+                      entrega={dd.entrega}
+                      color={c}
+                      onDelete={(entregaId) => {
+                        setDeleteConfirm(entregaId)
+                        setDeleteForRemito(dd.remito.id!)
+                      }}
+                      onAddMore={() => {
+                        seleccionarRemitoParaEntrega(dd.remito.id!)
+                        setModalAbierto(true)
+                      }}
+                    />
+                  )
+                })
               )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ─────── MODAL NUEVA ENTREGA ─────── */}
+      {/* ─────── MODAL ─────── */}
       <AnimatePresence>
         {modalAbierto && (
           <motion.div
@@ -604,7 +735,6 @@ export default function EntregasPage() {
               </div>
 
               <div className="p-4 space-y-4">
-                {/* Date */}
                 <div>
                   <label className="block text-xs font-medium text-[#6B6B8A] mb-1">Fecha de entrega</label>
                   <input
@@ -615,31 +745,33 @@ export default function EntregasPage() {
                   />
                 </div>
 
-                {/* Remito selector (if none selected) */}
                 {!modalRemitoId && (
                   <div>
                     <label className="block text-xs font-medium text-[#6B6B8A] mb-2">Seleccionar Remito</label>
                     <div className="max-h-48 overflow-y-auto space-y-1">
                       {remitosConEstado
                         .filter((r) => !r.completada && r.totalPendiente > 0)
-                        .map((r) => (
-                          <button
-                            key={r.id}
-                            onClick={() => seleccionarRemitoParaEntrega(r.id!)}
-                            className="w-full text-left px-3 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
-                          >
-                            <span className="text-xs font-mono text-[#6C3CE1]">#{r.numeroRemito}</span>
-                            <span className="text-xs text-[#B0B0D0] ml-2">{r.clienteData.razonSocial}</span>
-                            <span className="text-[10px] text-[#6B6B8A] ml-auto block">
-                              {r.totalPendiente} pendiente{r.totalPendiente !== 1 ? 's' : ''}
-                            </span>
-                          </button>
-                        ))}
+                        .map((r) => {
+                          const c = getRemitoColor(r.id!)
+                          return (
+                            <button
+                              key={r.id}
+                              onClick={() => seleccionarRemitoParaEntrega(r.id!)}
+                              className={`w-full text-left px-3 py-2 rounded-xl ${c.light} hover:brightness-125 transition-all flex items-center gap-2`}
+                            >
+                              <div className={`w-2 h-2 rounded-full ${c.dot} shrink-0`} />
+                              <span className={`text-xs font-mono font-bold ${c.text}`}>#{r.numeroRemito}</span>
+                              <span className="text-xs text-[#B0B0D0]">{r.clienteData.razonSocial}</span>
+                              <span className="text-[10px] text-[#6B6B8A] ml-auto">
+                                {r.totalPendiente} pend.
+                              </span>
+                            </button>
+                          )
+                        })}
                     </div>
                   </div>
                 )}
 
-                {/* Product items */}
                 {modalRemitoId && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
@@ -687,7 +819,6 @@ export default function EntregasPage() {
                 )}
               </div>
 
-              {/* Actions */}
               <div className="px-4 py-3 border-t border-white/5 flex justify-end gap-2">
                 <button
                   onClick={() => setModalAbierto(false)}
@@ -758,7 +889,6 @@ export default function EntregasPage() {
         )}
       </AnimatePresence>
 
-      {/* Loading overlay */}
       {loading && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="glass-card rounded-2xl p-6 text-center">
@@ -775,11 +905,13 @@ export default function EntregasPage() {
 function DeliveryCard({
   remito,
   entrega,
+  color,
   onDelete,
   onAddMore,
 }: {
   remito: RemitoConEstado
   entrega: Entrega
+  color: typeof REMITO_COLORS[number]
   onDelete: (id: string) => void
   onAddMore: () => void
 }) {
@@ -795,10 +927,10 @@ function DeliveryCard({
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left"
       >
-        <div className={`w-2 h-2 rounded-full shrink-0 ${remito.completada ? 'bg-emerald-400' : remito.enProgreso ? 'bg-amber-400' : 'bg-blue-400'}`} />
+        <div className={`w-2 h-2 rounded-full shrink-0 ${color.dot}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono text-[#6C3CE1] font-semibold">#{remito.numeroRemito}</span>
+            <span className={`text-xs font-mono font-bold ${color.text}`}>#{remito.numeroRemito}</span>
             <span className="text-sm text-white truncate">{remito.clienteData.razonSocial}</span>
           </div>
           <div className="flex items-center gap-2 text-[10px] text-[#6B6B8A]">
@@ -810,7 +942,7 @@ function DeliveryCard({
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => { e.stopPropagation(); onAddMore() }}
-            className="p-1.5 rounded-lg hover:bg-amber-500/10 text-[#6B6B8A] hover:text-amber-400 transition-colors"
+            className={`p-1.5 rounded-lg ${color.light} ${color.text} hover:brightness-125 transition-all`}
             title="Agregar más"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -846,7 +978,7 @@ function DeliveryCard({
                     <span className="text-white font-medium">{item.cantidad}</span>
                     <span className="text-[#6B6B8A]">/ {item.cantidad + pendiente}</span>
                     {pendiente === 0 ? (
-                      <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                      <CheckCircle2 className={`h-3 w-3 ${color.text}`} />
                     ) : pendiente > 0 && prod && prod.entregado > 0 ? (
                       <Clock className="h-3 w-3 text-amber-400" />
                     ) : null}
@@ -854,14 +986,16 @@ function DeliveryCard({
                 )
               })}
               <div className="mt-2 h-1.5 rounded-full bg-white/5 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all"
-                  style={{
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{
                     width: `${remito.totalPendiente === 0
                       ? 100
                       : Math.round((1 - remito.totalPendiente / remito.productosConEntrega.reduce((s, p) => s + p.cantidad, 0)) * 100)
                     }%`,
                   }}
+                  transition={{ duration: 0.6, ease: 'easeOut' }}
+                  className={`h-full rounded-full bg-gradient-to-r ${color.gradient}`}
                 />
               </div>
             </div>
