@@ -5,9 +5,9 @@ import { getAllRemitos, clearCache, updateRemitoEstado, updateRemitoNroFactura, 
 import type { Remito, EmpresaConfig } from '@/types'
 import {
   FileText,
+  Printer,
   Search,
   Loader2,
-  ChevronRight,
   AlertTriangle,
   Filter,
   MessageCircle,
@@ -609,7 +609,7 @@ export default function RemitosPage() {
                         )}
 
                         <Link href={`/remitos/${remito.id}?from=${tab}`}>
-                          <ChevronRight className="h-4 w-4 text-[#6B6B8A] hover:text-white transition-colors" />
+                          <Printer className="h-4 w-4 text-[#6B6B8A] hover:text-white transition-colors" />
                         </Link>
                       </div>
                     </td>

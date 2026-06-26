@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAllRemitos, clearCache, agregarEntrega, eliminarEntrega } from '@/lib/firestore'
+import { getAllRemitos, clearCache, agregarEntrega, actualizarEntrega, eliminarEntrega } from '@/lib/firestore'
 import type { Remito, RemitoItem, Entrega } from '@/types'
 import {
   Truck,
@@ -10,6 +10,7 @@ import {
   Search,
   Loader2,
   Plus,
+  Pencil,
   X,
   Trash2,
   CheckCircle2,
@@ -112,6 +113,7 @@ export default function EntregasPage() {
   const [entregaFecha, setEntregaFecha] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [entregaItems, setEntregaItems] = useState<{ idProducto: string; cantidad: string }[]>([])
   const [guardando, setGuardando] = useState(false)
+  const [editandoEntregaId, setEditandoEntregaId] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [deleteForRemito, setDeleteForRemito] = useState<string | null>(null)
   const [topFilter, setTopFilter] = useState<'todas' | 'pendientes'>('pendientes')
@@ -245,6 +247,7 @@ export default function EntregasPage() {
   }
 
   const abrirModalNuevaEntrega = (fecha?: string, remitoId?: string) => {
+    setEditandoEntregaId(null)
     if (remitoId) {
       seleccionarRemitoParaEntrega(remitoId)
     } else {
@@ -252,6 +255,20 @@ export default function EntregasPage() {
       setEntregaItems([])
     }
     setEntregaFecha(fecha ?? format(new Date(), 'yyyy-MM-dd'))
+    setModalAbierto(true)
+  }
+
+  const abrirModalEditarEntrega = (remitoId: string, entregaId: string) => {
+    const remito = remitosConEstado.find(r => r.id === remitoId)
+    if (!remito) return
+    const entrega = remito.entregas?.find(e => e.id === entregaId)
+    if (!entrega) return
+    setEditandoEntregaId(entregaId)
+    setModalRemitoId(remitoId)
+    setEntregaItems(
+      entrega.items.map((i) => ({ idProducto: i.idProducto, cantidad: String(i.cantidad) }))
+    )
+    setEntregaFecha(format(toDate(entrega.fecha), 'yyyy-MM-dd'))
     setModalAbierto(true)
   }
 
@@ -286,14 +303,20 @@ export default function EntregasPage() {
     }
     setGuardando(true)
     try {
-      await agregarEntrega(modalRemitoId, { items, fecha: new Date(entregaFecha + 'T12:00:00') })
-      toast.success('Entrega registrada')
+      if (editandoEntregaId) {
+        await actualizarEntrega(modalRemitoId, editandoEntregaId, { items, fecha: new Date(entregaFecha + 'T12:00:00') })
+        toast.success('Entrega actualizada')
+      } else {
+        await agregarEntrega(modalRemitoId, { items, fecha: new Date(entregaFecha + 'T12:00:00') })
+        toast.success('Entrega registrada')
+      }
       setModalAbierto(false)
       setModalRemitoId(null)
+      setEditandoEntregaId(null)
       clearCache('allRemitos')
       fetchData()
     } catch {
-      toast.error('Error al registrar entrega')
+      toast.error('Error al guardar entrega')
     } finally {
       setGuardando(false)
     }
@@ -701,6 +724,7 @@ export default function EntregasPage() {
                         seleccionarRemitoParaEntrega(dd.remito.id!)
                         setModalAbierto(true)
                       }}
+                      onEdit={() => abrirModalEditarEntrega(dd.remito.id!, dd.entrega.id)}
                       onPrint={() => router.push(`/dashboard/entregas/salida/${dd.remito.id}/${dd.entrega.id}`)}
                     />
                   )
@@ -729,7 +753,7 @@ export default function EntregasPage() {
               className="glass-card rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto"
             >
               <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-                <h3 className="font-semibold text-white">Registrar Entrega</h3>
+                <h3 className="font-semibold text-white">{editandoEntregaId ? 'Editar Entrega' : 'Registrar Entrega'}</h3>
                 <button
                   onClick={() => setModalAbierto(false)}
                   className="p-1 rounded-lg hover:bg-white/5 text-[#6B6B8A] hover:text-white transition-colors"
@@ -843,7 +867,7 @@ export default function EntregasPage() {
                   ) : (
                     <>
                       <Truck className="h-4 w-4" />
-                      Registrar Entrega
+                      {editandoEntregaId ? 'Actualizar Entrega' : 'Registrar Entrega'}
                     </>
                   )}
                 </button>
@@ -913,6 +937,7 @@ function DeliveryCard({
   onDelete,
   onAddMore,
   onPrint,
+  onEdit,
 }: {
   remito: RemitoConEstado
   entrega: Entrega
@@ -920,6 +945,7 @@ function DeliveryCard({
   onDelete: (id: string) => void
   onAddMore: () => void
   onPrint: () => void
+  onEdit: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -953,7 +979,14 @@ function DeliveryCard({
           >
             <Plus className="h-3.5 w-3.5" />
           </button>
-            <button
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit() }}
+            className="p-1.5 rounded-lg hover:bg-sky-500/10 text-[#6B6B8A] hover:text-sky-400 transition-colors"
+            title="Editar entrega"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
             onClick={(e) => { e.stopPropagation(); onPrint() }}
             className="p-1.5 rounded-lg hover:bg-amber-500/10 text-[#6B6B8A] hover:text-amber-400 transition-colors"
             title="Imprimir remito de salida"

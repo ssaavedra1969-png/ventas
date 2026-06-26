@@ -1203,6 +1203,44 @@ export async function eliminarEntrega(remitoId: string, entregaId: string) {
   }
 }
 
+export async function actualizarEntrega(
+  remitoId: string,
+  entregaId: string,
+  data: { items: { idProducto: string; nombreProducto: string; cantidad: number }[]; fecha: Date }
+) {
+  const existing = await localGet<any>('remitos', remitoId)
+  let entregasActualizadas: Entrega[] = []
+  if (existing) {
+    const entregasActuales: Entrega[] = existing.entregas ?? []
+    entregasActualizadas = entregasActuales.map((e) =>
+      e.id === entregaId
+        ? { ...e, fecha: data.fecha, items: data.items.map((item) => ({ idProducto: item.idProducto, nombreProducto: item.nombreProducto, cantidad: item.cantidad })) }
+        : e
+    )
+    await localSet('remitos', { ...existing, entregas: entregasActualizadas, id: remitoId })
+  }
+
+  try {
+    const ref = doc(getDb(), COLECCIONES.remitos, remitoId)
+    const snap = await getDoc(ref)
+    if (!snap.exists()) throw new Error('Remito no encontrado')
+    const remito = snap.data()
+    const entregasActuales: Entrega[] = remito.entregas ?? []
+    entregasActualizadas = entregasActuales.map((e) =>
+      e.id === entregaId
+        ? { ...e, fecha: data.fecha, items: data.items.map((item) => ({ idProducto: item.idProducto, nombreProducto: item.nombreProducto, cantidad: item.cantidad })) }
+        : e
+    )
+    await updateDoc(ref, { entregas: entregasActualizadas })
+  } catch {
+    await enqueueOperation({
+      collection: 'remitos', docId: remitoId, operation: 'update',
+      data: { entregas: entregasActualizadas },
+      timestamp: Date.now(), retryCount: 0,
+    })
+  }
+}
+
 // ============ DASHBOARD STATS ============
 
 export async function getDashboardStats(): Promise<{
