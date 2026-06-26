@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { getAllRemitos, clearCache, agregarEntrega, eliminarEntrega } from '@/lib/firestore'
 import type { Remito, RemitoItem, Entrega } from '@/types'
 import {
   Truck,
+  Printer,
   Search,
   Loader2,
   Plus,
@@ -98,6 +100,7 @@ const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', '
 const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 export default function EntregasPage() {
+  const router = useRouter()
   const [remitos, setRemitos] = useState<Remito[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -698,6 +701,7 @@ export default function EntregasPage() {
                         seleccionarRemitoParaEntrega(dd.remito.id!)
                         setModalAbierto(true)
                       }}
+                      onPrint={() => router.push(`/dashboard/entregas/salida/${dd.remito.id}/${dd.entrega.id}`)}
                     />
                   )
                 })
@@ -908,12 +912,14 @@ function DeliveryCard({
   color,
   onDelete,
   onAddMore,
+  onPrint,
 }: {
   remito: RemitoConEstado
   entrega: Entrega
   color: typeof REMITO_COLORS[number]
   onDelete: (id: string) => void
   onAddMore: () => void
+  onPrint: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
 
@@ -946,6 +952,13 @@ function DeliveryCard({
             title="Agregar más"
           >
             <Plus className="h-3.5 w-3.5" />
+          </button>
+            <button
+            onClick={(e) => { e.stopPropagation(); onPrint() }}
+            className="p-1.5 rounded-lg hover:bg-amber-500/10 text-[#6B6B8A] hover:text-amber-400 transition-colors"
+            title="Imprimir remito de salida"
+          >
+            <Printer className="h-3.5 w-3.5" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(entrega.id) }}

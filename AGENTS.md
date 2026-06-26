@@ -1,6 +1,6 @@
 # FALPAT Ventas - Session State
 
-## Último: 25/06/2026
+## Último: 26/06/2026
 
 ### Deploy actual
 - URL: https://ventas-falpat.vercel.app
@@ -11,17 +11,12 @@
 - `backups\proyecto-2026-06-25_165449\`
 
 ### Lo último que se hizo
-1. **Bug de IVA corregido y deployado** — `valorUnitario` e `item.subtotal` son precios sin IVA. El código hacía `subtotal / 1.21` como si incluyeran IVA. Fix:
-   - `iva = subtotal * 0.21` (en vez de `subtotal - subtotal/1.21`)
-   - `totalGeneral = subtotal + iva`
-   - `Importe Neto Gravado` = `subtotalGeneral` (sin dividir)
-   - Archivos tocados: `firestore.ts`, `nuevo/page.tsx`, `[id]/page.tsx`
-2. **Export Firestore arreglado** — adaptado a firebase-admin v14 (`getFirestore`, `Timestamp`, `DocumentReference` importados de `firebase-admin/firestore`)
-
-### Pendiente / En Progreso
-- Bug de pagos: "Error al registrar pago" en facturación — esperando que el usuario pruebe y reporte el error de consola (F12)
-- Sincronización multiusuario para clientes (onSnapshot)
-- Persistencia formulario nuevo remito al navegar entre secciones
+1. **Remito de Salida movido a Entregas** — página movida de `/entregas/salida/[remitoId]/[entregaId]` a `/dashboard/entregas/salida/[remitoId]/[entregaId]` (dentro del dashboard, con sidebar). Sacado el icono FileText del listado de remitos. Botón Printer en cada DeliveryCard del calendario.
+2. **Bug pagos fix**: 4 arreglos — validación NaN cliente/server, catch relee IndexedDB, variable stale corregida
+3. **Persistencia formulario remito**: hook `useFormDraft` con IndexedDB, debounce 500ms, auto-limpieza
+4. **Background sync clientes**: `useBackgroundSync` con polling 2min + visibilitychange
+5. **Lint fixes**: imports no usados eliminados, dependencias useMemo corregidas
+6. **Rediseño Plan de Entregas**: cards pendientes con scroll y progreso, 10 colores únicos por remito, stats animadas, hover previews 220px
 
 ### Setup en otra PC
 ```bash

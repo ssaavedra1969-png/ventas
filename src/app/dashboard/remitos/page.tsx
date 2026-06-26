@@ -608,13 +608,6 @@ export default function RemitosPage() {
                           </>
                         )}
 
-                        <Link
-                          href={`/remitos/${remito.id}/salida`}
-                          className="p-1.5 rounded-lg text-amber-400 hover:bg-amber-500/20 transition-colors"
-                          title="Remito de Salida"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Link>
                         <Link href={`/remitos/${remito.id}?from=${tab}`}>
                           <ChevronRight className="h-4 w-4 text-[#6B6B8A] hover:text-white transition-colors" />
                         </Link>
