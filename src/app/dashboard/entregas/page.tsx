@@ -10,23 +10,39 @@ import {
   Plus,
   X,
   Trash2,
-  ChevronDown,
-  ChevronUp,
   CheckCircle2,
   AlertCircle,
   Clock,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
   CalendarDays,
-  List,
-  // GitBranch,
-  ArrowRight,
+  Package,
+  BarChart3,
+  Zap,
 } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, startOfWeek, endOfWeek } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 
-type Vista = 'timeline' | 'lista'
+type ProductoConEntrega = RemitoItem & { entregado: number; pendiente: number }
+type RemitoConEstado = Remito & {
+  productosConEntrega: ProductoConEntrega[]
+  totalPendiente: number
+  completada: boolean
+  enProgreso: boolean
+}
+type DayDelivery = { remito: RemitoConEstado; entrega: Entrega }
+type DayData = {
+  date: Date
+  dateKey: string
+  isCurrentMonth: boolean
+  isToday: boolean
+  deliveries: DayDelivery[]
+  totalItems: number
+  clientes: Set<string>
+}
 
 function calcEntregado(remito: Remito, idProducto: string): number {
   if (!remito.entregas) return 0
@@ -43,37 +59,35 @@ function calcPendiente(remito: Remito, idProducto: string, cantidad: number): nu
   return cantidad - calcEntregado(remito, idProducto)
 }
 
-function formatDate(d: Date | string): string {
-  return format(d instanceof Date ? d : new Date(d), 'dd/MM/yyyy', { locale: es })
-}
-
 function toDate(v: Date | string | { toDate?: () => Date }): Date {
   if (v instanceof Date) return v
   if (typeof v === 'object' && v.toDate) return v.toDate()
   return new Date(v as string)
 }
 
-type ProductoConEntrega = RemitoItem & { entregado: number; pendiente: number }
-type RemitoConEstado = Remito & {
-  productosConEntrega: ProductoConEntrega[]
-  totalPendiente: number
-  completada: boolean
-  enProgreso: boolean
+function buildCalendarDays(year: number, month: number): Date[] {
+  const start = startOfWeek(startOfMonth(new Date(year, month)), { weekStartsOn: 1 })
+  const end = endOfWeek(endOfMonth(new Date(year, month)), { weekStartsOn: 1 })
+  return eachDayOfInterval({ start, end })
 }
+
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
 export default function EntregasPage() {
   const [remitos, setRemitos] = useState<Remito[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [expandido, setExpandido] = useState<string | null>(null)
-  const [vista, setVista] = useState<Vista>('timeline')
+  const [mesActual, setMesActual] = useState(() => new Date().getMonth())
+  const [añoActual, setAñoActual] = useState(() => new Date().getFullYear())
+  const [diaSeleccionado, setDiaSeleccionado] = useState<string | null>(null)
+  const [modalAbierto, setModalAbierto] = useState(false)
   const [modalRemitoId, setModalRemitoId] = useState<string | null>(null)
   const [entregaFecha, setEntregaFecha] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [entregaItems, setEntregaItems] = useState<{ idProducto: string; cantidad: string }[]>([])
   const [guardando, setGuardando] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState<string>(null!)
-  const [deleteForRemito, setDeleteForRemito] = useState<string>(null!)
-  const [filtroEstado, setFiltroEstado] = useState<'todas' | 'pendientes' | 'completadas'>('pendientes')
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [deleteForRemito, setDeleteForRemito] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -105,70 +119,106 @@ export default function EntregasPage() {
       })
   }, [remitos])
 
-  const filtrados = useMemo(() => {
-    let items = remitosConEstado
-    if (filtroEstado === 'pendientes') items = items.filter((r) => !r.completada)
-    if (filtroEstado === 'completadas') items = items.filter((r) => r.completada)
-    if (search) {
-      const s = search.toLowerCase()
-      items = items.filter(
-        (r) =>
-          r.clienteData.razonSocial.toLowerCase().includes(s) ||
-          String(r.numeroRemito).includes(s)
-      )
+  const remitosFiltrados = useMemo(() => {
+    if (!search) return remitosConEstado
+    const s = search.toLowerCase()
+    return remitosConEstado.filter(
+      (r) =>
+        r.clienteData.razonSocial.toLowerCase().includes(s) ||
+        String(r.numeroRemito).includes(s)
+    )
+  }, [remitosConEstado, search])
+
+  const calendarDays = useMemo(() => {
+    return buildCalendarDays(añoActual, mesActual)
+  }, [añoActual, mesActual])
+
+  const dayDataMap = useMemo(() => {
+    const map = new Map<string, DayData>()
+    const today = format(new Date(), 'yyyy-MM-dd')
+
+    for (const date of calendarDays) {
+      const key = format(date, 'yyyy-MM-dd')
+      map.set(key, {
+        date,
+        dateKey: key,
+        isCurrentMonth: isSameMonth(date, new Date(añoActual, mesActual)),
+        isToday: key === today,
+        deliveries: [],
+        totalItems: 0,
+        clientes: new Set(),
+      })
     }
-    return items
-  }, [remitosConEstado, filtroEstado, search])
 
-  const stats = useMemo(() => {
-    const pendientes = remitosConEstado.filter((r) => !r.completada)
-    const completadas = remitosConEstado.filter((r) => r.completada)
-    const enProgreso = pendientes.filter((r) => r.enProgreso)
-    const totalPendiente = pendientes.reduce((s, r) => s + r.totalPendiente, 0)
-    return { pendientes: pendientes.length, completadas: completadas.length, enProgreso: enProgreso.length, totalPendiente }
-  }, [remitosConEstado])
-
-  const entregasTimeline = useMemo(() => {
-    const entries: {
-      dateKey: string
-      dateLabel: string
-      dateObj: Date
-      items: { remito: RemitoConEstado; entrega: Entrega }[]
-    }[] = []
-
-    const map = new Map<string, typeof entries[0]['items']>()
-
-    for (const r of remitosConEstado) {
+    for (const r of remitosFiltrados) {
       if (!r.entregas) continue
       for (const entrega of r.entregas) {
         const d = toDate(entrega.fecha)
         const key = format(d, 'yyyy-MM-dd')
-        if (!map.has(key)) map.set(key, [])
-        map.get(key)!.push({ remito: r, entrega })
+        const day = map.get(key)
+        if (day) {
+          day.deliveries.push({ remito: r, entrega })
+          day.totalItems += entrega.items.reduce((s, i) => s + i.cantidad, 0)
+          day.clientes.add(r.clienteData.razonSocial)
+        }
       }
     }
 
-    map.forEach((items, key) => {
-      const d = new Date(key + 'T12:00:00')
-      entries.push({
-        dateKey: key,
-        dateLabel: format(d, "EEEE d 'de' MMMM 'de' yyyy", { locale: es }),
-        dateObj: d,
-        items,
-      })
-    })
+    return map
+  }, [calendarDays, remitosFiltrados, añoActual, mesActual])
 
-    entries.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime())
-    return entries
-  }, [remitosConEstado])
+  const statsMes = useMemo(() => {
+    const monthDays = Array.from(dayDataMap.values()).filter(d => d.isCurrentMonth)
+    const totalDeliveries = monthDays.reduce((s, d) => s + d.deliveries.length, 0)
+    const totalItems = monthDays.reduce((s, d) => s + d.totalItems, 0)
+    const daysWithDeliveries = monthDays.filter(d => d.deliveries.length > 0).length
+    const remitosUnicos = new Set<string>()
+    monthDays.forEach(d => d.deliveries.forEach(dd => remitosUnicos.add(dd.remito.id!)))
+    const completadas = remitosConEstado.filter(r => r.completada).length
+    const pendientes = remitosConEstado.filter(r => !r.completada).length
+    return {
+      totalDeliveries, totalItems, daysWithDeliveries,
+      remitosUnicos: remitosUnicos.size,
+      completadas, pendientes,
+      enProgreso: remitosConEstado.filter(r => r.enProgreso).length,
+      totalPendiente: remitosConEstado.reduce((s, r) => s + r.totalPendiente, 0),
+    }
+  }, [dayDataMap, remitosConEstado])
 
-  // const totalEntregadoGlobal = entregasTimeline.reduce((s, e) => s + e.items.length, 0)
+  const mesAnterior = () => {
+    const prev = subMonths(new Date(añoActual, mesActual), 1)
+    setAñoActual(prev.getFullYear())
+    setMesActual(prev.getMonth())
+  }
 
-  const abrirModal = (remitoId: string) => {
-    const remito = remitosConEstado.find((r) => r.id === remitoId)
+  const mesSiguiente = () => {
+    const next = addMonths(new Date(añoActual, mesActual), 1)
+    setAñoActual(next.getFullYear())
+    setMesActual(next.getMonth())
+  }
+
+  const irAHoy = () => {
+    const now = new Date()
+    setAñoActual(now.getFullYear())
+    setMesActual(now.getMonth())
+    setDiaSeleccionado(format(now, 'yyyy-MM-dd'))
+  }
+
+  const toggleDia = (dateKey: string) => {
+    setDiaSeleccionado(prev => prev === dateKey ? null : dateKey)
+  }
+
+  const abrirModalNuevaEntrega = (fecha?: string) => {
+    setModalRemitoId(null)
+    setEntregaFecha(fecha ?? format(new Date(), 'yyyy-MM-dd'))
+    setEntregaItems([])
+    setModalAbierto(true)
+  }
+
+  const seleccionarRemitoParaEntrega = (remitoId: string) => {
+    const remito = remitosConEstado.find(r => r.id === remitoId)
     if (!remito) return
     setModalRemitoId(remitoId)
-    setEntregaFecha(format(new Date(), 'yyyy-MM-dd'))
     setEntregaItems(
       remito.productosConEntrega
         .filter((p) => p.pendiente > 0)
@@ -198,11 +248,11 @@ export default function EntregasPage() {
     try {
       await agregarEntrega(modalRemitoId, { items, fecha: new Date(entregaFecha + 'T12:00:00') })
       toast.success('Entrega registrada')
+      setModalAbierto(false)
       setModalRemitoId(null)
       clearCache('allRemitos')
       fetchData()
-    } catch (err) {
-      console.error('Error al registrar entrega:', err)
+    } catch {
       toast.error('Error al registrar entrega')
     } finally {
       setGuardando(false)
@@ -213,7 +263,7 @@ export default function EntregasPage() {
     try {
       await eliminarEntrega(remitoId, entregaId)
       toast.success('Entrega eliminada')
-      setDeleteConfirm(null!)
+      setDeleteConfirm(null)
       clearCache('allRemitos')
       fetchData()
     } catch {
@@ -221,35 +271,22 @@ export default function EntregasPage() {
     }
   }
 
+  const diaSeleccionadoData = diaSeleccionado ? dayDataMap.get(diaSeleccionado) : null
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* ─────── HEADER ─────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Truck className="h-6 w-6 text-amber-400" />
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 border border-amber-500/20">
+            <CalendarDays className="h-6 w-6 text-amber-400" />
+          </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Entregas</h1>
-            <p className="text-[#B0B0D0] text-sm">Cronograma y control de entregas</p>
+            <h1 className="text-2xl font-bold text-white">Plan de Entregas</h1>
+            <p className="text-[#B0B0D0] text-sm">Cronograma mensual de entregas</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {/* View toggle */}
-          <div className="flex gap-1 p-0.5 rounded-lg bg-white/5">
-            <button
-              onClick={() => setVista('timeline')}
-              className={`p-1.5 rounded-md transition-colors ${vista === 'timeline' ? 'bg-[#6C3CE1]/20 text-white' : 'text-[#6B6B8A] hover:text-white'}`}
-              title="Cronograma"
-            >
-              <CalendarDays className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setVista('lista')}
-              className={`p-1.5 rounded-md transition-colors ${vista === 'lista' ? 'bg-[#6C3CE1]/20 text-white' : 'text-[#6B6B8A] hover:text-white'}`}
-              title="Lista por remito"
-            >
-              <List className="h-4 w-4" />
-            </button>
-          </div>
           <button
             onClick={() => { clearCache('allRemitos'); fetchData() }}
             className="p-2 rounded-lg text-[#6B6B8A] hover:text-white hover:bg-white/5 transition-colors"
@@ -257,439 +294,580 @@ export default function EntregasPage() {
           >
             <RefreshCw className="h-4 w-4" />
           </button>
+          <button
+            onClick={() => abrirModalNuevaEntrega()}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/20"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Nueva Entrega</span>
+          </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="glass-card rounded-xl p-4 text-center">
-          <p className="text-xs text-[#6B6B8A]">Pendientes</p>
-          <p className="text-lg font-bold text-amber-400">{stats.pendientes}</p>
-        </div>
-        <div className="glass-card rounded-xl p-4 text-center">
-          <p className="text-xs text-[#6B6B8A]">En Progreso</p>
-          <p className="text-lg font-bold text-blue-400">{stats.enProgreso}</p>
-        </div>
-        <div className="glass-card rounded-xl p-4 text-center">
-          <p className="text-xs text-[#6B6B8A]">Completadas</p>
-          <p className="text-lg font-bold text-emerald-400">{stats.completadas}</p>
-        </div>
-        <div className="glass-card rounded-xl p-4 text-center">
-          <p className="text-xs text-[#6B6B8A]">Unid. Pendientes</p>
-          <p className="text-lg font-bold text-white">{stats.totalPendiente}</p>
-        </div>
+      {/* ─────── STATS ─────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        {[
+          { label: 'Este Mes', value: statsMes.totalDeliveries, sub: 'entregas', color: 'text-amber-400', icon: CalendarDays },
+          { label: 'Unidades', value: statsMes.totalItems, sub: 'productos', color: 'text-blue-400', icon: Package },
+          { label: 'Días activos', value: statsMes.daysWithDeliveries, sub: `de ${calendarDays.filter(d => isSameMonth(d, new Date(añoActual, mesActual))).length} días`, color: 'text-emerald-400', icon: BarChart3 },
+          { label: 'Remitos', value: statsMes.remitosUnicos, sub: 'con entregas', color: 'text-violet-400', icon: Truck },
+          { label: 'Pendientes', value: statsMes.pendientes, sub: 'remitos', color: 'text-amber-400', icon: Clock },
+          { label: 'En Progreso', value: statsMes.enProgreso, sub: 'parciales', color: 'text-blue-400', icon: Zap },
+          { label: 'Completadas', value: statsMes.completadas, sub: 'remitos', color: 'text-emerald-400', icon: CheckCircle2 },
+        ].map((s) => (
+          <div key={s.label} className="glass-card rounded-xl p-3 text-center">
+            <s.icon className={`h-4 w-4 ${s.color} mx-auto mb-1`} />
+            <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
+            <p className="text-[10px] text-[#6B6B8A] leading-tight">{s.sub}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Filtros + Search */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex gap-1 p-1 rounded-xl bg-white/5">
-          {(['pendientes', 'todas', 'completadas'] as const).map((f) => (
+      {/* ─────── SEARCH ─────── */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B6B8A]" />
+        <input
+          type="text"
+          placeholder="Buscar por cliente o N° remito..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#12122A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6B8A] hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
+      {/* ─────── CALENDAR ─────── */}
+      <div className="glass-card rounded-2xl overflow-hidden">
+        {/* Month Navigation */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-[#12122A]/50">
+          <div className="flex items-center gap-1">
             <button
-              key={f}
-              onClick={() => setFiltroEstado(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                filtroEstado === f
-                  ? 'bg-[#6C3CE1]/20 text-white'
-                  : 'text-[#6B6B8A] hover:text-white'
-              }`}
+              onClick={mesAnterior}
+              className="p-1.5 rounded-lg hover:bg-white/5 text-[#6B6B8A] hover:text-white transition-colors"
             >
-              {f === 'pendientes' ? 'Pendientes' : f === 'todas' ? 'Todas' : 'Completadas'}
+              <ChevronLeft className="h-5 w-5" />
             </button>
-          ))}
-        </div>
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B6B8A]" />
-          <input
-            type="text"
-            placeholder="Buscar por cliente o N° remito..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#12122A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
-          />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6B8A] hover:text-white">
-              <X className="h-4 w-4" />
+            <button onClick={irAHoy} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 text-[#B0B0D0] hover:text-white transition-colors">
+              Hoy
             </button>
-          )}
+            <button
+              onClick={mesSiguiente}
+              className="p-1.5 rounded-lg hover:bg-white/5 text-[#6B6B8A] hover:text-white transition-colors"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+          <h2 className="text-lg font-bold text-white">
+            {MESES[mesActual]} <span className="text-[#6B6B8A] font-normal">{añoActual}</span>
+          </h2>
+          <div className="w-20" />
         </div>
-      </div>
 
-      {/* ────────────────────── TIMELINE VIEW ────────────────────── */}
-      {vista === 'timeline' ? (
-        <div className="space-y-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-[#6C3CE1]" />
-            </div>
-          ) : entregasTimeline.length === 0 ? (
-            <div className="glass-card rounded-xl text-center py-20">
-              <CalendarDays className="h-10 w-10 text-[#6B6B8A] mx-auto mb-3" />
-              <p className="text-[#6B6B8A]">No hay entregas registradas</p>
-              <p className="text-xs text-[#6B6B8A] mt-1">Cambiá a la vista Lista para registrar una entrega</p>
-            </div>
-          ) : (
-            <>
-              {/* Mini barra de navegación por meses */}
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-                {Array.from(new Set(entregasTimeline.map((e) => e.dateKey.slice(0, 7)))).map((mes) => {
-                  const [y, m] = mes.split('-')
-                  const label = `${['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][parseInt(m, 10) - 1]} ${y}`
-                  const count = entregasTimeline.filter((e) => e.dateKey.startsWith(mes)).reduce((s, e) => s + e.items.length, 0)
-                  return (
-                    <button
-                      key={mes}
-                      onClick={() => document.getElementById(`date-${mes}`)?.scrollIntoView({ behavior: 'smooth' })}
-                      className="shrink-0 px-3 py-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.06] text-xs text-[#B0B0D0] hover:text-white transition-colors text-center"
-                    >
-                      <span className="font-semibold">{label}</span>
-                      <span className="block text-[10px] text-[#6B6B8A]">{count} entregas</span>
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Timeline */}
-              {entregasTimeline.map((entry) => (
-                <div key={entry.dateKey} id={`date-${entry.dateKey}`} className="glass-card rounded-xl overflow-hidden">
-                  {/* Date header */}
-                  <div className="sticky top-0 z-10 px-4 py-3 bg-[#12122A] border-b border-white/5 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-amber-500/20">
-                      {entry.dateObj.getDate()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-white capitalize">{entry.dateLabel}</p>
-                      <p className="text-[10px] text-[#6B6B8A]">{entry.items.length} entrega(s)</p>
-                    </div>
-                  </div>
-
-                  {/* Timeline entries */}
-                  <div className="relative">
-                    {/* Vertical line */}
-                    <div className="absolute left-[25px] top-0 bottom-0 w-px bg-gradient-to-b from-amber-500/30 to-transparent" />
-
-                    <div className="divide-y divide-white/5">
-                      {entry.items.map(({ remito, entrega }) => (
-                        <div key={entrega.id} className="relative pl-14 pr-4 py-3 hover:bg-white/[0.02] transition-colors">
-                          {/* Timeline dot */}
-                          <div className={`absolute left-[21px] top-4 w-[10px] h-[10px] rounded-full border-2 ${
-                            remito.completada
-                              ? 'bg-emerald-500 border-emerald-500'
-                              : 'bg-amber-400 border-amber-400'
-                          }`} />
-
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0 space-y-1">
-                              {/* Remito + Cliente */}
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-bold text-white">#{String(remito.numeroRemito).padStart(6, '0')}</span>
-                                <span className="text-xs text-[#6B6B8A]">|</span>
-                                <span className="text-sm text-[#B0B0D0]">{remito.clienteData.razonSocial}</span>
-                                {remito.completada ? (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-emerald-400 bg-emerald-500/10">
-                                    <CheckCircle2 className="h-2.5 w-2.5" />
-                                    Completa
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium text-amber-400 bg-amber-500/10">
-                                    <Clock className="h-2.5 w-2.5" />
-                                    Parcial
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Products delivered */}
-                              <div className="flex flex-wrap gap-1.5">
-                                {entrega.items.map((item) => {
-                                  const prod = remito.productosConEntrega.find((p) => p.idProducto === item.idProducto)
-                                  const completado = prod ? prod.pendiente === 0 : false
-                                  return (
-                                    <span
-                                      key={item.idProducto}
-                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] ${
-                                        completado
-                                          ? 'bg-emerald-500/10 text-emerald-400'
-                                          : 'bg-white/5 text-[#B0B0D0]'
-                                      }`}
-                                    >
-                                      <ArrowRight className="h-2.5 w-2.5" />
-                                      {item.nombreProducto}
-                                      <span className="font-mono font-semibold">x{item.cantidad}</span>
-                                    </span>
-                                  )
-                                })}
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={() => { setDeleteForRemito(remito.id!); setDeleteConfirm(entrega.id) }}
-                              className="p-1 rounded text-red-400/50 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+        {/* Calendar Grid */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${mesActual}-${añoActual}`}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            {/* Day headers */}
+            <div className="grid grid-cols-7 border-b border-white/5">
+              {DIAS_SEMANA.map((d) => (
+                <div key={d} className="px-1 py-2 text-center text-[10px] font-semibold text-[#6B6B8A] uppercase tracking-wider">
+                  {d}
                 </div>
               ))}
-            </>
-          )}
-        </div>
-      ) : (
-        /* ────────────────────── LIST VIEW ──────────────────────── */
-        <div className="glass-card rounded-xl overflow-hidden">
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-[#6C3CE1]" />
             </div>
-          ) : filtrados.length === 0 ? (
-            <div className="text-center py-20">
-              <Truck className="h-10 w-10 text-[#6B6B8A] mx-auto mb-3" />
-              <p className="text-[#6B6B8A]">
-                {filtroEstado === 'pendientes' ? 'No hay entregas pendientes' : 'No hay remitos registrados'}
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-white/5">
-              {filtrados.map((remito) => {
-                const exp = expandido === remito.id
+
+            {/* Day cells */}
+            <div className="grid grid-cols-7">
+              {calendarDays.map((date) => {
+                const key = format(date, 'yyyy-MM-dd')
+                const data = dayDataMap.get(key)
+                const isSelected = diaSeleccionado === key
+                const hasDeliveries = data ? data.deliveries.length > 0 : false
+                const deliveryCount = data ? data.deliveries.length : 0
+                const isCurrent = isSameMonth(date, new Date(añoActual, mesActual))
+                const isTodayDate = isToday(date)
+
                 return (
-                  <div key={remito.id}>
-                    <div
-                      className="px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer"
-                      onClick={() => setExpandido(exp ? null : remito.id!)}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1 min-w-0 space-y-1.5">
-                          <div className="flex items-center gap-3 text-sm">
-                            <span className="text-white font-bold shrink-0">#{String(remito.numeroRemito).padStart(6, '0')}</span>
-                            <span className="text-[#6B6B8A]">|</span>
-                            <span className="text-[#B0B0D0] shrink-0">{formatDate(remito.fecha)}</span>
-                            <span className="text-[#6B6B8A]">|</span>
-                            <span className="text-white truncate">{remito.clienteData.razonSocial}</span>
-                          </div>
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span className="text-xs text-[#B0B0D0]">
-                              Productos:{' '}
-                              <span className="text-white font-mono">
-                                {remito.productosConEntrega.filter((p) => p.pendiente > 0).length}/{remito.productosConEntrega.length}
-                              </span>
-                            </span>
-                            <span className="text-xs text-[#B0B0D0]">
-                              Und. pendientes:{' '}
-                              <span className="text-amber-400 font-mono font-semibold">{remito.totalPendiente}</span>
-                            </span>
-                            {remito.completada ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-emerald-400 bg-emerald-500/10">
-                                <CheckCircle2 className="h-3 w-3" />
-                                Completada
-                              </span>
-                            ) : remito.enProgreso ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-blue-400 bg-blue-500/10">
-                                <Clock className="h-3 w-3" />
-                                En Progreso
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-amber-400 bg-amber-500/10">
-                                <AlertCircle className="h-3 w-3" />
-                                Pendiente
-                              </span>
-                            )}
-                          </div>
+                  <button
+                    key={key}
+                    onClick={() => {
+                      if (isCurrent) toggleDia(key)
+                    }}
+                    className={`
+                      relative min-h-[90px] sm:min-h-[110px] p-1.5 border-b border-r border-white/[0.03]
+                      transition-all duration-200 group text-left
+                      ${isCurrent ? 'cursor-pointer' : 'cursor-default'}
+                      ${isSelected ? 'bg-[#6C3CE1]/10 z-10' : 'hover:bg-white/[0.02]'}
+                    `}
+                  >
+                    {/* Day number */}
+                    <div className={`
+                      inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-medium mb-1
+                      ${!isCurrent ? 'text-[#3A3A5A]' : ''}
+                      ${isTodayDate ? 'bg-gradient-to-br from-[#6C3CE1] to-[#00D4FF] text-white shadow-lg shadow-[#6C3CE1]/25' : isCurrent ? 'text-[#B0B0D0]' : ''}
+                    `}>
+                      {format(date, 'd')}
+                    </div>
+
+                    {/* Delivery indicators */}
+                    {hasDeliveries && isCurrent && (
+                      <div className="space-y-0.5">
+                        <div className="flex -space-x-1">
+                          {data!.deliveries.slice(0, 4).map((dd, i) => {
+                            const colors = ['bg-amber-500', 'bg-blue-500', 'bg-emerald-500', 'bg-violet-500']
+                            const isCompletada = dd.remito.completada
+                            return (
+                              <div
+                                key={i}
+                                className={`w-4 h-4 rounded-full ${colors[i % 4]} border border-[#0D0D1F] flex items-center justify-center ${isCompletada ? 'opacity-60' : ''}`}
+                                title={`#${dd.remito.numeroRemito} - ${dd.remito.clienteData.razonSocial}`}
+                              >
+                                {isCompletada ? (
+                                  <CheckCircle2 className="h-2.5 w-2.5 text-white" />
+                                ) : (
+                                  <Package className="h-2 w-2 text-white" />
+                                )}
+                              </div>
+                            )
+                          })}
+                          {data!.deliveries.length > 4 && (
+                            <div className="w-4 h-4 rounded-full bg-[#2A2A4A] border border-[#0D0D1F] flex items-center justify-center">
+                              <span className="text-[8px] text-[#6B6B8A] font-bold">+{data!.deliveries.length - 4}</span>
+                            </div>
+                          )}
                         </div>
-                        <div className="shrink-0 mt-1 text-[#6B6B8A]">
-                          {exp ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-[#6B6B8A]">
+                            {deliveryCount} entrega{deliveryCount !== 1 ? 's' : ''}
+                          </span>
+                          {data!.clientes.size > 0 && (
+                            <>
+                              <span className="text-[8px] text-[#3A3A5A]">·</span>
+                              <span className="text-[10px] text-[#6B6B8A]">{data!.clientes.size} cli.</span>
+                            </>
+                          )}
                         </div>
                       </div>
-                    </div>
+                    )}
 
-                    <AnimatePresence>
-                      {exp && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="px-6 pb-4 pt-2 border-t border-white/5 bg-white/[0.02] space-y-4">
-                            <div>
-                              <p className="text-[10px] font-semibold text-[#6B6B8A] uppercase tracking-wider mb-2">Productos</p>
-                              <div className="space-y-1.5">
-                                {remito.productosConEntrega.map((item) => {
-                                  const pct = item.cantidad > 0 ? Math.round((item.entregado / item.cantidad) * 100) : 0
-                                  const completado = item.pendiente === 0
-                                  return (
-                                    <div key={item.idProducto} className="flex items-center gap-3 py-1.5 px-3 rounded-lg bg-white/[0.03]">
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between mb-1">
-                                          <span className="text-sm text-white font-medium truncate">{item.nombreProducto}</span>
-                                          <span className="text-xs text-[#B0B0D0] font-mono ml-2 shrink-0">
-                                            {item.entregado}/{item.cantidad}
-                                          </span>
-                                        </div>
-                                        <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-                                          <div
-                                            className={`h-full rounded-full transition-all duration-500 ${
-                                              completado ? 'bg-emerald-500' : 'bg-gradient-to-r from-amber-500 to-blue-500'
-                                            }`}
-                                            style={{ width: `${Math.min(100, pct)}%` }}
-                                          />
-                                        </div>
-                                        <div className="flex justify-between mt-0.5">
-                                          <span className="text-[10px] text-[#6B6B8A]">
-                                            {completado ? 'Completado' : `${item.pendiente} pendiente(s)`}
-                                          </span>
-                                          <span className="text-[10px] text-[#6B6B8A]">{pct}%</span>
-                                        </div>
-                                      </div>
-                                      {completado && <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />}
-                                    </div>
-                                  )
-                                })}
-                              </div>
+                    {/* Hover preview */}
+                    {hasDeliveries && isCurrent && (
+                      <div className="absolute inset-x-0 bottom-full left-1/2 -translate-x-1/2 mb-1 w-[200px] hidden group-hover:block z-20">
+                        <div className="bg-[#1A1A3A] border border-white/10 rounded-xl p-2 shadow-2xl shadow-black/50">
+                          <p className="text-xs font-semibold text-white mb-1">
+                            {format(date, "d 'de' MMMM", { locale: es })}
+                          </p>
+                          {data!.deliveries.slice(0, 3).map((dd) => (
+                            <div key={`${dd.remito.id}-${dd.entrega.id}`} className="flex items-center gap-2 py-0.5">
+                              <span className="text-[10px] font-mono text-[#6C3CE1]">#{dd.remito.numeroRemito}</span>
+                              <span className="text-[10px] text-[#B0B0D0] truncate">{dd.remito.clienteData.razonSocial}</span>
+                              <span className="text-[10px] text-[#6B6B8A] ml-auto">{dd.entrega.items.length} prod.</span>
                             </div>
+                          ))}
+                          {data!.deliveries.length > 3 && (
+                            <p className="text-[10px] text-[#6B6B8A] text-center pt-1">+{data!.deliveries.length - 3} más</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
-                            {remito.entregas && remito.entregas.length > 0 && (
-                              <div>
-                                <p className="text-[10px] font-semibold text-[#6B6B8A] uppercase tracking-wider mb-2">Entregas Registradas</p>
-                                <div className="space-y-1">
-                                  {remito.entregas.map((entrega) => (
-                                    <div key={entrega.id} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-white/5 text-sm">
-                                      <div className="flex items-center gap-3">
-                                        <span className="text-[10px] text-[#6B6B8A] shrink-0">{formatDate(entrega.fecha)}</span>
-                                        <span className="text-[#B0B0D0] text-xs">
-                                          {entrega.items.map((ei) => `${ei.nombreProducto} x${ei.cantidad}`).join(', ')}
-                                        </span>
-                                      </div>
-                                      <button
-                                        onClick={() => { setDeleteForRemito(remito.id!); setDeleteConfirm(entrega.id) }}
-                                        className="p-1 rounded text-red-400 hover:bg-red-500/20 transition-colors shrink-0"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                    {/* Add button on hover for empty days */}
+                    {isCurrent && !hasDeliveries && (
+                      <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); abrirModalNuevaEntrega(key) }}
+                          className="w-5 h-5 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-[#6B6B8A] hover:text-white transition-colors"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
-                            {!remito.completada && (
-                              <button
-                                onClick={() => abrirModal(remito.id!)}
-                                className="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors inline-flex items-center gap-1"
-                              >
-                                <Plus className="h-3 w-3" />
-                                Registrar Entrega
-                              </button>
-                            )}
+      {/* ─────── DAY DETAIL PANEL ─────── */}
+      <AnimatePresence>
+        {diaSeleccionado && diaSeleccionadoData && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: 20, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="glass-card rounded-2xl overflow-hidden"
+          >
+            <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between bg-[#12122A]/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold shadow-lg shadow-amber-500/20">
+                  {format(diaSeleccionadoData.date, 'd')}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white capitalize">
+                    {format(diaSeleccionadoData.date, "EEEE d 'de' MMMM 'de' yyyy", { locale: es })}
+                  </p>
+                  <p className="text-xs text-[#6B6B8A]">
+                    {diaSeleccionadoData.deliveries.length} entrega{diaSeleccionadoData.deliveries.length !== 1 ? 's' : ''}
+                    {' · '}{diaSeleccionadoData.totalItems} unidades
+                    {' · '}{diaSeleccionadoData.clientes.size} cliente{diaSeleccionadoData.clientes.size !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => abrirModalNuevaEntrega(diaSeleccionado!)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-medium transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Agregar
+                </button>
+                <button
+                  onClick={() => setDiaSeleccionado(null)}
+                  className="p-1.5 rounded-lg hover:bg-white/5 text-[#6B6B8A] hover:text-white transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="divide-y divide-white/5">
+              {diaSeleccionadoData.deliveries.length === 0 ? (
+                <div className="text-center py-8">
+                  <CalendarDays className="h-8 w-8 text-[#3A3A5A] mx-auto mb-2" />
+                  <p className="text-sm text-[#6B6B8A]">Sin entregas este día</p>
+                  <button
+                    onClick={() => abrirModalNuevaEntrega(diaSeleccionado!)}
+                    className="mt-3 text-xs text-amber-400 hover:text-amber-300 transition-colors"
+                  >
+                    + Programar entrega
+                  </button>
+                </div>
+              ) : (
+                diaSeleccionadoData.deliveries.map((dd) => (
+                  <DeliveryCard
+                    key={`${dd.remito.id}-${dd.entrega.id}`}
+                    remito={dd.remito}
+                    entrega={dd.entrega}
+                    onDelete={(entregaId) => {
+                      setDeleteConfirm(entregaId)
+                      setDeleteForRemito(dd.remito.id!)
+                    }}
+                    onAddMore={() => {
+                      seleccionarRemitoParaEntrega(dd.remito.id!)
+                      setModalAbierto(true)
+                    }}
+                  />
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─────── MODAL NUEVA ENTREGA ─────── */}
+      <AnimatePresence>
+        {modalAbierto && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => !guardando && setModalAbierto(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-card rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto"
+            >
+              <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                <h3 className="font-semibold text-white">Registrar Entrega</h3>
+                <button
+                  onClick={() => setModalAbierto(false)}
+                  className="p-1 rounded-lg hover:bg-white/5 text-[#6B6B8A] hover:text-white transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-4">
+                {/* Date */}
+                <div>
+                  <label className="block text-xs font-medium text-[#6B6B8A] mb-1">Fecha de entrega</label>
+                  <input
+                    type="date"
+                    value={entregaFecha}
+                    onChange={(e) => setEntregaFecha(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-[#12122A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                  />
+                </div>
+
+                {/* Remito selector (if none selected) */}
+                {!modalRemitoId && (
+                  <div>
+                    <label className="block text-xs font-medium text-[#6B6B8A] mb-2">Seleccionar Remito</label>
+                    <div className="max-h-48 overflow-y-auto space-y-1">
+                      {remitosConEstado
+                        .filter((r) => !r.completada && r.totalPendiente > 0)
+                        .map((r) => (
+                          <button
+                            key={r.id}
+                            onClick={() => seleccionarRemitoParaEntrega(r.id!)}
+                            className="w-full text-left px-3 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
+                          >
+                            <span className="text-xs font-mono text-[#6C3CE1]">#{r.numeroRemito}</span>
+                            <span className="text-xs text-[#B0B0D0] ml-2">{r.clienteData.razonSocial}</span>
+                            <span className="text-[10px] text-[#6B6B8A] ml-auto block">
+                              {r.totalPendiente} pendiente{r.totalPendiente !== 1 ? 's' : ''}
+                            </span>
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Product items */}
+                {modalRemitoId && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-medium text-[#6B6B8A]">Productos a entregar</label>
+                      <button
+                        onClick={() => { setModalRemitoId(null); setEntregaItems([]) }}
+                        className="text-[10px] text-[#6C3CE1] hover:text-[#8B5CF6] transition-colors"
+                      >
+                        Cambiar remito
+                      </button>
+                    </div>
+                    <div className="space-y-1.5 max-h-60 overflow-y-auto">
+                      {entregaItems.map((ei) => {
+                        const remito = remitosConEstado.find((r) => r.id === modalRemitoId)
+                        const prod = remito?.productosConEntrega.find((p) => p.idProducto === ei.idProducto)
+                        if (!prod) return null
+                        return (
+                          <div key={ei.idProducto} className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white/[0.03]">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-white truncate">{prod.nombreProducto}</p>
+                              <p className="text-[10px] text-[#6B6B8A]">
+                                Pendiente: {prod.pendiente} · Entregado: {prod.entregado}
+                              </p>
+                            </div>
+                            <input
+                              type="number"
+                              min="0"
+                              max={prod.pendiente}
+                              step="any"
+                              value={ei.cantidad}
+                              onChange={(e) =>
+                                setEntregaItems((prev) =>
+                                  prev.map((item) =>
+                                    item.idProducto === ei.idProducto ? { ...item, cantidad: e.target.value } : item
+                                  )
+                                )
+                              }
+                              className="w-20 px-2 py-1 rounded-lg bg-[#0D0D1F] border border-white/5 text-white text-xs text-center focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                            />
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ────────────────────── MODAL ───────────────────────────── */}
-      {modalRemitoId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { if (!guardando) setModalRemitoId(null) }} />
-          <div className="relative w-full max-w-lg glass-card rounded-2xl p-6 animate-fadeInUp">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Truck className="h-5 w-5 text-amber-400" />
-                Registrar Entrega
-              </h2>
-              <button onClick={() => { if (!guardando) setModalRemitoId(null) }} className="text-[#6B6B8A] hover:text-white">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Date picker */}
-            <div className="mb-4">
-              <label className="block text-xs font-medium text-[#B0B0D0] mb-1">Fecha de entrega</label>
-              <input
-                type="date"
-                value={entregaFecha}
-                onChange={(e) => setEntregaFecha(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/10 text-white text-sm focus:outline-none focus:border-amber-500/50 transition-colors"
-              />
-            </div>
-
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-              {entregaItems.map((ei, idx) => {
-                const remito = remitosConEstado.find((r) => r.id === modalRemitoId)
-                const prod = remito?.productosConEntrega.find((p) => p.idProducto === ei.idProducto)
-                return (
-                  <div key={ei.idProducto} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03]">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white font-medium">{prod?.nombreProducto ?? ei.idProducto}</p>
-                      <p className="text-[10px] text-[#6B6B8A]">Pendiente: {prod?.pendiente ?? 0}</p>
-                    </div>
-                    <div className="w-24">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max={prod?.pendiente ?? 0}
-                        value={ei.cantidad}
-                        onChange={(e) => {
-                          const nueva = [...entregaItems]
-                          nueva[idx] = { ...nueva[idx], cantidad: e.target.value }
-                          setEntregaItems(nueva)
-                        }}
-                        className="w-full px-2 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/10 text-white text-sm text-center focus:outline-none focus:border-amber-500/50 transition-colors"
-                      />
+                        )
+                      })}
                     </div>
                   </div>
-                )
-              })}
-            </div>
+                )}
+              </div>
 
-            <div className="flex gap-3 mt-5">
-              <button
-                onClick={() => setModalRemitoId(null)}
-                disabled={guardando}
-                className="flex-1 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors disabled:opacity-50"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleGuardarEntrega}
-                disabled={guardando}
-                className="flex-1 btn-nebula px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 inline-flex items-center justify-center gap-1"
-              >
-                {guardando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Confirmar Entrega
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              {/* Actions */}
+              <div className="px-4 py-3 border-t border-white/5 flex justify-end gap-2">
+                <button
+                  onClick={() => setModalAbierto(false)}
+                  className="px-4 py-2 rounded-xl text-sm text-[#6B6B8A] hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleGuardarEntrega}
+                  disabled={guardando || !modalRemitoId}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-400 hover:to-orange-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-amber-500/20 flex items-center gap-2"
+                >
+                  {guardando ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Truck className="h-4 w-4" />
+                      Registrar Entrega
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Delete Confirm Modal */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setDeleteConfirm(null!) }} />
-          <div className="relative w-full max-w-sm glass-card rounded-2xl p-6 animate-fadeInUp text-center">
-            <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="h-6 w-6 text-red-400" />
-            </div>
-            <h2 className="text-lg font-semibold text-white mb-2">¿Eliminar Entrega?</h2>
-            <p className="text-sm text-[#B0B0D0] mb-6">Esta acción no se puede deshacer.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(null!)} className="flex-1 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors">Cancelar</button>
-              <button onClick={() => handleEliminarEntrega(deleteForRemito, deleteConfirm)} className="flex-1 px-4 py-2.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 text-sm font-medium transition-colors">Eliminar</button>
-            </div>
+      {/* ─────── DELETE CONFIRM ─────── */}
+      <AnimatePresence>
+        {deleteConfirm && deleteForRemito && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => { setDeleteConfirm(null); setDeleteForRemito(null) }}
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-card rounded-2xl w-full max-w-sm p-6 text-center"
+            >
+              <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-white mb-2">Eliminar entrega</h3>
+              <p className="text-sm text-[#6B6B8A] mb-6">¿Estás seguro? Esta acción no se puede deshacer.</p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => { setDeleteConfirm(null); setDeleteForRemito(null) }}
+                  className="px-4 py-2 rounded-xl text-sm text-[#6B6B8A] hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleEliminarEntrega(deleteForRemito!, deleteConfirm!)}
+                  className="px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-400 transition-colors shadow-lg shadow-red-500/20 flex items-center gap-2"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Eliminar
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Loading overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="glass-card rounded-2xl p-6 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-[#6C3CE1] mx-auto mb-3" />
+            <p className="text-sm text-[#B0B0D0]">Cargando entregas...</p>
           </div>
         </div>
       )}
     </div>
+  )
+}
+
+/* ─── DeliveryCard ─── */
+function DeliveryCard({
+  remito,
+  entrega,
+  onDelete,
+  onAddMore,
+}: {
+  remito: RemitoConEstado
+  entrega: Entrega
+  onDelete: (id: string) => void
+  onAddMore: () => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="group"
+    >
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left"
+      >
+        <div className={`w-2 h-2 rounded-full shrink-0 ${remito.completada ? 'bg-emerald-400' : remito.enProgreso ? 'bg-amber-400' : 'bg-blue-400'}`} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono text-[#6C3CE1] font-semibold">#{remito.numeroRemito}</span>
+            <span className="text-sm text-white truncate">{remito.clienteData.razonSocial}</span>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-[#6B6B8A]">
+            <span>{entrega.items.length} producto{entrega.items.length !== 1 ? 's' : ''}</span>
+            <span>·</span>
+            <span>{entrega.items.reduce((s, i) => s + i.cantidad, 0)} unidades</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={(e) => { e.stopPropagation(); onAddMore() }}
+            className="p-1.5 rounded-lg hover:bg-amber-500/10 text-[#6B6B8A] hover:text-amber-400 transition-colors"
+            title="Agregar más"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(entrega.id) }}
+            className="p-1.5 rounded-lg hover:bg-red-500/10 text-[#6B6B8A] hover:text-red-400 transition-colors"
+            title="Eliminar"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+          <ChevronRight className={`h-4 w-4 text-[#3A3A5A] transition-transform ${expanded ? 'rotate-90' : ''}`} />
+        </div>
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-3 pl-12 space-y-1">
+              {entrega.items.map((item) => {
+                const prod = remito.productosConEntrega.find((p) => p.idProducto === item.idProducto)
+                const pendiente = prod ? prod.pendiente : 0
+                return (
+                  <div key={item.idProducto} className="flex items-center gap-2 text-xs">
+                    <Package className="h-3 w-3 text-[#6B6B8A] shrink-0" />
+                    <span className="text-[#B0B0D0] flex-1">{item.nombreProducto}</span>
+                    <span className="text-white font-medium">{item.cantidad}</span>
+                    <span className="text-[#6B6B8A]">/ {item.cantidad + pendiente}</span>
+                    {pendiente === 0 ? (
+                      <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                    ) : pendiente > 0 && prod && prod.entregado > 0 ? (
+                      <Clock className="h-3 w-3 text-amber-400" />
+                    ) : null}
+                  </div>
+                )
+              })}
+              <div className="mt-2 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all"
+                  style={{
+                    width: `${remito.totalPendiente === 0
+                      ? 100
+                      : Math.round((1 - remito.totalPendiente / remito.productosConEntrega.reduce((s, p) => s + p.cantidad, 0)) * 100)
+                    }%`,
+                  }}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }

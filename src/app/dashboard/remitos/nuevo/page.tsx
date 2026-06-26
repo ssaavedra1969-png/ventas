@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useFormDraft } from '@/hooks/useFormDraft'
 import {
   getAllClientes,
   getAllProductos,
@@ -61,6 +62,44 @@ export default function NuevoRemitoPage() {
 
   // Step 3: Observaciones
   const [observaciones, setObservaciones] = useState('')
+
+  const onRestore = useCallback((draft: {
+    step: number; selectedClienteId?: string; selectedVendedorCodigo?: string;
+    items: unknown[]; productSearch: string; selectedProductoId?: string;
+    precioUnitario: number; cantidad: number; bonificacionValue: number;
+    editItemIndex: number | null; observaciones: string
+  }) => {
+    if (draft.step) setStep(draft.step)
+    if (draft.selectedClienteId) {
+      const c = clientes.find((x) => x.id === draft.selectedClienteId)
+      if (c) setSelectedCliente(c)
+    }
+    if (draft.selectedVendedorCodigo) {
+      const v = vendedores.find((x) => x.codigo === draft.selectedVendedorCodigo)
+      if (v) setSelectedVendedor(v)
+    }
+    if (draft.items?.length) setItems(draft.items as RemitoItem[])
+    if (draft.productSearch) setProductSearch(draft.productSearch)
+    if (draft.selectedProductoId) {
+      const p = productos.find((x) => x.id === draft.selectedProductoId)
+      if (p) { setSelectedProducto(p); setPrecioUnitario(p.valorUnitario) }
+    }
+    if (draft.precioUnitario) setPrecioUnitario(draft.precioUnitario)
+    if (draft.cantidad) setCantidad(draft.cantidad)
+    if (draft.bonificacionValue) setBonificacionValue(draft.bonificacionValue)
+    if (draft.editItemIndex !== null && draft.editItemIndex !== undefined) setEditItemIndex(draft.editItemIndex)
+    if (draft.observaciones) setObservaciones(draft.observaciones)
+  }, [clientes, vendedores, productos])
+
+  const { clearDraft } = useFormDraft(
+    {
+      step, selectedClienteId: selectedCliente?.id, selectedVendedorCodigo: selectedVendedor?.codigo,
+      items, productSearch, selectedProductoId: selectedProducto?.id,
+      precioUnitario, cantidad, bonificacionValue, editItemIndex, observaciones,
+    },
+    !loading,
+    onRestore,
+  )
 
   useEffect(() => {
     Promise.all([getAllClientes(), getAllProductos(), getVendedores(), getEmpresaConfig()])
@@ -227,6 +266,7 @@ export default function NuevoRemitoPage() {
         items,
         observaciones,
       })
+      clearDraft()
       toast.success(
         `Remito N° ${String(result.numeroRemito).padStart(6, '0')} creado exitosamente`
       )

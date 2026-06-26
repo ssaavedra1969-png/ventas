@@ -1059,6 +1059,7 @@ export async function agregarPago(
     createdAt: new Date(),
   } as Pago & { createdAt: Date }
   if (pago.referencia) nuevoPago.referencia = pago.referencia
+  if (isNaN(pago.monto) || pago.monto <= 0) throw new Error('Monto inválido')
 
   const existing = await localGet<any>('remitos', remitoId)
   if (existing) {
@@ -1088,9 +1089,10 @@ export async function agregarPago(
 
     await updateDoc(ref, { pagos: nuevosPagos, totalPagado })
   } catch {
+    const localActualizado = await localGet<any>('remitos', remitoId)
     await enqueueOperation({
       collection: 'remitos', docId: remitoId, operation: 'update',
-      data: { pagos: existing?.pagos, totalPagado: existing?.totalPagado },
+      data: { pagos: localActualizado?.pagos ?? [], totalPagado: localActualizado?.totalPagado ?? 0 },
       timestamp: Date.now(), retryCount: 0,
     })
   }

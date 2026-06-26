@@ -23,9 +23,23 @@
 - Sincronización multiusuario para clientes (onSnapshot)
 - Persistencia formulario nuevo remito al navegar entre secciones
 
+### Setup en otra PC
+```bash
+git clone https://github.com/ssaavedra1969-png/ventas.git
+cd ventas
+npm install
+```
+
+Copiar `.env.example` a `.env.local` y completar las credenciales de Firebase (las mismas de siempre). Luego:
+```bash
+npm run dev     # desarrollo http://localhost:3000
+npm run build   # build producción
+```
+
 ### A tener en cuenta
 - Firebase Spark plan (~50K lecturas/día) — se optimizó a getDocs + caché en memoria con 30s TTL
 - `onSnapshot` reemplazado por `getDocs` + botón "Actualizar"
+- **Offline-first**: IndexedDB (`idb`) como capa local. Firebase falla → usa datos locales. Escrituras offline se encolan y sincronizan automáticamente cuando Firebase vuelve. Indicador SyncStatus en el header.
 - No tocar funcionalidad existente sin pedido explícito
 - AutocompleteInput requiere 2+ caracteres
 - IVA: Factura A (RI/Monotributo) → IVA discriminado; Factura B (CF/Exento) → "IVA incluido"

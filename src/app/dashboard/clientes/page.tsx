@@ -6,6 +6,7 @@ import {
   updateCliente,
   deleteCliente,
   clienteExists,
+  clearCache,
 } from '@/lib/firestore'
 import type { Cliente } from '@/types'
 import {
@@ -22,12 +23,14 @@ import {
   AlertTriangle,
   Upload,
   Download,
+  RefreshCw,
 } from 'lucide-react'
 import BulkUploadModal from '@/components/BulkUploadModal'
 import { createMultipleClientes, getAllClientes, CONDICIONES_IVA, CONDIVA_LABEL } from '@/lib/firestore'
 import AutocompleteInput from '@/components/AutocompleteInput'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
+import { useBackgroundSync } from '@/hooks/useBackgroundSync'
 
 interface ClienteForm {
   razonSocial: string
@@ -113,6 +116,13 @@ export default function ClientesPage() {
   useEffect(() => {
     loadAllClientes()
   }, [loadAllClientes])
+
+  const syncClientes = useCallback(() => {
+    clearCache('allClientes')
+    loadAllClientes()
+  }, [loadAllClientes])
+
+  useBackgroundSync(syncClientes, 120000, !loading)
 
   const validate = (): boolean => {
     return true
@@ -293,6 +303,14 @@ export default function ClientesPage() {
           <p className="text-[#B0B0D0] text-sm">Gestión de clientes</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={syncClientes}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-white/10 text-[#B0B0D0] hover:text-white hover:bg-white/5 transition-colors"
+            title="Actualizar datos"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span className="hidden sm:inline">Actualizar</span>
+          </button>
           <button
             onClick={handleExport}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-white/10 text-[#B0B0D0] hover:text-white hover:bg-white/5 transition-colors"

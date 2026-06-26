@@ -70,7 +70,7 @@ export default function FacturacionPage() {
     const datos = nuevoPago[remitoId]
     if (!datos || !datos.monto || !datos.metodo) return
     const monto = parseFloat(datos.monto)
-    if (monto <= 0) return
+    if (isNaN(monto) || monto <= 0) return
     setGuardando(remitoId)
     try {
       await agregarPago(remitoId, {
@@ -323,7 +323,7 @@ export default function FacturacionPage() {
                             </div>
                             <button
                               onClick={() => handleAgregarPago(remito.id!)}
-                              disabled={guardando === remito.id || !init?.monto || parseFloat(init.monto) <= 0}
+                              disabled={guardando === remito.id || !init?.monto || isNaN(parseFloat(init.monto)) || parseFloat(init.monto) <= 0}
                               className="px-3 py-1.5 rounded-lg text-sm font-medium bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors disabled:opacity-40 inline-flex items-center gap-1"
                             >
                               {guardando === remito.id ? (
