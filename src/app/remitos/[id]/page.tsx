@@ -14,6 +14,7 @@ import {
   MessageCircle,
   Send,
   Smartphone,
+  Truck,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -136,6 +137,14 @@ export default function RemitoViewPage() {
                 <span className="hidden sm:inline">WhatsApp</span>
               </button>
             )}
+            <button
+              onClick={() => router.push(`/remitos/${params.id}/salida`)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/20"
+              title="Generar Remito de Salida"
+            >
+              <Truck className="h-4 w-4" />
+              <span className="hidden sm:inline">Remito de Salida</span>
+            </button>
             <button
               onClick={handlePrint}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl btn-nebula text-sm font-medium"
