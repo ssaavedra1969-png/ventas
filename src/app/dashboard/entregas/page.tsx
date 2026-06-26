@@ -141,7 +141,7 @@ export default function EntregasPage() {
 
   const remitosConEstado = useMemo(() => {
     return remitos
-      .filter((r) => r.estado !== 'Anulado' && r.estado !== 'Enviado')
+      .filter((r) => r.estado !== 'Anulado')
       .map((r) => {
         const productosConEntrega = r.items.map((item) => {
           const entregado = calcEntregado(r, item.idProducto)
@@ -333,7 +333,7 @@ export default function EntregasPage() {
       setModalAbierto(false)
       setModalRemitoId(null)
       setEditandoEntregaId(null)
-      fetchData(true)
+      await fetchData(true)
     } catch {
       toast.error('Error al guardar entrega')
     } finally {
@@ -346,7 +346,7 @@ export default function EntregasPage() {
       await eliminarEntrega(remitoId, entregaId)
       toast.success('Entrega eliminada')
       setDeleteConfirm(null)
-      fetchData(true)
+      await fetchData(true)
     } catch {
       toast.error('Error al eliminar entrega')
     }

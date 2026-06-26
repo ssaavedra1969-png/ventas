@@ -1309,6 +1309,9 @@ export async function agregarEntrega(
     })
   }
 
+  clearCache(CACHE_KEYS.remitos)
+  await localSetMeta('remitos_updated_at', Date.now()).catch(() => {})
+
   try {
     const ref = doc(getDb(), COLECCIONES.remitos, remitoId)
     const snap = await getDoc(ref)
@@ -1319,9 +1322,10 @@ export async function agregarEntrega(
     const nuevasEntregas = [...entregasActuales, nuevaEntrega]
     await updateDoc(ref, { entregas: nuevasEntregas })
   } catch {
+    const updated = await localGet<any>('remitos', remitoId)
     await enqueueOperation({
       collection: 'remitos', docId: remitoId, operation: 'update',
-      data: { entregas: existing?.entregas },
+      data: { entregas: updated?.entregas ?? [] },
       timestamp: Date.now(), retryCount: 0,
     })
   }
@@ -1338,6 +1342,9 @@ export async function eliminarEntrega(remitoId: string, entregaId: string) {
     nuevasEntregas = entregasActuales.filter((e) => e.id !== entregaId)
     await localSet('remitos', { ...existing, entregas: nuevasEntregas, id: remitoId })
   }
+
+  clearCache(CACHE_KEYS.remitos)
+  await localSetMeta('remitos_updated_at', Date.now()).catch(() => {})
 
   try {
     const ref = doc(getDb(), COLECCIONES.remitos, remitoId)
@@ -1379,6 +1386,9 @@ export async function actualizarEntrega(
     )
     await localSet('remitos', { ...existing, entregas: entregasActualizadas, id: remitoId })
   }
+
+  clearCache(CACHE_KEYS.remitos)
+  await localSetMeta('remitos_updated_at', Date.now()).catch(() => {})
 
   try {
     const ref = doc(getDb(), COLECCIONES.remitos, remitoId)
