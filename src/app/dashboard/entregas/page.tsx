@@ -339,7 +339,6 @@ export default function EntregasPage() {
       setModalAbierto(false)
       setModalRemitoId(null)
       setEditandoEntregaId(null)
-      fetchData(true) // en background para sincronizar con Firebase
     } catch {
       toast.error('Error al guardar entrega')
     } finally {
@@ -352,7 +351,11 @@ export default function EntregasPage() {
       await eliminarEntrega(remitoId, entregaId)
       toast.success('Entrega eliminada')
       setDeleteConfirm(null)
-      await fetchData(true)
+      setRemitos(prev => prev.map(r =>
+        r.id === remitoId
+          ? { ...r, entregas: (r.entregas ?? []).filter(e => e.id !== entregaId) }
+          : r
+      ))
     } catch {
       toast.error('Error al eliminar entrega')
     }
