@@ -925,13 +925,18 @@ export async function getAllRemitos(force = false) {
       orderBy('numeroRemito', 'desc')
     )
     const snapshot = await getDocs(q)
-    const data = snapshot.docs.map((doc) => {
+      const data = snapshot.docs.map((doc) => {
       const d = doc.data()
       return {
         id: doc.id,
         ...d,
         fecha: d.fecha?.toDate?.() ?? d.fecha,
         createdAt: d.createdAt?.toDate?.() ?? d.createdAt,
+        entregas: (d.entregas ?? []).map((e: Record<string, unknown>) => ({
+          ...e,
+          fecha: (e.fecha as { toDate?: () => Date })?.toDate?.() ?? e.fecha,
+          createdAt: (e.createdAt as { toDate?: () => Date })?.toDate?.() ?? e.createdAt,
+        })),
       } as Remito
     })
     setCache(CACHE_KEYS.remitos, data)

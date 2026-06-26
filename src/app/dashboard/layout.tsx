@@ -15,6 +15,7 @@ import {
   ChevronRight,
   DollarSign,
   Truck,
+  BarChart3,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -43,6 +44,12 @@ const navigation = [
     items: [
       { href: '/dashboard/remitos/nuevo', label: 'Nuevo Remito', icon: PlusCircle, gradient: 'from-pink-400 to-rose-400' },
       { href: '/dashboard/remitos', label: 'Listado', icon: FileText, gradient: 'from-sky-400 to-blue-400' },
+    ],
+  },
+  {
+    section: 'INFORMES',
+    items: [
+      { href: '/dashboard/informes', label: 'Informes', icon: BarChart3, gradient: 'from-purple-400 to-violet-400' },
     ],
   },
 ]
