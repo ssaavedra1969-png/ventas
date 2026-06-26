@@ -327,13 +327,19 @@ export default function EntregasPage() {
         await actualizarEntrega(modalRemitoId, editandoEntregaId, entregaData)
         toast.success('Entrega actualizada')
       } else {
-        await agregarEntrega(modalRemitoId, entregaData)
+        const nuevaEntrega = await agregarEntrega(modalRemitoId, entregaData)
         toast.success('Entrega registrada')
+        // Actualizar estado local INMEDIATAMENTE sin esperar Firebase
+        setRemitos(prev => prev.map(r =>
+          r.id === modalRemitoId
+            ? { ...r, entregas: [...(r.entregas ?? []), nuevaEntrega] }
+            : r
+        ))
       }
       setModalAbierto(false)
       setModalRemitoId(null)
       setEditandoEntregaId(null)
-      await fetchData(true)
+      fetchData(true) // en background para sincronizar con Firebase
     } catch {
       toast.error('Error al guardar entrega')
     } finally {
