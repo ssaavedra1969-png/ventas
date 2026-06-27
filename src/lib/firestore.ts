@@ -1185,9 +1185,9 @@ export async function agregarEntrega(
       nombreProducto: item.nombreProducto,
       cantidad: item.cantidad,
     })),
-    vehiculoPatente: data.vehiculoPatente,
-    vehiculoMarca: data.vehiculoMarca,
-    choferNombre: data.choferNombre,
+    ...(data.vehiculoPatente ? { vehiculoPatente: data.vehiculoPatente } : {}),
+    ...(data.vehiculoMarca ? { vehiculoMarca: data.vehiculoMarca } : {}),
+    ...(data.choferNombre ? { choferNombre: data.choferNombre } : {}),
   }
 
   try {
@@ -1238,7 +1238,14 @@ export async function actualizarEntrega(
     const entregasActuales: Entrega[] = remito.entregas ?? []
     const entregasActualizadas = entregasActuales.map((e) =>
       e.id === entregaId
-        ? { ...e, fecha: data.fecha, items: data.items.map((item) => ({ idProducto: item.idProducto, nombreProducto: item.nombreProducto, cantidad: item.cantidad })), vehiculoPatente: data.vehiculoPatente, vehiculoMarca: data.vehiculoMarca, choferNombre: data.choferNombre }
+        ? {
+            ...e,
+            fecha: data.fecha,
+            items: data.items.map((item) => ({ idProducto: item.idProducto, nombreProducto: item.nombreProducto, cantidad: item.cantidad })),
+            ...(data.vehiculoPatente ? { vehiculoPatente: data.vehiculoPatente } : {}),
+            ...(data.vehiculoMarca ? { vehiculoMarca: data.vehiculoMarca } : {}),
+            ...(data.choferNombre ? { choferNombre: data.choferNombre } : {}),
+          }
         : e
     )
     await updateDoc(ref, { entregas: entregasActualizadas })
