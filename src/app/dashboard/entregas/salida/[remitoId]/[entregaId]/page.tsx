@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getRemito, getEmpresaConfig } from '@/lib/firestore'
+import { getSalida } from '@/lib/salidas'
 import type { Remito, EmpresaConfig, Entrega } from '@/types'
 import {
   ArrowLeft,
@@ -39,12 +40,67 @@ export default function EntregaSalidaPage() {
 
   useEffect(() => {
     if (!params.remitoId || !params.entregaId) return
-    Promise.all([
-      getRemito(params.remitoId as string),
-      getEmpresaConfig(),
-    ])
-      .then(([r, e]) => {
-        setEmpresa(e)
+
+    async function load() {
+      try {
+        const [salida, empresa] = await Promise.all([
+          getSalida(params.entregaId as string),
+          getEmpresaConfig(),
+        ])
+        setEmpresa(empresa)
+
+        if (salida) {
+          // New flow: salida from salidas collection has everything
+          setEntrega({
+            id: salida.id!,
+            fecha: salida.fecha,
+            createdAt: salida.createdAt ?? new Date(),
+            items: salida.items,
+            vehiculoPatente: salida.vehiculoPatente,
+            vehiculoMarca: salida.vehiculoMarca,
+            choferNombre: salida.choferNombre,
+          })
+          if (salida.clienteData) {
+            const cd = salida.clienteData
+            setRemito({
+              id: salida.idRemito,
+              idCliente: cd.codigoCliente ?? '',
+              numeroRemito: salida.numeroRemito,
+              clienteData: {
+                codigoCliente: cd.codigoCliente ?? '',
+                razonSocial: cd.razonSocial ?? '',
+                tipoDocumento: cd.tipoDocumento ?? '',
+                numeroDocumento: cd.numeroDocumento ?? '',
+                actividad: '',
+                telefono: cd.telefono ?? '',
+                domicilio: cd.domicilio ?? '',
+                localidad: cd.localidad ?? '',
+                condicionIVA: cd.condicionIVA ?? '',
+              },
+              items: salida.remitoItems ?? salida.items.map((i) => ({
+                idProducto: i.idProducto,
+                nombreProducto: i.nombreProducto,
+                cantidad: i.cantidad,
+                precioUnitario: 0,
+                subtotal: 0,
+              })),
+              entregas: [],
+              estado: 'A_Entregar',
+              subtotalGeneral: 0,
+              iva: 0,
+              totalGeneral: 0,
+              fecha: salida.fecha,
+              createdAt: salida.createdAt,
+            } as Remito)
+          } else {
+            setNotFound(true)
+          }
+          setLoading(false)
+          return
+        }
+
+        // Fallback to legacy remito.entregas
+        const r = await getRemito(params.remitoId as string)
         if (r) {
           setRemito(r)
           const ent = (r.entregas ?? []).find((en) => en.id === params.entregaId)
@@ -56,9 +112,14 @@ export default function EntregaSalidaPage() {
         } else {
           setNotFound(true)
         }
-      })
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false))
+      } catch {
+        setNotFound(true)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
   }, [params.remitoId, params.entregaId])
 
   const handlePrint = () => window.print()

@@ -210,6 +210,17 @@ export interface Salida {
   vehiculoPatente?: string
   vehiculoMarca?: string
   choferNombre?: string
+  clienteData?: {
+    razonSocial: string
+    tipoDocumento?: string
+    numeroDocumento?: string
+    condicionIVA?: string
+    domicilio?: string
+    localidad?: string
+    telefono?: string
+    codigoCliente?: string
+  }
+  remitoItems?: RemitoItem[]
   createdAt?: Date
 }
 

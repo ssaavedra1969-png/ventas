@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAllRemitos, agregarEntrega, actualizarEntrega, eliminarEntrega, getAllVehiculos, getAllChoferes } from '@/lib/firestore'
-import type { Remito, RemitoItem, Entrega, Vehiculo, Chofer } from '@/types'
+import { getAllRemitos, eliminarEntrega, getAllVehiculos, getAllChoferes } from '@/lib/firestore'
+import { createSalida, deleteSalida, getAllSalidas } from '@/lib/salidas'
+import type { Remito, RemitoItem, Entrega, Salida, Vehiculo, Chofer } from '@/types'
 import {
   Truck,
   Printer,
@@ -103,6 +104,7 @@ const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 export default function EntregasPage() {
   const router = useRouter()
   const [remitos, setRemitos] = useState<Remito[]>([])
+  const [salidas, setSalidas] = useState<Salida[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [mesActual, setMesActual] = useState(() => new Date().getMonth())
@@ -126,8 +128,12 @@ export default function EntregasPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const r = await getAllRemitos()
+      const [r, s] = await Promise.all([
+        getAllRemitos(),
+        getAllSalidas(),
+      ])
       setRemitos(r)
+      setSalidas(s)
     } catch {
       toast.error('Error al cargar datos')
     } finally {
@@ -204,8 +210,63 @@ export default function EntregasPage() {
       }
     }
 
+    // Add new salidas to calendar
+    for (const s of salidas) {
+      const d = toDate(s.fecha)
+      const key = format(d, 'yyyy-MM-dd')
+      const day = map.get(key)
+      if (!day) continue
+      const cd = s.clienteData
+      const virtRemito = {
+        id: s.idRemito,
+        numeroRemito: s.numeroRemito,
+        clienteData: {
+          codigoCliente: cd?.codigoCliente ?? '',
+          razonSocial: cd?.razonSocial ?? '—',
+          tipoDocumento: cd?.tipoDocumento ?? '',
+          numeroDocumento: cd?.numeroDocumento ?? '',
+          actividad: '',
+          telefono: cd?.telefono ?? '',
+          domicilio: cd?.domicilio ?? '',
+          localidad: cd?.localidad ?? '',
+          condicionIVA: cd?.condicionIVA ?? '',
+        },
+        items: s.remitoItems ?? s.items.map((i) => ({
+          idProducto: i.idProducto,
+          nombreProducto: i.nombreProducto,
+          cantidad: i.cantidad,
+          precioUnitario: 0,
+          subtotal: 0,
+        })),
+        estado: 'Aceptado' as const,
+        subtotalGeneral: 0,
+        iva: 0,
+        totalGeneral: 0,
+        fecha: d,
+        createdAt: s.createdAt,
+        idCliente: '',
+        entregas: [] as Entrega[],
+        productosConEntrega: [] as ProductoConEntrega[],
+        totalPendiente: 0,
+        completada: true,
+        enProgreso: false,
+      } as unknown as RemitoConEstado
+      const virtEntrega: Entrega = {
+        id: s.id ?? '',
+        fecha: d,
+        createdAt: s.createdAt ?? new Date(),
+        items: s.items,
+        vehiculoPatente: s.vehiculoPatente,
+        vehiculoMarca: s.vehiculoMarca,
+        choferNombre: s.choferNombre,
+      }
+      day.deliveries.push({ remito: virtRemito, entrega: virtEntrega })
+      day.totalItems += s.items.reduce((sum, i) => sum + i.cantidad, 0)
+      day.clientes.add(cd?.razonSocial ?? '—')
+    }
+
     return map
-  }, [calendarDays, remitosFiltrados, añoActual, mesActual])
+  }, [calendarDays, remitosFiltrados, salidas, añoActual, mesActual])
 
   const statsMes = useMemo(() => {
     const monthDays = Array.from(dayDataMap.values()).filter(d => d.isCurrentMonth)
@@ -316,31 +377,23 @@ export default function EntregasPage() {
     }
     setGuardando(true)
     try {
-      const entregaData = {
-        items,
+      await createSalida({
+        idRemito: modalRemitoId,
+        numeroRemito: remito.numeroRemito,
         fecha: new Date(entregaFecha + 'T12:00:00'),
+        items,
         vehiculoPatente: entregaVehiculoPatente || undefined,
         vehiculoMarca: entregaVehiculoMarca || undefined,
         choferNombre: entregaChofer || undefined,
-      }
-      if (editandoEntregaId) {
-        await actualizarEntrega(modalRemitoId, editandoEntregaId, entregaData)
-        toast.success('Entrega actualizada')
-      } else {
-        const nuevaEntrega = await agregarEntrega(modalRemitoId, entregaData)
-        toast.success('Entrega registrada')
-        // Actualizar estado local INMEDIATAMENTE sin esperar Firebase
-        setRemitos(prev => prev.map(r =>
-          r.id === modalRemitoId
-            ? { ...r, entregas: [...(r.entregas ?? []), nuevaEntrega] }
-            : r
-        ))
-      }
+        clienteData: remito.clienteData,
+        remitoItems: remito.items,
+      })
+      toast.success('Salida registrada')
       setModalAbierto(false)
       setModalRemitoId(null)
-      setEditandoEntregaId(null)
+      await fetchData()
     } catch {
-      toast.error('Error al guardar entrega')
+      toast.error('Error al guardar salida')
     } finally {
       setGuardando(false)
     }
@@ -348,16 +401,16 @@ export default function EntregasPage() {
 
   const handleEliminarEntrega = async (remitoId: string, entregaId: string) => {
     try {
-      await eliminarEntrega(remitoId, entregaId)
-      toast.success('Entrega eliminada')
+      try {
+        await deleteSalida(entregaId)
+      } catch {
+        await eliminarEntrega(remitoId, entregaId)
+      }
+      toast.success('Salida eliminada')
       setDeleteConfirm(null)
-      setRemitos(prev => prev.map(r =>
-        r.id === remitoId
-          ? { ...r, entregas: (r.entregas ?? []).filter(e => e.id !== entregaId) }
-          : r
-      ))
+      await fetchData()
     } catch {
-      toast.error('Error al eliminar entrega')
+      toast.error('Error al eliminar')
     }
   }
 

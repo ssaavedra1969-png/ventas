@@ -4,7 +4,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { localGet, localSet, localDelete } from './db'
-import type { Salida, EntregaItem } from '@/types'
+import type { Salida, EntregaItem, ClienteData, RemitoItem } from '@/types'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DocData = Record<string, any>
 
@@ -23,6 +23,8 @@ export async function createSalida(data: {
   vehiculoPatente?: string
   vehiculoMarca?: string
   choferNombre?: string
+  clienteData?: ClienteData
+  remitoItems?: RemitoItem[]
 }) {
   const _db = getDb()
   let numeroSalida: number
@@ -52,6 +54,8 @@ export async function createSalida(data: {
     ...(data.vehiculoPatente ? { vehiculoPatente: data.vehiculoPatente } : {}),
     ...(data.vehiculoMarca ? { vehiculoMarca: data.vehiculoMarca } : {}),
     ...(data.choferNombre ? { choferNombre: data.choferNombre } : {}),
+    ...(data.clienteData ? { clienteData: data.clienteData } : {}),
+    ...(data.remitoItems ? { remitoItems: data.remitoItems } : {}),
     createdAt: Timestamp.now(),
   }
 
@@ -75,6 +79,8 @@ function docToSalida(id: string, data: DocData): Salida {
     vehiculoPatente: data.vehiculoPatente,
     vehiculoMarca: data.vehiculoMarca,
     choferNombre: data.choferNombre,
+    clienteData: data.clienteData,
+    remitoItems: data.remitoItems,
     createdAt: data.createdAt?.toDate?.() ?? data.createdAt,
   }
 }

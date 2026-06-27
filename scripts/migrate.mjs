@@ -15,7 +15,8 @@ function initApp() {
     process.exit(1)
   }
   const serviceAccount = JSON.parse(readFileSync(SERVICE_ACCOUNT_PATH, 'utf-8'))
-  return admin.initializeApp({ credential: admin.credential.cert(serviceAccount) })
+  const cred = admin.cert ? admin.cert(serviceAccount) : admin.credential.cert(serviceAccount)
+  return admin.initializeApp({ credential: cred })
 }
 
 const db = getFirestore(initApp())
