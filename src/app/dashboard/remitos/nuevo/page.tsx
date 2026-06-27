@@ -272,7 +272,7 @@ export default function NuevoRemitoPage() {
         fecha,
         observaciones,
       })
-      clearDraft()
+      await clearDraft()
       toast.success(
         `Remito N° ${String(result.numeroRemito).padStart(6, '0')} creado exitosamente`
       )
@@ -488,7 +488,7 @@ export default function NuevoRemitoPage() {
 
           <div className="flex justify-between pt-2">
             <button
-              onClick={() => { clearDraft(); router.push('/dashboard/remitos') }}
+              onClick={async () => { await clearDraft(); router.push('/dashboard/remitos') }}
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
             >
               Cancelar
@@ -789,7 +789,7 @@ export default function NuevoRemitoPage() {
           <div className="flex justify-between">
             <div className="flex gap-2">
               <button
-                onClick={() => { clearDraft(); router.push('/dashboard/remitos') }}
+                onClick={async () => { await clearDraft(); router.push('/dashboard/remitos') }}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
               >
                 Cancelar
@@ -1047,7 +1047,7 @@ export default function NuevoRemitoPage() {
           <div className="flex justify-between">
             <div className="flex gap-2">
               <button
-                onClick={() => { clearDraft(); router.push('/dashboard/remitos') }}
+                onClick={async () => { await clearDraft(); router.push('/dashboard/remitos') }}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
               >
                 Cancelar

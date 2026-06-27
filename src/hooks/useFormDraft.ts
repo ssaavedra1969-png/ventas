@@ -68,8 +68,8 @@ export function useFormDraft<T extends Record<string, unknown>>(
     }
   }, [save, isReady])
 
-  const clearDraft = useCallback(() => {
-    localSetMeta(DRAFT_KEY, null)
+  const clearDraft = useCallback(async () => {
+    await localSetMeta(DRAFT_KEY, null)
   }, [])
 
   return { clearDraft }
