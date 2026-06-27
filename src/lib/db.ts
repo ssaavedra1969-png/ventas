@@ -15,6 +15,8 @@ const STORES = [
   'presupuestos_cache',
   'facturas',
   'facturas_cache',
+  'salidas',
+  'salidas_cache',
   'contadores',
   'configuracion',
   'vehiculos',
