@@ -60,6 +60,10 @@ export default function NuevoRemitoPage() {
   // Empresa config
   const [empresa, setEmpresa] = useState<EmpresaConfig | null>(null)
 
+  // Fecha del remito
+  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], [])
+  const [fecha, setFecha] = useState(todayStr)
+
   // Step 3: Observaciones
   const [observaciones, setObservaciones] = useState('')
 
@@ -67,7 +71,7 @@ export default function NuevoRemitoPage() {
     step: number; selectedClienteId?: string; selectedVendedorCodigo?: string;
     items: unknown[]; productSearch: string; selectedProductoId?: string;
     precioUnitario: number; cantidad: number; bonificacionValue: number;
-    editItemIndex: number | null; observaciones: string
+    editItemIndex: number | null; observaciones: string; fecha?: string
   }) => {
     if (draft.step) setStep(draft.step)
     if (draft.selectedClienteId) {
@@ -89,13 +93,14 @@ export default function NuevoRemitoPage() {
     if (draft.bonificacionValue) setBonificacionValue(draft.bonificacionValue)
     if (draft.editItemIndex !== null && draft.editItemIndex !== undefined) setEditItemIndex(draft.editItemIndex)
     if (draft.observaciones) setObservaciones(draft.observaciones)
+    if (draft.fecha) setFecha(draft.fecha)
   }, [clientes, vendedores, productos])
 
   const { clearDraft } = useFormDraft(
     {
       step, selectedClienteId: selectedCliente?.id, selectedVendedorCodigo: selectedVendedor?.codigo,
       items, productSearch, selectedProductoId: selectedProducto?.id,
-      precioUnitario, cantidad, bonificacionValue, editItemIndex, observaciones,
+      precioUnitario, cantidad, bonificacionValue, editItemIndex, observaciones, fecha,
     },
     !loading,
     onRestore,
@@ -264,6 +269,7 @@ export default function NuevoRemitoPage() {
         },
         vendedor: selectedVendedor ? { codigo: selectedVendedor.codigo, nombre: selectedVendedor.nombre } : undefined,
         items,
+        fecha,
         observaciones,
       })
       clearDraft()
@@ -374,6 +380,7 @@ export default function NuevoRemitoPage() {
                 if (selectedCliente) setSelectedCliente(null)
               }}
               onFocus={() => setShowClienteDropdown(true)}
+              onBlur={() => setTimeout(() => setShowClienteDropdown(false), 200)}
               className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
             />
             {showClienteDropdown && filteredClientes.length > 0 && (
@@ -595,17 +602,17 @@ export default function NuevoRemitoPage() {
                         step="0.01"
                         min="0.01"
                         value={precioUnitario}
-                        onChange={(e) => setPrecioUnitario(parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-[#6B6B8A] mb-1">Cantidad</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={cantidad}
-                        onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
+                        onChange={(e) => setPrecioUnitario(parseFloat(e.target.value.replace(',', '.')) || 0)}
+                            className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-[#6B6B8A] mb-1">Cantidad</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={cantidad}
+                            onChange={(e) => setCantidad(Math.max(1, parseInt(e.target.value) || 1))}
                         className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
                       />
                     </div>
@@ -617,7 +624,7 @@ export default function NuevoRemitoPage() {
                         max="100"
                         step="0.01"
                         value={bonificacionValue}
-                        onChange={(e) => setBonificacionValue(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => setBonificacionValue(parseFloat(e.target.value.replace(',', '.')) || 0)}
                         className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
                       />
                     </div>
@@ -810,9 +817,20 @@ export default function NuevoRemitoPage() {
                 <p className="text-lg font-bold text-white">{empresa?.razonSocial || 'GRUPO FALPAT SRL'}</p>
                 <p className="text-xs text-[#6B6B8A]">CUIT: {empresa?.cuit || '30-71784388-2'}</p>
               </div>
-              <div className="text-left sm:text-right">
-                <p className="text-xs text-[#6B6B8A] uppercase tracking-wider">Remito</p>
-                <p className="text-xl font-bold text-white">N° ---</p>
+              <div className="text-left sm:text-right flex flex-col items-start sm:items-end gap-2">
+                <div>
+                  <p className="text-xs text-[#6B6B8A] uppercase tracking-wider mb-1">Fecha</p>
+                  <input
+                    type="date"
+                    value={fecha}
+                    onChange={(e) => setFecha(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-[#6B6B8A] uppercase tracking-wider">Remito</p>
+                  <p className="text-xl font-bold text-white">N° ---</p>
+                </div>
               </div>
             </div>
 
@@ -918,7 +936,7 @@ export default function NuevoRemitoPage() {
                             min="0.01"
                             value={item.precioUnitario}
                             onChange={(e) => {
-                              const price = parseFloat(e.target.value) || 0
+                              const price = parseFloat(e.target.value.replace(',', '.')) || 0
                               const updated = [...items]
                               updated[index] = { ...item, precioUnitario: price, subtotal: price * item.cantidad * (1 - bonif / 100) }
                               setItems(updated)
@@ -934,7 +952,7 @@ export default function NuevoRemitoPage() {
                             step="0.01"
                             value={bonif}
                             onChange={(e) => {
-                              const b = parseFloat(e.target.value) || 0
+                              const b = parseFloat(e.target.value.replace(',', '.')) || 0
                               const updated = [...items]
                               updated[index] = { ...item, bonificacion: b, subtotal: item.precioUnitario * item.cantidad * (1 - b / 100) }
                               setItems(updated)

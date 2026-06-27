@@ -380,20 +380,20 @@ export default function ClientesPage() {
                   <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-3 hidden md:table-cell cursor-pointer hover:text-white select-none" onClick={() => toggleSort('tipoDocumento')}>
                     <SortIcon field="tipoDocumento" /> T. Doc
                   </th>
-                  <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-3 hidden md:table-cell">
-                    N° Documento
+                  <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-3 hidden md:table-cell cursor-pointer hover:text-white select-none" onClick={() => toggleSort('numeroDocumento')}>
+                    <SortIcon field="numeroDocumento" /> N° Documento
                   </th>
-                  <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-3 hidden lg:table-cell">
-                    Domicilio
+                  <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-3 hidden lg:table-cell cursor-pointer hover:text-white select-none" onClick={() => toggleSort('domicilio')}>
+                    <SortIcon field="domicilio" /> Domicilio
                   </th>
-                  <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-3 hidden lg:table-cell">
-                    Localidad
+                  <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-3 hidden lg:table-cell cursor-pointer hover:text-white select-none" onClick={() => toggleSort('localidad')}>
+                    <SortIcon field="localidad" /> Localidad
                   </th>
-                  <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-3 hidden lg:table-cell">
-                    Teléfono
+                  <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-3 hidden lg:table-cell cursor-pointer hover:text-white select-none" onClick={() => toggleSort('telefono')}>
+                    <SortIcon field="telefono" /> Teléfono
                   </th>
-                  <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-3 hidden xl:table-cell">
-                    Cond. IVA
+                  <th className="text-left text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-3 hidden xl:table-cell cursor-pointer hover:text-white select-none" onClick={() => toggleSort('condicionIVA')}>
+                    <SortIcon field="condicionIVA" /> Cond. IVA
                   </th>
                   <th className="text-right text-xs font-semibold text-[#6B6B8A] uppercase tracking-wider px-3 py-3">
                     Acciones

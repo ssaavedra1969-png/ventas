@@ -836,9 +836,10 @@ export async function createRemito(data: {
   clienteData: Remito['clienteData']
   vendedor?: Remito['vendedor']
   items: RemitoItem[]
+  fecha?: string
   observaciones?: string
 }) {
-  const now = new Date()
+  const now = data.fecha ? new Date(data.fecha) : new Date()
   const year = now.getFullYear()
   const numeroRemito = await getNextNumeroRemito(year)
 
@@ -862,22 +863,13 @@ export async function createRemito(data: {
     observaciones: data.observaciones || '',
     createdAt: Timestamp.now(),
   }
-  const tempId = generateLocalId()
-
-  await localSet('remitos', { id: tempId, ...fullData, fecha: now, createdAt: now })
-  clearCache(CACHE_KEYS.remitos)
 
   try {
     const docRef = await addDoc(collection(getDb(), COLECCIONES.remitos), fullData)
-    await localDelete('remitos', tempId)
     await localSet('remitos', { id: docRef.id, ...fullData, fecha: now, createdAt: now })
     return { id: docRef.id, numeroRemito }
   } catch {
-    await enqueueOperation({
-      collection: 'remitos', docId: tempId, operation: 'create',
-      data: fullData, timestamp: Date.now(), retryCount: 0,
-    })
-    return { id: tempId, numeroRemito }
+    throw new Error('Error al crear remito en Firebase')
   }
 }
 

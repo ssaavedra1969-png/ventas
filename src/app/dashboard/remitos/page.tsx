@@ -766,7 +766,7 @@ export default function RemitosPage() {
                     max={ncPopup.totalGeneral}
                     value={ncPopup.montoNC}
                     onChange={(e) =>
-                      setNcPopup({ ...ncPopup, montoNC: parseFloat(e.target.value) || 0 })
+                      setNcPopup({ ...ncPopup, montoNC: parseFloat(e.target.value.replace(',', '.')) || 0 })
                     }
                     className="w-full px-3 py-2.5 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-red-500/50 transition-colors"
                   />
