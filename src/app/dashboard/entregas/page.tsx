@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAllRemitos, eliminarEntrega, getAllVehiculos, getAllChoferes } from '@/lib/firestore'
-import { createSalida, deleteSalida, getAllSalidas } from '@/lib/salidas'
+import { createSalida, deleteSalida, getAllSalidas, getSalida } from '@/lib/salidas'
 import type { Remito, RemitoItem, Entrega, Salida, Vehiculo, Chofer } from '@/types'
 import {
   Truck,
@@ -196,21 +196,7 @@ export default function EntregasPage() {
       })
     }
 
-    for (const r of remitosFiltrados) {
-      if (!r.entregas) continue
-      for (const entrega of r.entregas) {
-        const d = toDate(entrega.fecha)
-        const key = format(d, 'yyyy-MM-dd')
-        const day = map.get(key)
-        if (day) {
-          day.deliveries.push({ remito: r, entrega })
-          day.totalItems += entrega.items.reduce((s, i) => s + i.cantidad, 0)
-          day.clientes.add(r.clienteData.razonSocial)
-        }
-      }
-    }
-
-    // Add new salidas to calendar
+    // Calendar muestra SOLO salidas (legacy migradas + nuevas)
     for (const s of salidas) {
       const d = toDate(s.fecha)
       const key = format(d, 'yyyy-MM-dd')
@@ -266,7 +252,7 @@ export default function EntregasPage() {
     }
 
     return map
-  }, [calendarDays, remitosFiltrados, salidas, añoActual, mesActual])
+  }, [calendarDays, salidas, añoActual, mesActual])
 
   const statsMes = useMemo(() => {
     const monthDays = Array.from(dayDataMap.values()).filter(d => d.isCurrentMonth)
@@ -401,9 +387,10 @@ export default function EntregasPage() {
 
   const handleEliminarEntrega = async (remitoId: string, entregaId: string) => {
     try {
-      try {
+      const exists = await getSalida(entregaId)
+      if (exists) {
         await deleteSalida(entregaId)
-      } catch {
+      } else {
         await eliminarEntrega(remitoId, entregaId)
       }
       toast.success('Salida eliminada')

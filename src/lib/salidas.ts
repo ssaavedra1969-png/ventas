@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, addDoc, deleteDoc,
-  query, orderBy, where, Timestamp, runTransaction,
+  query, orderBy, where, Timestamp,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { localGet, localSet, localDelete } from './db'
@@ -27,22 +27,25 @@ export async function createSalida(data: {
   remitoItems?: RemitoItem[]
 }) {
   const _db = getDb()
-  let numeroSalida: number
 
+  // Compute next numeroSalida by counting existing salidas for this remito
+  let numeroSalida = 1
   try {
-    const remitoRef = doc(_db, 'remitos_aprobados', data.idRemito)
-    numeroSalida = await runTransaction(_db, async (tx) => {
-      const snap = await tx.get(remitoRef)
-      if (!snap.exists()) throw new Error('Remito no encontrado')
-      const current = snap.data().ultimoNumeroSalida ?? 0
-      const next = current + 1
-      tx.update(remitoRef, { ultimoNumeroSalida: next })
-      return next
-    })
+    const q = query(
+      collection(_db, COL),
+      where('idRemito', '==', data.idRemito),
+      orderBy('numeroSalida', 'desc')
+    )
+    const snap = await getDocs(q)
+    if (snap.docs.length > 0) {
+      numeroSalida = snap.docs[0].data().numeroSalida + 1
+    }
   } catch {
-    const remitoLocal = await localGet<{ ultimoNumeroSalida?: number }>('remitos_aprobados', data.idRemito)
-    numeroSalida = (remitoLocal?.ultimoNumeroSalida ?? 0) + 1
-    await localSet('remitos_aprobados', { id: data.idRemito, ultimoNumeroSalida: numeroSalida })
+    const cached = await localGet<{ data: Salida[] }>('salidas_cache', `remito_${data.idRemito}`)
+    if (cached?.data?.length) {
+      const max = Math.max(...cached.data.map((s) => s.numeroSalida))
+      numeroSalida = max + 1
+    }
   }
 
   const fullData = {
