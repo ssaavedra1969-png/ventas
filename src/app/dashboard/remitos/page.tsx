@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { getAllRemitos, updateRemitoEstado, updateRemitoNroFactura, updateRemitoNC, getEmpresaConfig } from '@/lib/firestore'
-import type { Remito, EmpresaConfig } from '@/types'
+import { getAllPresupuestos, updatePresupuestoEstado } from '@/lib/presupuestos'
+import { getAllRemitosAprobados, createRemitoFromPresupuesto } from '@/lib/remitos-aprobados'
+import type { Remito, Presupuesto, RemitoAprobado, EmpresaConfig } from '@/types'
 import {
   FileText,
   Printer,
@@ -63,12 +65,14 @@ const getEstadoLabel = (estado: string) => {
 export default function RemitosPage() {
   const [tab, setTab] = useState<Tab>('presupuestos')
   const [remitos, setRemitos] = useState<Remito[]>([])
+  const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([])
+  const [remitosAprobados, setRemitosAprobados] = useState<RemitoAprobado[]>([])
   const [empresa, setEmpresa] = useState<EmpresaConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [filtroCliente, setFiltroCliente] = useState('')
   const [filtroFecha, setFiltroFecha] = useState('')
-  const [anularConfirm, setAnularConfirm] = useState<string | null>(null)
-  const [aceptarConfirm, setAceptarConfirm] = useState<string | null>(null)
+  const [anularConfirm, setAnularConfirm] = useState<{ id: string; tipo: 'legacy' | 'presupuesto' } | null>(null)
+  const [aceptarConfirm, setAceptarConfirm] = useState<{ id: string; tipo: 'legacy' | 'presupuesto' } | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
   const [facturaInputs, setFacturaInputs] = useState<Record<string, string>>({})
   const [facturando, setFacturando] = useState<string | null>(null)
@@ -99,8 +103,14 @@ export default function RemitosPage() {
   const fetchRemitos = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getAllRemitos()
+      const [data, pres, rems] = await Promise.all([
+        getAllRemitos(),
+        getAllPresupuestos(),
+        getAllRemitosAprobados(),
+      ])
       setRemitos(data)
+      setPresupuestos(pres)
+      setRemitosAprobados(rems)
     } catch {
       toast.error('Error al cargar remitos')
     } finally {
@@ -112,9 +122,53 @@ export default function RemitosPage() {
     fetchRemitos()
   }, [fetchRemitos])
 
-  const filtrados = remitos.filter((r) => {
+  const todos = useMemo(() => {
+    const items: (Remito & { _fuente?: string })[] = [...remitos]
+    if (tab === 'presupuestos') {
+      for (const p of presupuestos) {
+        items.push({
+          id: p.id,
+          numeroRemito: p.numeroPresupuesto,
+          fecha: p.fecha,
+          idCliente: p.idCliente,
+          clienteData: p.clienteData,
+          vendedor: p.vendedor,
+          items: p.items,
+          subtotalGeneral: p.subtotalGeneral,
+          iva: p.iva,
+          totalGeneral: p.totalGeneral,
+          estado: p.estado === 'Aprobado' ? 'En_Revision' : p.estado,
+          observaciones: p.observaciones,
+          createdAt: p.createdAt,
+          _fuente: 'presupuesto',
+        } as unknown as Remito & { _fuente?: string })
+      }
+    } else {
+      for (const r of remitosAprobados) {
+        items.push({
+          id: r.id,
+          numeroRemito: r.numeroRemito,
+          fecha: r.fecha,
+          idCliente: r.idCliente,
+          clienteData: r.clienteData,
+          vendedor: r.vendedor,
+          items: r.items,
+          subtotalGeneral: r.subtotalGeneral,
+          iva: r.iva,
+          totalGeneral: r.totalGeneral,
+          estado: r.estado,
+          observaciones: r.observaciones,
+          createdAt: r.createdAt,
+          _fuente: 'remito_aprobado',
+        } as unknown as Remito & { _fuente?: string })
+      }
+    }
+    return items
+  }, [remitos, presupuestos, remitosAprobados, tab])
+
+  const filtrados = todos.filter((r) => {
     const estadosValidos = tab === 'presupuestos' ? ESTADOS_PRESUPUESTOS : ESTADOS_REMITOS
-    if (!estadosValidos.includes(r.estado)) return false
+    if (!estadosValidos.includes(r.estado as string)) return false
     if (filtroCliente) {
       const s = filtroCliente.toLowerCase()
       if (!r.clienteData.razonSocial?.toLowerCase().includes(s) &&
@@ -142,13 +196,43 @@ export default function RemitosPage() {
     }
   }
 
-  const handleAceptarPresupuesto = (id: string) => {
-    setAceptarConfirm(id)
+  const handleAceptarPresupuesto = (remito: Remito & { _fuente?: string }) => {
+    setAceptarConfirm({ id: remito.id!, tipo: remito._fuente === 'presupuesto' ? 'presupuesto' : 'legacy' })
   }
 
-  const confirmarAceptar = () => {
+  const confirmarAceptar = async () => {
     if (!aceptarConfirm) return
-    handleCambiarEstado(aceptarConfirm, 'En_Revision')
+    const { id, tipo } = aceptarConfirm
+    if (tipo === 'presupuesto') {
+      const pres = presupuestos.find((p) => p.id === id)
+      if (!pres) { toast.error('Presupuesto no encontrado'); return }
+      setUpdating(id)
+      try {
+        const result = await createRemitoFromPresupuesto({
+          id: pres.id!,
+          numeroPresupuesto: pres.numeroPresupuesto,
+          fecha: pres.fecha,
+          idCliente: pres.idCliente,
+          clienteData: pres.clienteData,
+          vendedor: pres.vendedor,
+          items: pres.items,
+          subtotalGeneral: pres.subtotalGeneral,
+          iva: pres.iva,
+          totalGeneral: pres.totalGeneral,
+          observaciones: pres.observaciones,
+        })
+        await updatePresupuestoEstado(id, 'Aprobado')
+        toast.success(`Remito N° ${String(result.numeroRemito).padStart(6, '0')} generado`)
+        setAceptarConfirm(null)
+        fetchRemitos()
+      } catch {
+        toast.error('Error al aprobar presupuesto')
+      } finally {
+        setUpdating(null)
+      }
+    } else {
+      handleCambiarEstado(id, 'En_Revision')
+    }
   }
 
   const handleGuardarNC = async () => {
@@ -464,7 +548,7 @@ export default function RemitosPage() {
                               <MessageCircle className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => handleAceptarPresupuesto(remito.id!)}
+                              onClick={() => handleAceptarPresupuesto(remito)}
                               disabled={updating === remito.id}
                               className="p-1.5 rounded-lg text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50"
                               title="Marcar como aceptado"
@@ -476,7 +560,7 @@ export default function RemitosPage() {
                               )}
                             </button>
                             <button
-                              onClick={() => setAnularConfirm(remito.id ?? null)}
+                              onClick={() => setAnularConfirm({ id: remito.id ?? '', tipo: remito._fuente === 'presupuesto' ? 'presupuesto' : 'legacy' })}
                               disabled={updating === remito.id}
                               className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
                               title="Anular presupuesto"
@@ -652,7 +736,16 @@ export default function RemitosPage() {
                   Cancelar
                 </button>
                 <button
-                  onClick={() => handleCambiarEstado(anularConfirm, 'Anulado')}
+                  onClick={async () => {
+                    if (!anularConfirm) return
+                    const { id, tipo } = anularConfirm
+                    if (tipo === 'presupuesto') {
+                      try { await updatePresupuestoEstado(id, 'Anulado'); toast.success('Presupuesto anulado'); setAnularConfirm(null); fetchRemitos() }
+                      catch { toast.error('Error al anular') }
+                    } else {
+                      handleCambiarEstado(id, 'Anulado')
+                    }
+                  }}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 text-sm font-medium transition-colors"
                 >
                   Anular
@@ -698,10 +791,10 @@ export default function RemitosPage() {
                 </button>
                 <button
                   onClick={confirmarAceptar}
-                  disabled={updating === aceptarConfirm}
+                  disabled={updating === aceptarConfirm?.id}
                   className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 text-sm font-medium transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
                 >
-                  {updating === aceptarConfirm ? (
+                  {updating === aceptarConfirm?.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>

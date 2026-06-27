@@ -156,8 +156,26 @@ export interface Presupuesto {
   subtotalGeneral: number
   iva: number
   totalGeneral: number
-  estado: 'Enviado' | 'Anulado'
+  estado: 'Enviado' | 'Aprobado' | 'Anulado'
   observaciones?: string
+  createdAt?: Date
+}
+
+export interface RemitoAprobado {
+  id?: string
+  numeroRemito: number
+  numeroPresupuestoOriginal: number
+  fecha: Date
+  idCliente: string
+  clienteData: ClienteData
+  vendedor?: VendedorInfo
+  items: RemitoItem[]
+  subtotalGeneral: number
+  iva: number
+  totalGeneral: number
+  estado: 'En_Revision' | 'A_Entregar' | 'Finalizado' | 'Anulado'
+  observaciones?: string
+  usuarioCreador?: string
   createdAt?: Date
 }
 

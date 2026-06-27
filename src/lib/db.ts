@@ -9,6 +9,8 @@ const STORES = [
   'vendedores',
   'remitos',
   'remitos_facturados',
+  'remitos_aprobados',
+  'remitos_aprobados_cache',
   'presupuestos',
   'presupuestos_cache',
   'contadores',
