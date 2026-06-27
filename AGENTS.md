@@ -59,6 +59,10 @@ npm run restore    # PUSH: backups/ → Firebase (814 docs)
 |---------|------|
 | `src/lib/firestore.ts` | **Firebase-first**: Firebase primario, IndexedDB fallback de lectura |
 | `src/lib/db.ts` | IndexedDB: stores, CRUD local (sin syncQueue activa) |
+| `src/lib/presupuestos.ts` | CRUD presupuestos con contador `contadores/presupuesto_2026` |
+| `src/lib/remitos-aprobados.ts` | CRUD remitos aprobados con `createRemitoFromPresupuesto` |
+| `src/lib/facturas.ts` | CRUD facturas con contador `contadores/factura_2026` |
+| `src/lib/salidas.ts` | CRUD salidas con numeración por remito (S-001/002) |
 | `src/lib/sync.ts` | `syncManager`: chequea conectividad cada 60s |
 | `src/lib/cache.ts` | Caché en memoria (solo usada donde queda código legacy) |
 | `src/lib/firebase.ts` | Inicialización de Firebase client SDK |
@@ -66,6 +70,7 @@ npm run restore    # PUSH: backups/ → Firebase (814 docs)
 | `src/components/SyncStatus.tsx` | Indicador visual online/offline |
 | `scripts/import-firestore.mjs` | Restore: JSON → Firebase (usa service-account.json) |
 | `scripts/export-firestore.mjs` | Backup: Firebase → JSON |
+| `scripts/migrate.mjs` | Migración one-shot: remitos legacy → colecciones nuevas |
 | `backups/service-account.json` | Clave de servicio Firebase Admin |
 | `.env.local` | Config Firebase Web SDK (API key, etc.) |
 
@@ -78,6 +83,7 @@ npm run dev          # Desarrollo http://localhost:3000
 npm run build        # Build producción
 npm run backup       # Exporta Firebase → JSON (backups/*.json)
 npm run restore      # Importa JSON → Firebase (USAR cuando la cuota no da)
+npm run migrate      # Migración one-shot: remitos legacy → nuevas colecciones
 npm run lint         # ESLint
 ```
 
@@ -96,19 +102,20 @@ npm run lint         # ESLint
 
 ---
 
-## Último: 26/06/2026
+## Último: 27/06/2026
 
 ### Deploy
 - URL: https://ventas-falpat.vercel.app
 - Build OK
 
-### Lo último
-1. Refactor completo a **Firebase-first** (revirtiendo offline-first):
-   - getAll*: Firebase directo (sin caché/staleness), IndexedDB solo fallback
-   - create/update/delete*: Firebase directo, error si falla (sin enqueueOperation)
-   - syncQueue eliminada de todas las funciones CRUD
-   - Eliminados getCached/setCache/localSetMeta/localGetMeta/IDB_STALENESS
-   - getAllRemitos/getAllClientes/getAllProductos ya sin argumento `force`
+### Lo último — Nuevas colecciones (Etapas 1-5)
+Se separaron las etapas del ciclo de vida del remito en colecciones propias con numeración diferenciada:
+
+1. **Presupuesto** (`presupuestos`, `P-XXX`) — formulario crea presupuesto, puede ser "Enviado" o "Anulado"
+2. **Remito Aprobado** (`remitos_aprobados`, `R-XXX`) — se crea al aprobar un presupuesto desde el listado
+3. **Factura** (`facturas`, `F-XXX`) — se crea al registrar número de factura desde el listado, con su propio contador
+4. **Salida** (`salidas`, `S-001/002 por remito`) — numeración por remito, contador en `remito_aprobado.ultimoNumeroSalida`
+5. **Migración** (`npm run migrate`) — clasifica remitos legacy por estado y los replica en las nuevas colecciones
 
 ### Contexto del proyecto
 - Next.js 14.2 + React 18 + Firebase 12 + Tailwind
