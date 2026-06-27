@@ -486,7 +486,13 @@ export default function NuevoRemitoPage() {
             )}
           </div>
 
-          <div className="flex justify-end pt-2">
+          <div className="flex justify-between pt-2">
+            <button
+              onClick={() => { clearDraft(); router.push('/dashboard/remitos') }}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
+            >
+              Cancelar
+            </button>
             <button
               onClick={() => setStep(2)}
               disabled={!selectedCliente}
@@ -781,13 +787,21 @@ export default function NuevoRemitoPage() {
           )}
 
           <div className="flex justify-between">
-            <button
-              onClick={() => setStep(1)}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Volver
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { clearDraft(); router.push('/dashboard/remitos') }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => setStep(1)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Volver
+              </button>
+            </div>
             <button
               onClick={() => setStep(3)}
               disabled={items.length === 0}
@@ -1031,13 +1045,21 @@ export default function NuevoRemitoPage() {
           </div>
 
           <div className="flex justify-between">
-            <button
-              onClick={() => setStep(2)}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Volver a Productos
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { clearDraft(); router.push('/dashboard/remitos') }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => setStep(2)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Volver
+              </button>
+            </div>
             <button
               onClick={handleGenerate}
               disabled={saving || items.length === 0}
