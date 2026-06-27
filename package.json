@@ -10,7 +10,8 @@
     "backup": "node scripts/export-firestore.mjs",
     "backup:datos": ".\\backups\\backup-datos.ps1",
     "backup:proyecto": ".\\backups\\backup-proyecto.ps1",
-    "restore": "node scripts/import-firestore.mjs"
+    "restore": "node scripts/import-firestore.mjs",
+    "migrate": "node scripts/migrate.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
