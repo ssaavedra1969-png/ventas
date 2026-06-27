@@ -7,11 +7,10 @@ import {
   getAllClientes,
   getAllProductos,
   getVendedores,
-  createRemito,
   getEmpresaConfig,
   getTipoFactura,
-  clearCache,
 } from '@/lib/firestore'
+import { createPresupuesto } from '@/lib/presupuestos'
 import type { Cliente, Producto, RemitoItem, Vendedor, EmpresaConfig } from '@/types'
 import {
   Search,
@@ -254,7 +253,7 @@ export default function NuevoRemitoPage() {
 
     setSaving(true)
     try {
-      const result = await createRemito({
+      const result = await createPresupuesto({
         idCliente: selectedCliente.id!,
         clienteData: {
           codigoCliente: selectedCliente.codigoCliente,
@@ -274,10 +273,9 @@ export default function NuevoRemitoPage() {
       })
       await clearDraft()
       toast.success(
-        `Remito N° ${String(result.numeroRemito).padStart(6, '0')} creado exitosamente`
+        `Presupuesto N° ${String(result.numeroPresupuesto).padStart(6, '0')} creado exitosamente`
       )
-      clearCache('allRemitos')
-      router.push(`/remitos/${result.id}`)
+      router.push('/dashboard/remitos')
     } catch {
       toast.error('Error al crear el remito')
     } finally {

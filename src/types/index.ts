@@ -128,6 +128,73 @@ export interface DashboardStats {
   clientesActivos: number
 }
 
+export interface ClienteData {
+  codigoCliente: string
+  razonSocial: string
+  tipoDocumento: string
+  numeroDocumento: string
+  actividad: string
+  telefono: string
+  domicilio: string
+  localidad: string
+  condicionIVA: string
+}
+
+export interface VendedorInfo {
+  codigo: string
+  nombre: string
+}
+
+export interface Presupuesto {
+  id?: string
+  numeroPresupuesto: number
+  fecha: Date
+  idCliente: string
+  clienteData: ClienteData
+  vendedor?: VendedorInfo
+  items: RemitoItem[]
+  subtotalGeneral: number
+  iva: number
+  totalGeneral: number
+  estado: 'Enviado' | 'Anulado'
+  observaciones?: string
+  createdAt?: Date
+}
+
+export interface Factura {
+  id?: string
+  numeroFactura: string
+  numeroFacturaInterno: number
+  idRemito: string
+  numeroRemito: number
+  fecha: Date
+  idCliente: string
+  clienteData: ClienteData
+  items: RemitoItem[]
+  subtotalGeneral: number
+  iva: number
+  totalGeneral: number
+  pagos?: Pago[]
+  totalPagado?: number
+  facturaAnulada?: boolean
+  nroNC?: string
+  montoNC?: number
+  createdAt?: Date
+}
+
+export interface Salida {
+  id?: string
+  numeroSalida: number
+  idRemito: string
+  numeroRemito: number
+  fecha: Date
+  items: EntregaItem[]
+  vehiculoPatente?: string
+  vehiculoMarca?: string
+  choferNombre?: string
+  createdAt?: Date
+}
+
 export interface EmpresaConfig {
   razonSocial: string
   cuit: string
