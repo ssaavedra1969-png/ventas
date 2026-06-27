@@ -13,6 +13,8 @@ const STORES = [
   'remitos_aprobados_cache',
   'presupuestos',
   'presupuestos_cache',
+  'facturas',
+  'facturas_cache',
   'contadores',
   'configuracion',
   'vehiculos',

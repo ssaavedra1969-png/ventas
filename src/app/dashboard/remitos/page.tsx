@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { getAllRemitos, updateRemitoEstado, updateRemitoNroFactura, updateRemitoNC, getEmpresaConfig } from '@/lib/firestore'
 import { getAllPresupuestos, updatePresupuestoEstado } from '@/lib/presupuestos'
 import { getAllRemitosAprobados, createRemitoFromPresupuesto } from '@/lib/remitos-aprobados'
+import { createFactura } from '@/lib/facturas'
 import type { Remito, Presupuesto, RemitoAprobado, EmpresaConfig } from '@/types'
 import {
   FileText,
@@ -264,6 +265,21 @@ export default function RemitosPage() {
     setFacturando(id)
     try {
       await updateRemitoNroFactura(id, nro)
+      const remitoData = todos.find((r) => r.id === id)
+      if (remitoData && 'remito_aprobado' === remitoData._fuente) {
+        await createFactura({
+          numeroFactura: nro,
+          idRemito: id,
+          numeroRemito: remitoData.numeroRemito,
+          fecha: remitoData.fecha,
+          idCliente: remitoData.idCliente,
+          clienteData: remitoData.clienteData,
+          items: remitoData.items,
+          subtotalGeneral: remitoData.subtotalGeneral,
+          iva: remitoData.iva,
+          totalGeneral: remitoData.totalGeneral,
+        }).catch(() => {})
+      }
       toast.success(`Factura N° ${nro} registrada`)
       setFacturaInputs((prev) => ({ ...prev, [id]: '' }))
       fetchRemitos()
