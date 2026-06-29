@@ -378,7 +378,8 @@ export default function EntregasPage() {
       setModalAbierto(false)
       setModalRemitoId(null)
       await fetchData()
-    } catch {
+    } catch (e) {
+      console.error('handleGuardarEntrega error:', e)
       toast.error('Error al guardar salida')
     } finally {
       setGuardando(false)
@@ -396,7 +397,8 @@ export default function EntregasPage() {
       toast.success('Salida eliminada')
       setDeleteConfirm(null)
       await fetchData()
-    } catch {
+    } catch (e) {
+      console.error('handleEliminarEntrega error:', e)
       toast.error('Error al eliminar')
     }
   }

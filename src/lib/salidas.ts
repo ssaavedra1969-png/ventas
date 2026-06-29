@@ -64,9 +64,10 @@ export async function createSalida(data: {
 
   try {
     const docRef = await addDoc(collection(_db, COL), fullData)
-    await localSet('salidas', { id: docRef.id, ...fullData, fecha: data.fecha, createdAt: new Date() })
+    try { await localSet('salidas', { id: docRef.id, ...fullData, fecha: data.fecha, createdAt: new Date() }) } catch {}
     return { id: docRef.id, numeroSalida }
-  } catch {
+  } catch (e) {
+    console.error('createSalida error:', e)
     throw new Error('Error al crear salida en Firebase')
   }
 }
