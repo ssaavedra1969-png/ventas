@@ -41,11 +41,13 @@ export async function createSalida(data: {
       numeroSalida = snap.docs[0].data().numeroSalida + 1
     }
   } catch {
-    const cached = await localGet<{ data: Salida[] }>('salidas_cache', `remito_${data.idRemito}`)
-    if (cached?.data?.length) {
-      const max = Math.max(...cached.data.map((s) => s.numeroSalida))
-      numeroSalida = max + 1
-    }
+    try {
+      const cached = await localGet<{ data: Salida[] }>('salidas_cache', `remito_${data.idRemito}`)
+      if (cached?.data?.length) {
+        const max = Math.max(...cached.data.map((s) => s.numeroSalida))
+        numeroSalida = max + 1
+      }
+    } catch {}
   }
 
   const fullData = {
@@ -99,7 +101,7 @@ export async function getSalidasByRemito(remitoId: string): Promise<Salida[]> {
     const snap = await getDocs(q)
     return snap.docs.map((d) => docToSalida(d.id, d.data()))
   } catch {
-    const cached = await localGet<{ data: Salida[] }>('salidas_cache', `remito_${remitoId}`)
+    const cached = await localGet<{ data: Salida[] }>('salidas_cache', `remito_${remitoId}`).catch(() => null)
     return cached?.data ?? []
   }
 }
@@ -111,7 +113,7 @@ export async function getAllSalidas() {
     const list = snap.docs.map((d) => docToSalida(d.id, d.data()))
     return list
   } catch {
-    const cached = await localGet<{ data: Salida[] }>('salidas_cache', 'all')
+    const cached = await localGet<{ data: Salida[] }>('salidas_cache', 'all').catch(() => null)
     return cached?.data ?? []
   }
 }

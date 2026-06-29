@@ -1,7 +1,7 @@
 import { openDB, type IDBPDatabase } from 'idb'
 
 const DB_NAME = 'falpat_offline'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 const STORES = [
   'clientes',
