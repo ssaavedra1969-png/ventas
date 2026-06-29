@@ -6905,6 +6905,23 @@
     }
   },
   {
+    "_id": "RJbtoNndzWG9yzCkeee6",
+    "_createdAt": "2026-06-26T16:16:35.795Z",
+    "_updatedAt": "2026-06-26T16:16:35.795Z",
+    "razonSocial": "Lopez Eduardo Adrian",
+    "tipoDocumento": "C.U.I.T.",
+    "numeroDocumento": "20-28457145-3",
+    "actividad": "",
+    "telefono": "",
+    "domicilio": "Av. Constitucion 2063",
+    "localidad": "Del Viso",
+    "condicionIVA": "RI",
+    "codigoCliente": "02115",
+    "createdAt": {
+      "_timestamp": "2026-06-26T16:16:34.668Z"
+    }
+  },
+  {
     "_id": "Sx5MVaaJFfFI7ZYD8T3x",
     "_createdAt": "2026-06-25T18:34:34.739Z",
     "_updatedAt": "2026-06-25T18:34:34.739Z",

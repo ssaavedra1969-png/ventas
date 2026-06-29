@@ -102,25 +102,30 @@ npm run lint         # ESLint
 
 ---
 
-## Último: 27/06/2026
+## Último: 29/06/2026
 
 ### Deploy
 - URL: https://ventas-falpat.vercel.app
 - Build OK
 
-### Lo último — Nuevas colecciones (Etapas 1-5)
-Se separaron las etapas del ciclo de vida del remito en colecciones propias con numeración diferenciada:
+### Lo último — Etapas 1-5 completadas
+- Separación del ciclo de vida en colecciones propias (presupuestos, remitos_aprobados, facturas, salidas)
+- **Migración ejecutada**: 6 remitos legacy → remitos_aprobados + facturas + 2 salidas
+- **DB_VERSION 4** (IndexedDB): stores `salidas`/`salidas_cache` agregadas
+- **Página Entregas**: calendario solo lee de colección `salidas` (sin legacy), `createSalida` cuenta salidas existentes para el número (sin depender de transacción en remitos_aprobados)
+- **calcEntregado** unifica legacy entregas + salidas (match por `numeroRemito`)
+- **Backup ejecutado** (solo colecciones legacy: clientes, productos, vendedores, remitos, contadores)
 
-1. **Presupuesto** (`presupuestos`, `P-XXX`) — formulario crea presupuesto, puede ser "Enviado" o "Anulado"
-2. **Remito Aprobado** (`remitos_aprobados`, `R-XXX`) — se crea al aprobar un presupuesto desde el listado
-3. **Factura** (`facturas`, `F-XXX`) — se crea al registrar número de factura desde el listado, con su propio contador
-4. **Salida** (`salidas`, `S-001/002 por remito`) — numeración por remito, contador en `remito_aprobado.ultimoNumeroSalida`
-5. **Migración** (`npm run migrate`) — clasifica remitos legacy por estado y los replica en las nuevas colecciones
+### Pendiente / Próximos pasos sugeridos
 
-### Contexto del proyecto
-- Next.js 14.2 + React 18 + Firebase 12 + Tailwind
-- IndexedDB (`idb`) para fallback offline
-- Framer Motion, Lucide icons, date-fns, Zod + react-hook-form, Sonner
-- IVA: Factura A (RI/Monotributo) → IVA discriminado; Factura B (CF/Exento) → "IVA incluido"
-- Pagos: array dentro del documento remito (Efectivo, Transferencia, Cheque, Débito, Crédito)
-- AutocompleteInput requiere 2+ caracteres
+1. **Actualizar script de backup** (`scripts/export-firestore.mjs`): agregar exportación de las colecciones nuevas: `presupuestos`, `remitos_aprobados`, `facturas`, `salidas`
+2. **Migración de datos faltantes**: si hay presupuestos en estado "Enviado" que deban migrarse a la colección `presupuestos`, ejecutar nuevamente `npm run migrate`
+3. **Refactor página de Entregas para remitos nuevos**: cuando se aprueba un presupuesto → remito_aprobado → la página de entregas debería cargar esos remitos_aprobados (no solo `getAllRemitos()`) para poder programar salidas sobre ellos
+4. **Actualizar página Informes** (`src/app/dashboard/informes/page.tsx`): leer salidas en lugar de legacy entregas para estadísticas
+5. **Consolidar UI**: reemplazar referencias a "Entrega" por "Salida" en textos de la interfaz
+
+### Notas técnicas importantes
+- `createSalida` ya no usa `runTransaction` sobre `remitos_aprobados` — cuenta salidas existentes via query (`numeroSalida = max + 1`)
+- `localSet`/`localGet` en stores nuevas están protegidos con `.catch(() => null)` por si el cliente todavía no hizo upgrade de IndexedDB
+- Si Firebase falla en escritura → toast error al usuario. No hay encolamiento ni reintento automático.
+- Para debuggear: abrir F12 → Console. Errores de salidas loguean `createSalida error:` y `handleGuardarEntrega error:`

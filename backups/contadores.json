@@ -2,13 +2,31 @@
   {
     "_id": "cliente",
     "_createdAt": "2026-06-25T13:19:53.582Z",
-    "_updatedAt": "2026-06-25T18:34:34.448Z",
-    "ultimo": 2114
+    "_updatedAt": "2026-06-26T16:16:34.941Z",
+    "ultimo": 2115
+  },
+  {
+    "_id": "factura_2026",
+    "_createdAt": "2026-06-27T16:16:47.940Z",
+    "_updatedAt": "2026-06-27T16:16:47.940Z",
+    "ultimo": 6
+  },
+  {
+    "_id": "presupuesto_2026",
+    "_createdAt": "2026-06-27T16:16:46.944Z",
+    "_updatedAt": "2026-06-27T16:16:46.944Z",
+    "ultimo": 0
   },
   {
     "_id": "remito_2026",
     "_createdAt": "2026-06-23T18:42:22.032Z",
-    "_updatedAt": "2026-06-25T19:40:42.953Z",
-    "ultimo": 3
+    "_updatedAt": "2026-06-27T15:27:32.572Z",
+    "ultimo": 6
+  },
+  {
+    "_id": "remito_aprobado_2026",
+    "_createdAt": "2026-06-27T16:16:47.450Z",
+    "_updatedAt": "2026-06-27T16:16:47.450Z",
+    "ultimo": 6
   }
 ]
