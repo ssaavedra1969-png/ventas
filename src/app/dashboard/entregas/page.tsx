@@ -71,19 +71,27 @@ function getRemitoColor(remitoId: string): typeof REMITO_COLORS[number] {
   return REMITO_COLORS[Math.abs(hash) % REMITO_COLORS.length]
 }
 
-function calcEntregado(remito: Remito, idProducto: string): number {
-  if (!remito.entregas) return 0
+function calcEntregado(remito: Remito, salidas: Salida[], idProducto: string): number {
   let total = 0
-  for (const entrega of remito.entregas) {
-    for (const item of entrega.items) {
-      if (item.idProducto === idProducto) total += item.cantidad
+  if (remito.entregas) {
+    for (const entrega of remito.entregas) {
+      for (const item of entrega.items) {
+        if (item.idProducto === idProducto) total += item.cantidad
+      }
+    }
+  }
+  for (const s of salidas) {
+    if (s.numeroRemito === remito.numeroRemito) {
+      for (const item of s.items) {
+        if (item.idProducto === idProducto) total += item.cantidad
+      }
     }
   }
   return total
 }
 
-function calcPendiente(remito: Remito, idProducto: string, cantidad: number): number {
-  return cantidad - calcEntregado(remito, idProducto)
+function calcPendiente(remito: Remito, salidas: Salida[], idProducto: string, cantidad: number): number {
+  return cantidad - calcEntregado(remito, salidas, idProducto)
 }
 
 function toDate(v: Date | string | { toDate?: () => Date }): Date {
@@ -150,8 +158,8 @@ export default function EntregasPage() {
       .filter((r) => r.estado !== 'Anulado')
       .map((r) => {
         const productosConEntrega = r.items.map((item) => {
-          const entregado = calcEntregado(r, item.idProducto)
-          const pendiente = calcPendiente(r, item.idProducto, item.cantidad)
+          const entregado = calcEntregado(r, salidas, item.idProducto)
+          const pendiente = calcPendiente(r, salidas, item.idProducto, item.cantidad)
           return { ...item, entregado, pendiente }
         })
         const totalPendiente = productosConEntrega.reduce((s, p) => s + p.pendiente, 0)
@@ -159,7 +167,7 @@ export default function EntregasPage() {
         const enProgreso = totalPendiente > 0 && totalPendiente < productosConEntrega.reduce((s, p) => s + p.cantidad, 0)
         return { ...r, productosConEntrega, totalPendiente, completada, enProgreso }
       })
-  }, [remitos])
+  }, [remitos, salidas])
 
   const remitosFiltrados = useMemo(() => {
     if (!search) return remitosConEstado
