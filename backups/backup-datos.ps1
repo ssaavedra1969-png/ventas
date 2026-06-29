@@ -12,7 +12,9 @@ if (-not $OutputDir) {
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  FALPAT SRL - Backup de DATOS" -ForegroundColor Cyan
 Write-Host "  (Firestore: clientes, productos," -ForegroundColor Cyan
-Write-Host "   vendedores, remitos, contadores)" -ForegroundColor Cyan
+Write-Host "   vendedores, remitos, contadores," -ForegroundColor Cyan
+Write-Host "   presupuestos, remitos_aprobados," -ForegroundColor Cyan
+Write-Host "   facturas, salidas)" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Destino: $OutputDir" -ForegroundColor Yellow

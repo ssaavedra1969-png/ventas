@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "backup": "node scripts/export-firestore.mjs",
+    "backup": "powershell -ExecutionPolicy Bypass -File .\\backups\\backup.ps1",
     "backup:datos": ".\\backups\\backup-datos.ps1",
     "backup:proyecto": ".\\backups\\backup-proyecto.ps1",
     "restore": "node scripts/import-firestore.mjs",

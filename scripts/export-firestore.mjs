@@ -80,7 +80,7 @@ async function main() {
   console.log(`\nExportando colecciones a: ${outDir}`)
   console.log('')
 
-  const collections = ['clientes', 'productos', 'vendedores', 'remitos', 'contadores']
+  const collections = ['clientes', 'productos', 'vendedores', 'remitos', 'contadores', 'presupuestos', 'remitos_aprobados', 'facturas', 'salidas']
   for (const name of collections) {
     await exportCollection(db, name, outDir)
   }
