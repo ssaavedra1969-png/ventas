@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import {
   createCliente,
   updateCliente,
@@ -76,6 +76,9 @@ export default function ClientesPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [bulkOpen, setBulkOpen] = useState(false)
 
+  const [sortField, setSortField] = useState<string>('codigoCliente')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -86,10 +89,10 @@ export default function ClientesPage() {
   }, [search])
 
   // Load paginated data from Firebase (limit 20)
-  const loadClientesPage = useCallback(async (p: number, searchTerm?: string) => {
+  const loadClientesPage = useCallback(async (p: number, searchTerm?: string, sField?: string, sDir?: 'asc' | 'desc') => {
     setLoading(true)
     try {
-      const result = await getClientes(searchTerm || undefined, p, pageSize)
+      const result = await getClientes(searchTerm || undefined, p, pageSize, sField ?? sortField, sDir ?? sortDir)
       setPaginatedClientes(result.data)
       setTotalClientes(result.total)
       setTotalPages(result.totalPages)
@@ -99,7 +102,7 @@ export default function ClientesPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [sortField, sortDir])
 
   // Load full list for autocomplete and export (lazy, only when needed)
   const loadFullClientes = useCallback(async () => {
@@ -181,10 +184,8 @@ export default function ClientesPage() {
     setModalOpen(true)
   }
 
-  const [sortField, setSortField] = useState<string>('codigoCliente')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
-
   const toggleSort = (field: string) => {
+    setPage(1)
     if (sortField === field) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     } else {
@@ -192,27 +193,6 @@ export default function ClientesPage() {
       setSortDir('asc')
     }
   }
-
-  const clientesSort = useMemo(() => {
-    if (!paginatedClientes) return []
-    return [...paginatedClientes].sort((a, b) => {
-      const aVal = a[sortField as keyof Cliente]
-      const bVal = b[sortField as keyof Cliente]
-      let cmp = 0
-      const aStr = String(aVal ?? '')
-      const bStr = String(bVal ?? '')
-      const aNum = parseFloat(aStr)
-      const bNum = parseFloat(bStr)
-      if (!isNaN(aNum) && !isNaN(bNum)) {
-        cmp = aNum - bNum
-      } else if (typeof aVal === 'number' && typeof bVal === 'number') {
-        cmp = aVal - bVal
-      } else {
-        cmp = aStr.localeCompare(bStr, 'es', { sensitivity: 'base' })
-      }
-      return sortDir === 'asc' ? cmp : -cmp
-    })
-  }, [paginatedClientes, sortField, sortDir])
 
   const SortIcon = ({ field }: { field: string }) => {
     if (sortField !== field) return <ChevronUp className="inline h-3 w-3 ml-1 text-[#4A4A6A]" />
@@ -373,7 +353,7 @@ export default function ClientesPage() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#6C3CE1]" />
           </div>
-        ) : clientesSort.length === 0 ? (
+        ) : paginatedClientes.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-[#6B6B8A]">No se encontraron clientes</p>
           </div>
@@ -412,7 +392,7 @@ export default function ClientesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {clientesSort.map((cliente) => (
+                {paginatedClientes.map((cliente) => (
                   <tr
                     key={cliente.id}
                     className="hover:bg-white/5 transition-colors"

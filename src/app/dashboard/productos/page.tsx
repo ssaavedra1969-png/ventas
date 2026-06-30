@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import {
   getAllProductos,
   getProductos,
@@ -96,10 +96,10 @@ export default function ProductosPage() {
   }, [search])
 
   // Load paginated data from Firebase (limit 20)
-  const loadProductosPage = useCallback(async (p: number, searchTerm?: string) => {
+  const loadProductosPage = useCallback(async (p: number, searchTerm?: string, sField?: string, sDir?: 'asc' | 'desc') => {
     setLoading(true)
     try {
-      const result = await getProductos(searchTerm || undefined, p, pageSize)
+      const result = await getProductos(searchTerm || undefined, p, pageSize, sField ?? sortField, sDir ?? sortDir)
       setPaginatedProductos(result.data)
       setTotalProductos(result.total)
       setTotalPages(result.totalPages)
@@ -108,7 +108,7 @@ export default function ProductosPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [sortField, sortDir])
 
   // Load full list for autocomplete and export (lazy)
   const loadFullProductos = useCallback(async () => {
@@ -128,22 +128,8 @@ export default function ProductosPage() {
     loadFullProductos()
   }, [loadFullProductos])
 
-  const productosSort = useMemo(() => {
-    if (!paginatedProductos) return []
-    return [...paginatedProductos].sort((a, b) => {
-      const aVal = a[sortField as keyof Producto]
-      const bVal = b[sortField as keyof Producto]
-      let cmp = 0
-      if (typeof aVal === 'number' && typeof bVal === 'number') {
-        cmp = aVal - bVal
-      } else {
-        cmp = String(aVal ?? '').localeCompare(String(bVal ?? ''), 'es', { sensitivity: 'base' })
-      }
-      return sortDir === 'asc' ? cmp : -cmp
-    })
-  }, [paginatedProductos, sortField, sortDir])
-
   const toggleSort = (field: string) => {
+    setPage(1)
     if (sortField === field) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
     } else {
@@ -328,7 +314,7 @@ export default function ProductosPage() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#6C3CE1]" />
           </div>
-        ) : productosSort.length === 0 ? (
+        ) : paginatedProductos.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-[#6B6B8A]">No se encontraron productos</p>
           </div>
@@ -364,7 +350,7 @@ export default function ProductosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {productosSort.map((producto) => (
+                {paginatedProductos.map((producto) => (
                   <tr
                     key={producto.id}
                     className="hover:bg-white/5 transition-colors"
@@ -557,12 +543,12 @@ export default function ProductosPage() {
                   Precio C/IVA ($)
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.valorUnitario}
+                  type="text"
+                  inputMode="decimal"
+                  value={form.valorUnitario || ''}
                   onChange={(e) => {
-                    const v = parseFloat(e.target.value) || 0
+                    const raw = e.target.value.replace(/[^0-9.,]/g, '')
+                    const v = parseFloat(raw.replace(',', '.')) || 0
                     setForm({
                       ...form,
                       valorUnitario: v,

@@ -278,6 +278,13 @@ export default function NuevoRemitoPage() {
       router.push('/dashboard/remitos')
     } catch {
       toast.error('Error al crear el remito')
+      setItems([])
+      setSelectedCliente(null)
+      setSelectedVendedor(null)
+      setClienteSearch('')
+      setObservaciones('')
+      setFecha(todayStr)
+      setStep(1)
     } finally {
       setSaving(false)
     }
@@ -384,9 +391,12 @@ export default function NuevoRemitoPage() {
             {showClienteDropdown && filteredClientes.length > 0 && (
               <div className="absolute z-20 top-full mt-1 left-0 right-0 max-h-60 overflow-y-auto rounded-xl bg-[#12122A] border border-white/5 shadow-xl">
                 {filteredClientes.map((cliente) => (
-                  <button
+                    <button
                     key={cliente.id}
-                    onClick={() => selectCliente(cliente)}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      selectCliente(cliente)
+                    }}
                     className="w-full text-left px-4 py-3 text-sm text-white hover:bg-white/5 transition-colors border-b border-white/5 last:border-b-0"
                   >
                     <span className="font-medium">{cliente.razonSocial}</span>
@@ -602,13 +612,16 @@ export default function NuevoRemitoPage() {
                     <div>
                       <label className="block text-xs text-[#6B6B8A] mb-1">Precio Unitario ($)</label>
                       <input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        value={precioUnitario}
-                        onChange={(e) => setPrecioUnitario(parseFloat(e.target.value.replace(',', '.')) || 0)}
-                            className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
-                          />
+                        type="text"
+                        inputMode="decimal"
+                        value={precioUnitario || ''}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/[^0-9.,]/g, '')
+                          const num = parseFloat(raw.replace(',', '.'))
+                          setPrecioUnitario(isNaN(num) ? 0 : num)
+                        }}
+                        className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                      />
                         </div>
                         <div>
                           <label className="block text-xs text-[#6B6B8A] mb-1">Cantidad</label>
@@ -623,12 +636,14 @@ export default function NuevoRemitoPage() {
                     <div>
                       <label className="block text-xs text-[#6B6B8A] mb-1">Bonificación (%)</label>
                       <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.01"
-                        value={bonificacionValue}
-                        onChange={(e) => setBonificacionValue(parseFloat(e.target.value.replace(',', '.')) || 0)}
+                        type="text"
+                        inputMode="decimal"
+                        value={bonificacionValue || ''}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/[^0-9.,]/g, '')
+                          const num = parseFloat(raw.replace(',', '.'))
+                          setBonificacionValue(isNaN(num) ? 0 : Math.min(100, Math.max(0, num)))
+                        }}
                         className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
                       />
                     </div>
@@ -943,14 +958,15 @@ export default function NuevoRemitoPage() {
                         </td>
                         <td className="px-3 py-2">
                           <input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            value={item.precioUnitario}
+                            type="text"
+                            inputMode="decimal"
+                            value={item.precioUnitario || ''}
                             onChange={(e) => {
-                              const price = parseFloat(e.target.value.replace(',', '.')) || 0
+                              const raw = e.target.value.replace(/[^0-9.,]/g, '')
+                              const price = parseFloat(raw.replace(',', '.'))
+                              const p = isNaN(price) ? 0 : price
                               const updated = [...items]
-                              updated[index] = { ...item, precioUnitario: price, subtotal: price * item.cantidad * (1 - bonif / 100) }
+                              updated[index] = { ...item, precioUnitario: p, subtotal: p * item.cantidad * (1 - bonif / 100) }
                               setItems(updated)
                             }}
                             className="w-full px-3 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-right focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
@@ -958,15 +974,15 @@ export default function NuevoRemitoPage() {
                         </td>
                         <td className="px-3 py-2">
                           <input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            value={bonif}
+                            type="text"
+                            inputMode="decimal"
+                            value={bonif || ''}
                             onChange={(e) => {
-                              const b = parseFloat(e.target.value.replace(',', '.')) || 0
+                              const raw = e.target.value.replace(/[^0-9.,]/g, '')
+                              const b = parseFloat(raw.replace(',', '.'))
+                              const bonifVal = isNaN(b) ? 0 : Math.min(100, Math.max(0, b))
                               const updated = [...items]
-                              updated[index] = { ...item, bonificacion: b, subtotal: item.precioUnitario * item.cantidad * (1 - b / 100) }
+                              updated[index] = { ...item, bonificacion: bonifVal, subtotal: item.precioUnitario * item.cantidad * (1 - bonifVal / 100) }
                               setItems(updated)
                             }}
                             className="w-full px-3 py-1.5 rounded-lg bg-[#0A0A1A] border border-white/5 text-white text-sm font-mono text-right focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"

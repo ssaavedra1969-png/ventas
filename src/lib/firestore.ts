@@ -174,12 +174,22 @@ async function getNextCodigoCliente(): Promise<string> {
 }
 
 const _clientesCursors = new Map<number, DocumentSnapshot>()
+let _clientesLastSort = 'codigoCliente'
+let _clientesLastDir: 'asc' | 'desc' = 'asc'
 
-export async function getClientes(search?: string, page = 1, pageSize = 20) {
+const CLIENTES_SORT_FIELDS = ['codigoCliente', 'razonSocial', 'tipoDocumento', 'numeroDocumento', 'domicilio', 'localidad', 'telefono', 'condicionIVA'] as const
+
+export async function getClientes(search?: string, page = 1, pageSize = 20, sortField = 'codigoCliente' as string, sortDir: 'asc' | 'desc' = 'asc') {
   try {
     const _db = getDb()
+    const field = CLIENTES_SORT_FIELDS.includes(sortField as any) ? sortField : 'codigoCliente'
+    if (field !== _clientesLastSort || sortDir !== _clientesLastDir) {
+      _clientesCursors.clear()
+      _clientesLastSort = field
+      _clientesLastDir = sortDir
+    }
     const baseQuery = collection(_db, COLECCIONES.clientes)
-    const order = orderBy('codigoCliente', 'asc')
+    const order = orderBy(field, sortDir)
 
     // Total count (1 read, lightweight)
     let total = 0
@@ -400,12 +410,22 @@ export async function createMultipleClientes(
 // ============ PRODUCTOS ============
 
 const _productosCursors = new Map<number, DocumentSnapshot>()
+let _productosLastSort = 'codigoProducto'
+let _productosLastDir: 'asc' | 'desc' = 'asc'
 
-export async function getProductos(search?: string, page = 1, pageSize = 20) {
+const PRODUCTOS_SORT_FIELDS = ['codigoProducto', 'nombre', 'tipo', 'medida', 'valorUnitario', 'precioSinIVA', 'stock'] as const
+
+export async function getProductos(search?: string, page = 1, pageSize = 20, sortField = 'codigoProducto' as string, sortDir: 'asc' | 'desc' = 'asc') {
   try {
     const _db = getDb()
+    const field = PRODUCTOS_SORT_FIELDS.includes(sortField as any) ? sortField : 'codigoProducto'
+    if (field !== _productosLastSort || sortDir !== _productosLastDir) {
+      _productosCursors.clear()
+      _productosLastSort = field
+      _productosLastDir = sortDir
+    }
     const baseQuery = collection(_db, COLECCIONES.productos)
-    const order = orderBy('codigoProducto', 'asc')
+    const order = orderBy(field, sortDir)
 
     // Total count (1 read)
     let total = 0
