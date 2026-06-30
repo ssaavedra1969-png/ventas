@@ -34,6 +34,12 @@ const navigation = [
     ],
   },
   {
+    section: 'REMITOS',
+    items: [
+      { href: '/dashboard/remitos/nuevo', label: 'Nuevo Remito', icon: PlusCircle, gradient: 'from-pink-400 to-rose-400' },
+    ],
+  },
+  {
     section: 'GESTIÓN',
     items: [
       { href: '/dashboard/facturacion', label: 'Facturación', icon: DollarSign, gradient: 'from-green-400 to-emerald-400' },
@@ -41,24 +47,18 @@ const navigation = [
     ],
   },
   {
-    section: 'REMITOS',
-    items: [
-      { href: '/dashboard/remitos/nuevo', label: 'Nuevo Remito', icon: PlusCircle, gradient: 'from-pink-400 to-rose-400' },
-      { href: '/dashboard/remitos', label: 'Listado', icon: FileText, gradient: 'from-sky-400 to-blue-400' },
-    ],
-  },
-  {
     section: 'INFORMES',
     items: [
       { href: '/dashboard/informes', label: 'Informes', icon: BarChart3, gradient: 'from-purple-400 to-violet-400' },
+      { href: '/dashboard/remitos', label: 'Listado', icon: FileText, gradient: 'from-sky-400 to-blue-400' },
     ],
   },
 ]
 
 function NavItem({ item, pathname, onClick }: { item: typeof navigation[0]['items'][0]; pathname: string; onClick: () => void }) {
-  const isActive = item.href === '/dashboard'
-    ? pathname === '/dashboard'
-    : pathname === item.href || pathname.startsWith(item.href + '/')
+  const isActive = item.href === '/dashboard/parametrias'
+    ? pathname === '/dashboard/parametrias' || pathname.startsWith('/dashboard/parametrias/')
+    : pathname === item.href
   return (
     <Link href={item.href} onClick={onClick} className="block relative">
       <motion.div
