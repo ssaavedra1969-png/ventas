@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getEmpresaConfig, saveEmpresaConfig } from '@/lib/firestore'
+import { getEmpresaConfig, saveEmpresaConfig } from '@/modules/configuracion'
 import type { EmpresaConfig } from '@/types'
 import { Building2, Save, Loader2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getAllVehiculos, createVehiculo, deleteVehiculo, getAllChoferes, createChofer, updateChofer, deleteChofer, importVehiculos, importChoferes } from '@/lib/firestore'
+import { getAllVehiculos, createVehiculo, deleteVehiculo, getAllChoferes, createChofer, updateChofer, deleteChofer, importVehiculos, importChoferes } from '@/modules/vehiculos'
 import type { Vehiculo, Chofer } from '@/types'
 import { Truck, User, Plus, Pencil, Trash2, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'

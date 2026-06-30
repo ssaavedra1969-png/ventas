@@ -8,9 +8,9 @@ import {
   deleteVendedor,
   vendedorCodigoExists,
   getVendedoresStats,
-} from '@/lib/firestore'
+} from '@/modules/vendedores'
 import type { Vendedor } from '@/types'
-import type { VendedorStats } from '@/lib/firestore'
+import type { VendedorStats } from '@/modules/vendedores'
 import {
   Plus,
   Pencil,
@@ -30,7 +30,7 @@ import {
   EyeOff,
 } from 'lucide-react'
 import BulkUploadModal from '@/components/BulkUploadModal'
-import { createMultipleVendedores } from '@/lib/firestore'
+import { createMultipleVendedores } from '@/modules/vendedores'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
