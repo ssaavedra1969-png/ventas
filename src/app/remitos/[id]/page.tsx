@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { getRemito, getEmpresaConfig, getTipoFactura, CONDIVA_LABEL } from '@/lib/firestore'
-import type { Remito, EmpresaConfig } from '@/types'
+import { getPresupuesto } from '@/modules/presupuestos'
+import { getRemitoAprobado } from '@/modules/remitos-aprobados'
+import type { Remito, Presupuesto, RemitoAprobado, EmpresaConfig } from '@/types'
 import {
   ArrowLeft,
   Printer,
@@ -35,12 +37,57 @@ export default function RemitoViewPage() {
   const [wspPhone, setWspPhone] = useState('')
   const [showWsp, setShowWsp] = useState(false)
 
+  function presupuestoToRemito(p: Presupuesto): Remito {
+    return {
+      id: p.id,
+      numeroRemito: p.numeroPresupuesto,
+      fecha: p.fecha,
+      idCliente: p.idCliente,
+      clienteData: p.clienteData,
+      vendedor: p.vendedor,
+      items: p.items,
+      subtotalGeneral: p.subtotalGeneral,
+      iva: p.iva,
+      totalGeneral: p.totalGeneral,
+      estado: p.estado === 'Aprobado' ? 'En_Revision' : p.estado,
+      observaciones: p.observaciones,
+      createdAt: p.createdAt,
+    }
+  }
+
+  function remitoAprobadoToRemito(r: RemitoAprobado): Remito {
+    return {
+      id: r.id,
+      numeroRemito: r.numeroRemito,
+      fecha: r.fecha,
+      idCliente: r.idCliente,
+      clienteData: r.clienteData,
+      vendedor: r.vendedor,
+      items: r.items,
+      subtotalGeneral: r.subtotalGeneral,
+      iva: r.iva,
+      totalGeneral: r.totalGeneral,
+      estado: r.estado === 'Finalizado' ? 'A_Entregar' : r.estado,
+      observaciones: r.observaciones,
+      createdAt: r.createdAt,
+    }
+  }
+
   useEffect(() => {
     const p = new URLSearchParams(window.location.search)
     setFrom(p.get('from'))
     if (!params.id) return
+    const id = params.id as string
     Promise.all([
-      getRemito(params.id as string),
+      (async () => {
+        const legacy = await getRemito(id).catch(() => null)
+        if (legacy) return legacy
+        const presupuesto = await getPresupuesto(id).catch(() => null)
+        if (presupuesto) return presupuestoToRemito(presupuesto)
+        const aprobado = await getRemitoAprobado(id).catch(() => null)
+        if (aprobado) return remitoAprobadoToRemito(aprobado)
+        return null
+      })(),
       getEmpresaConfig(),
     ])
       .then(([remitoData, empresaData]) => {
