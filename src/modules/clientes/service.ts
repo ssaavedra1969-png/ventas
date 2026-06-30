@@ -9,11 +9,15 @@ import {
   query,
   where,
   orderBy,
+  limit,
+  startAfter,
   Timestamp,
   QueryConstraint,
+  DocumentSnapshot,
   setDoc,
   writeBatch,
   runTransaction,
+  getCountFromServer,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import {
@@ -78,14 +82,47 @@ async function getNextCodigoCliente(): Promise<string> {
   }
 }
 
-export async function getClientes(search?: string, page = 1, pageSize = 10) {
+const _clientesCursors = new Map<number, DocumentSnapshot>()
+let _clientesLastSort = 'codigoCliente'
+let _clientesLastDir: 'asc' | 'desc' = 'asc'
+
+const CLIENTES_SORT_FIELDS = ['codigoCliente', 'razonSocial', 'tipoDocumento', 'numeroDocumento', 'domicilio', 'localidad', 'telefono', 'condicionIVA'] as const
+
+export async function getClientes(search?: string, page = 1, pageSize = 20, sortField = 'codigoCliente' as string, sortDir: 'asc' | 'desc' = 'asc') {
   try {
     const _db = getDb()
-    const constraints: QueryConstraint[] = []
-    constraints.push(orderBy('codigoCliente', 'asc'))
+    const field = CLIENTES_SORT_FIELDS.includes(sortField as any) ? sortField : 'codigoCliente'
+    if (field !== _clientesLastSort || sortDir !== _clientesLastDir) {
+      _clientesCursors.clear()
+      _clientesLastSort = field
+      _clientesLastDir = sortDir
+    }
+    const baseQuery = collection(_db, 'clientes')
+    const order = orderBy(field, sortDir)
 
-    const q = query(collection(_db, 'clientes'), ...constraints)
+    let total = 0
+    try {
+      const countSnap = await getCountFromServer(query(baseQuery, order))
+      total = countSnap.data().count
+    } catch {
+      const cached = await localGetAll<Cliente>('clientes')
+      total = cached.length
+    }
+
+    const dataConstraints: QueryConstraint[] = [order, limit(pageSize)]
+    if (page > 1 && _clientesCursors.has(page - 1)) {
+      dataConstraints.push(startAfter(_clientesCursors.get(page - 1)!))
+    }
+
+    const q = query(baseQuery, ...dataConstraints)
     const snapshot = await getDocs(q)
+
+    if (snapshot.docs.length > 0) {
+      _clientesCursors.set(page, snapshot.docs[snapshot.docs.length - 1])
+    }
+    Array.from(_clientesCursors.keys()).forEach(key => {
+      if (key >= page + 2) _clientesCursors.delete(key)
+    })
 
     let clientes = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -102,13 +139,9 @@ export async function getClientes(search?: string, page = 1, pageSize = 10) {
       )
     }
 
-    const total = clientes.length
-    const start = (page - 1) * pageSize
-    const paginated = clientes.slice(start, start + pageSize)
+    syncManager.cacheCollection('clientes', snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as any)).catch(() => {})
 
-    syncManager.cacheCollection('clientes', clientes.map(c => ({ ...c, id: c.id! }))).catch(() => {})
-
-    return { data: paginated, total, totalPages: Math.ceil(total / pageSize) }
+    return { data: clientes, total, totalPages: Math.ceil(total / pageSize) }
   } catch {
     let clientes = await localGetAll<Cliente>('clientes')
 

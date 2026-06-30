@@ -8,7 +8,7 @@ import {
   updateProducto,
   deleteProducto,
   createMultipleProductos,
-} from '@/lib/firestore'
+} from '@/modules/productos'
 import type { Producto } from '@/types'
 import {
   Plus,

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { getRemito, getEmpresaConfig } from '@/lib/firestore'
-import { getSalida } from '@/lib/salidas'
+import { getRemito } from '@/modules/legacy'
+import { getEmpresaConfig } from '@/modules/configuracion'
+import { getSalida } from '@/modules/salidas'
 import type { Remito, EmpresaConfig, Entrega } from '@/types'
 import {
   ArrowLeft,

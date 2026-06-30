@@ -3,14 +3,11 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFormDraft } from '@/hooks/useFormDraft'
-import {
-  getAllClientes,
-  getAllProductos,
-  getVendedores,
-  getEmpresaConfig,
-  getTipoFactura,
-} from '@/lib/firestore'
-import { createPresupuesto } from '@/lib/presupuestos'
+import { getAllClientes } from '@/modules/clientes'
+import { getAllProductos } from '@/modules/productos'
+import { getVendedores } from '@/modules/vendedores'
+import { getEmpresaConfig, getTipoFactura } from '@/modules/configuracion'
+import { createPresupuesto } from '@/modules/presupuestos'
 import type { Cliente, Producto, RemitoItem, Vendedor, EmpresaConfig } from '@/types'
 import {
   Search,

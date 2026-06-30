@@ -1,5 +1,6 @@
 export {
   createSalida,
+  updateSalida,
   getAllSalidas,
   getSalidasByRemito,
   getSalida,

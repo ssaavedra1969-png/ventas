@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
-import { getAllRemitos } from '@/lib/firestore'
+import { getAllRemitos } from '@/modules/legacy'
 import type { Remito } from '@/types'
 import {
   BarChart3,

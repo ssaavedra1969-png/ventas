@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { getAllRemitos, agregarPago, eliminarPago } from '@/lib/firestore'
+import { getAllRemitos, agregarPago, eliminarPago } from '@/modules/legacy'
 import type { Remito, Pago } from '@/types'
 import {
   DollarSign,

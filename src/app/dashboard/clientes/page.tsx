@@ -12,7 +12,8 @@ import {
   createMultipleClientes,
   CONDICIONES_IVA,
   CONDIVA_LABEL,
-} from '@/lib/firestore'
+} from '@/modules/clientes'
+import { createVehiculo } from '@/modules/vehiculos'
 import type { Cliente } from '@/types'
 import {
   Plus,
@@ -29,6 +30,7 @@ import {
   Upload,
   Download,
   RefreshCw,
+  Truck,
 } from 'lucide-react'
 import BulkUploadModal from '@/components/BulkUploadModal'
 import AutocompleteInput from '@/components/AutocompleteInput'
@@ -78,6 +80,12 @@ export default function ClientesPage() {
 
   const [sortField, setSortField] = useState<string>('codigoCliente')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  // Vehicle modal
+  const [vehiculoModalOpen, setVehiculoModalOpen] = useState(false)
+  const [nuevaPatente, setNuevaPatente] = useState('')
+  const [nuevaMarca, setNuevaMarca] = useState('')
+  const [creandoVehiculo, setCreandoVehiculo] = useState(false)
 
   // Debounce search
   useEffect(() => {
@@ -243,6 +251,26 @@ export default function ClientesPage() {
     }
   }
 
+  const handleCreateVehiculo = async () => {
+    if (!nuevaPatente.trim()) {
+      toast.error('Ingresá una patente')
+      return
+    }
+    setCreandoVehiculo(true)
+    try {
+      await createVehiculo({ patente: nuevaPatente.trim().toUpperCase(), marca: nuevaMarca.trim() || '' })
+      toast.success('Vehículo creado')
+      setVehiculoModalOpen(false)
+      setNuevaPatente('')
+      setNuevaMarca('')
+    } catch (err) {
+      console.error('Error creando vehículo:', err)
+      toast.error('Error al crear vehículo')
+    } finally {
+      setCreandoVehiculo(false)
+    }
+  }
+
   const openCreateModal = () => {
     setForm(emptyForm)
     setEditId(null)
@@ -316,6 +344,13 @@ export default function ClientesPage() {
           >
             <Upload className="h-4 w-4" />
             Carga Masiva
+          </button>
+          <button
+            onClick={() => setVehiculoModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-white/10 text-[#B0B0D0] hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <Truck className="h-4 w-4" />
+            <span className="hidden sm:inline">Nuevo Vehículo</span>
           </button>
           <button
             onClick={openCreateModal}
@@ -698,6 +733,74 @@ export default function ClientesPage() {
                 className="flex-1 px-4 py-2.5 rounded-xl bg-red-500/20 text-red-400 hover:bg-red-500/30 text-sm font-medium transition-colors"
               >
                 Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vehicle Modal */}
+      {vehiculoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md glass-card rounded-2xl p-6 animate-fadeInUp">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Nuevo Vehículo</h2>
+              <button
+                onClick={() => {
+                  setVehiculoModalOpen(false)
+                  setNuevaPatente('')
+                  setNuevaMarca('')
+                }}
+                className="text-[#6B6B8A] hover:text-white transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-[#B0B0D0] mb-1">Patente</label>
+                <input
+                  type="text"
+                  value={nuevaPatente}
+                  onChange={(e) => setNuevaPatente(e.target.value.toUpperCase())}
+                  placeholder="Ej: AF170SV"
+                  className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors uppercase"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#B0B0D0] mb-1">Marca</label>
+                <input
+                  type="text"
+                  value={nuevaMarca}
+                  onChange={(e) => setNuevaMarca(e.target.value)}
+                  placeholder="Ej: Mercedes Benz"
+                  className="w-full px-3 py-2 rounded-xl bg-[#0A0A1A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={() => {
+                  setVehiculoModalOpen(false)
+                  setNuevaPatente('')
+                  setNuevaMarca('')
+                }}
+                disabled={creandoVehiculo}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-white/5 text-[#B0B0D0] hover:text-white hover:bg-white/5 text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateVehiculo}
+                disabled={creandoVehiculo}
+                className="flex-1 btn-nebula px-4 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50"
+              >
+                {creandoVehiculo ? (
+                  <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                ) : (
+                  'Crear Vehículo'
+                )}
               </button>
             </div>
           </div>

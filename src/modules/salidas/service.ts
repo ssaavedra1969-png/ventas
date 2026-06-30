@@ -1,5 +1,5 @@
 import {
-  collection, doc, getDoc, getDocs, addDoc, deleteDoc,
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
   query, orderBy, where, Timestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -125,6 +125,33 @@ export async function getSalida(id: string): Promise<Salida | null> {
   } catch {
     const local = await localGet<Salida>('salidas', id)
     return local ?? null
+  }
+}
+
+export async function updateSalida(id: string, data: {
+  fecha: Date
+  items: EntregaItem[]
+  vehiculoPatente?: string
+  vehiculoMarca?: string
+  choferNombre?: string
+}) {
+  const _db = getDb()
+  const updateData: Record<string, unknown> = {
+    fecha: Timestamp.fromDate(data.fecha),
+    items: data.items,
+  }
+  if (data.vehiculoPatente !== undefined) updateData.vehiculoPatente = data.vehiculoPatente || null
+  if (data.vehiculoMarca !== undefined) updateData.vehiculoMarca = data.vehiculoMarca || null
+  if (data.choferNombre !== undefined) updateData.choferNombre = data.choferNombre || null
+  try {
+    await updateDoc(doc(_db, COL, id), updateData)
+    try {
+      const salida = await getSalida(id)
+      if (salida) await localSet('salidas', { id, ...salida })
+    } catch {}
+  } catch (e) {
+    console.error('updateSalida error:', e)
+    throw new Error('Error al actualizar salida en Firebase')
   }
 }
 

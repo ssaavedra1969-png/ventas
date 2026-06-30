@@ -18,12 +18,22 @@ function getDb() {
 }
 
 const _productosCursors = new Map<number, DocumentSnapshot>()
+let _productosLastSort = 'codigoProducto'
+let _productosLastDir: 'asc' | 'desc' = 'asc'
 
-export async function getProductos(search?: string, page = 1, pageSize = 20) {
+const PRODUCTOS_SORT_FIELDS = ['codigoProducto', 'nombre', 'tipo', 'precioPublico', 'precioMayorista', 'precioEspecial1', 'precioEspecial2', 'bonificacion'] as const
+
+export async function getProductos(search?: string, page = 1, pageSize = 20, sortField = 'codigoProducto' as string, sortDir: 'asc' | 'desc' = 'asc') {
   try {
     const _db = getDb()
     const baseQuery = collection(_db, COLECCION_PRODUCTOS)
-    const order = orderBy('codigoProducto', 'asc')
+    const field = PRODUCTOS_SORT_FIELDS.includes(sortField as any) ? sortField : 'codigoProducto'
+    if (field !== _productosLastSort || sortDir !== _productosLastDir) {
+      _productosCursors.clear()
+      _productosLastSort = field
+      _productosLastDir = sortDir
+    }
+    const order = orderBy(field, sortDir)
 
     let total = 0
     try {

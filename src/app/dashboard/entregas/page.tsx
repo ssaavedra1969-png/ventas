@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { getAllRemitos, eliminarEntrega, getAllVehiculos, getAllChoferes } from '@/lib/firestore'
-import { createSalida, updateSalida, deleteSalida, getAllSalidas, getSalida } from '@/lib/salidas'
+import { getAllRemitos, eliminarEntrega } from '@/modules/legacy'
+import { getAllVehiculos, getAllChoferes } from '@/modules/vehiculos'
+import { createSalida, updateSalida, deleteSalida, getAllSalidas, getSalida } from '@/modules/salidas'
 import type { Remito, RemitoItem, Entrega, Salida, Vehiculo, Chofer } from '@/types'
 import {
   Truck,

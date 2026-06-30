@@ -1,10 +1,11 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { getAllRemitos, updateRemitoEstado, updateRemitoNroFactura, updateRemitoNC, getEmpresaConfig } from '@/lib/firestore'
-import { getAllPresupuestos, updatePresupuestoEstado } from '@/lib/presupuestos'
-import { getAllRemitosAprobados, createRemitoFromPresupuesto } from '@/lib/remitos-aprobados'
-import { createFactura } from '@/lib/facturas'
+import { getAllRemitos, updateRemitoEstado, updateRemitoNroFactura, updateRemitoNC } from '@/modules/legacy'
+import { getEmpresaConfig } from '@/modules/configuracion'
+import { getAllPresupuestos, updatePresupuestoEstado } from '@/modules/presupuestos'
+import { getAllRemitosAprobados, createRemitoFromPresupuesto } from '@/modules/remitos-aprobados'
+import { createFactura } from '@/modules/facturas'
 import type { Remito, Presupuesto, RemitoAprobado, EmpresaConfig } from '@/types'
 import {
   FileText,
