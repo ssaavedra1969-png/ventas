@@ -4,18 +4,16 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
-  Users,
-  Package,
   FileText,
   PlusCircle,
   Menu,
   Settings,
-  UserCheck,
   Building2,
   ChevronRight,
   DollarSign,
   Truck,
   BarChart3,
+  SlidersHorizontal,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -30,11 +28,14 @@ const navigation = [
     ],
   },
   {
+    section: 'PARAMETRÍAS',
+    items: [
+      { href: '/dashboard/parametrias', label: 'Parametrías', icon: SlidersHorizontal, gradient: 'from-slate-400 to-zinc-400' },
+    ],
+  },
+  {
     section: 'GESTIÓN',
     items: [
-      { href: '/dashboard/clientes', label: 'Clientes', icon: Users, gradient: 'from-blue-400 to-cyan-400' },
-      { href: '/dashboard/productos', label: 'Productos', icon: Package, gradient: 'from-amber-400 to-orange-400' },
-      { href: '/dashboard/vendedores', label: 'Vendedores', icon: UserCheck, gradient: 'from-emerald-400 to-teal-400' },
       { href: '/dashboard/facturacion', label: 'Facturación', icon: DollarSign, gradient: 'from-green-400 to-emerald-400' },
       { href: '/dashboard/entregas', label: 'Entregas', icon: Truck, gradient: 'from-amber-400 to-yellow-400' },
       { href: '/dashboard/vehiculos', label: 'Vehículos', icon: Truck, gradient: 'from-cyan-400 to-teal-400' },
@@ -56,7 +57,9 @@ const navigation = [
 ]
 
 function NavItem({ item, pathname, onClick }: { item: typeof navigation[0]['items'][0]; pathname: string; onClick: () => void }) {
-  const isActive = pathname === item.href
+  const isActive = item.href === '/dashboard'
+    ? pathname === '/dashboard'
+    : pathname === item.href || pathname.startsWith(item.href + '/')
   return (
     <Link href={item.href} onClick={onClick} className="block relative">
       <motion.div
