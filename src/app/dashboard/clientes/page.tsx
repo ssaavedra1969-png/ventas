@@ -7,6 +7,11 @@ import {
   deleteCliente,
   clienteExists,
   clearCache,
+  getClientes,
+  getAllClientes,
+  createMultipleClientes,
+  CONDICIONES_IVA,
+  CONDIVA_LABEL,
 } from '@/lib/firestore'
 import type { Cliente } from '@/types'
 import {
@@ -26,7 +31,6 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import BulkUploadModal from '@/components/BulkUploadModal'
-import { createMultipleClientes, getAllClientes, CONDICIONES_IVA, CONDIVA_LABEL } from '@/lib/firestore'
 import AutocompleteInput from '@/components/AutocompleteInput'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
@@ -56,11 +60,14 @@ const emptyForm: ClienteForm = {
 
 export default function ClientesPage() {
   const [allClientes, setAllClientes] = useState<Cliente[]>([])
+  const [paginatedClientes, setPaginatedClientes] = useState<Cliente[]>([])
+  const [totalClientes, setTotalClientes] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [page, setPage] = useState(1)
-  const pageSize = 10
+  const pageSize = 20
   const [modalOpen, setModalOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState<ClienteForm>(emptyForm)
@@ -78,33 +85,14 @@ export default function ClientesPage() {
     return () => clearTimeout(timer)
   }, [search])
 
-  // Filtrado + paginación client-side sobre allClientes
-  const clientesFiltrados = useMemo(() => {
-    let filtered = allClientes
-    if (debouncedSearch) {
-      const s = debouncedSearch.toLowerCase()
-      filtered = allClientes.filter(
-        (c) =>
-          c.razonSocial.toLowerCase().includes(s) ||
-          c.numeroDocumento.toLowerCase().includes(s) ||
-          c.codigoCliente.toLowerCase().includes(s)
-      )
-    }
-    const total = filtered.length
-    const totalPages = Math.ceil(total / pageSize)
-    const start = (page - 1) * pageSize
-    return {
-      data: filtered.slice(start, start + pageSize),
-      total,
-      totalPages,
-    }
-  }, [allClientes, debouncedSearch, page])
-
-  const loadAllClientes = useCallback(async () => {
+  // Load paginated data from Firebase (limit 20)
+  const loadClientesPage = useCallback(async (p: number, searchTerm?: string) => {
     setLoading(true)
     try {
-      const data = await getAllClientes()
-      setAllClientes(data)
+      const result = await getClientes(searchTerm || undefined, p, pageSize)
+      setPaginatedClientes(result.data)
+      setTotalClientes(result.total)
+      setTotalPages(result.totalPages)
     } catch (err) {
       console.error('Error loading clientes:', err)
       toast.error('Error al cargar clientes')
@@ -113,14 +101,31 @@ export default function ClientesPage() {
     }
   }, [])
 
+  // Load full list for autocomplete and export (lazy, only when needed)
+  const loadFullClientes = useCallback(async () => {
+    try {
+      const data = await getAllClientes()
+      setAllClientes(data)
+    } catch {
+      // Silently fail; full list is non-critical
+    }
+  }, [])
+
+  // Load paginated on mount and when page/search changes
   useEffect(() => {
-    loadAllClientes()
-  }, [loadAllClientes])
+    loadClientesPage(page, debouncedSearch)
+  }, [page, debouncedSearch, loadClientesPage])
+
+  // Load full list once in background for autocomplete/export
+  useEffect(() => {
+    loadFullClientes()
+  }, [loadFullClientes])
 
   const syncClientes = useCallback(() => {
     clearCache('allClientes')
-    loadAllClientes()
-  }, [loadAllClientes])
+    loadClientesPage(page, debouncedSearch)
+    loadFullClientes()
+  }, [loadClientesPage, loadFullClientes, page, debouncedSearch])
 
   useBackgroundSync(syncClientes, 600000, !loading)
 
@@ -150,7 +155,8 @@ export default function ClientesPage() {
       setEditId(null)
       setForm(emptyForm)
       setErrors({})
-      loadAllClientes()
+      loadClientesPage(1, debouncedSearch)
+      loadFullClientes()
     } catch (err) {
       console.error('Error saving cliente:', err)
       toast.error('Error al guardar el cliente')
@@ -178,24 +184,6 @@ export default function ClientesPage() {
   const [sortField, setSortField] = useState<string>('codigoCliente')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
-  const clientesSort = useMemo(() => [...clientesFiltrados.data].sort((a, b) => {
-    const aVal = a[sortField as keyof Cliente]
-    const bVal = b[sortField as keyof Cliente]
-    let cmp = 0
-    const aStr = String(aVal ?? '')
-    const bStr = String(bVal ?? '')
-    const aNum = parseFloat(aStr)
-    const bNum = parseFloat(bStr)
-    if (!isNaN(aNum) && !isNaN(bNum)) {
-      cmp = aNum - bNum
-    } else if (typeof aVal === 'number' && typeof bVal === 'number') {
-      cmp = aVal - bVal
-    } else {
-      cmp = aStr.localeCompare(bStr, 'es', { sensitivity: 'base' })
-    }
-    return sortDir === 'asc' ? cmp : -cmp
-  }), [clientesFiltrados.data, sortField, sortDir])
-
   const toggleSort = (field: string) => {
     if (sortField === field) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -204,6 +192,27 @@ export default function ClientesPage() {
       setSortDir('asc')
     }
   }
+
+  const clientesSort = useMemo(() => {
+    if (!paginatedClientes) return []
+    return [...paginatedClientes].sort((a, b) => {
+      const aVal = a[sortField as keyof Cliente]
+      const bVal = b[sortField as keyof Cliente]
+      let cmp = 0
+      const aStr = String(aVal ?? '')
+      const bStr = String(bVal ?? '')
+      const aNum = parseFloat(aStr)
+      const bNum = parseFloat(bStr)
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        cmp = aNum - bNum
+      } else if (typeof aVal === 'number' && typeof bVal === 'number') {
+        cmp = aVal - bVal
+      } else {
+        cmp = aStr.localeCompare(bStr, 'es', { sensitivity: 'base' })
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [paginatedClientes, sortField, sortDir])
 
   const SortIcon = ({ field }: { field: string }) => {
     if (sortField !== field) return <ChevronUp className="inline h-3 w-3 ml-1 text-[#4A4A6A]" />
@@ -246,7 +255,8 @@ export default function ClientesPage() {
       await deleteCliente(id)
       toast.success('Cliente eliminado exitosamente')
       setDeleteConfirm(null)
-      loadAllClientes()
+      loadClientesPage(1, debouncedSearch)
+      loadFullClientes()
     } catch (err) {
       console.error('Error deleting cliente:', err)
       toast.error('Error al eliminar el cliente')
@@ -283,7 +293,8 @@ export default function ClientesPage() {
       condicionIVA: mapCondicionIVA(String(row['Condicion de IVA'] ?? row.condicionIVA ?? row['Condición de IVA'] ?? '')),
     }))
     const result = await createMultipleClientes(items)
-    loadAllClientes()
+    loadClientesPage(1, debouncedSearch)
+    loadFullClientes()
     return result
   }
 
@@ -362,7 +373,7 @@ export default function ClientesPage() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#6C3CE1]" />
           </div>
-        ) : clientesFiltrados.data.length === 0 ? (
+        ) : clientesSort.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-[#6B6B8A]">No se encontraron clientes</p>
           </div>
@@ -456,10 +467,10 @@ export default function ClientesPage() {
         )}
 
         {/* Pagination */}
-        {clientesFiltrados.totalPages > 1 && (
+        {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
             <p className="text-sm text-[#6B6B8A]">
-              {clientesFiltrados.total} clientes - Página {page} de {clientesFiltrados.totalPages}
+              {totalClientes} clientes - Página {page} de {totalPages}
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -470,8 +481,8 @@ export default function ClientesPage() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
-                onClick={() => setPage((p) => Math.min(clientesFiltrados.totalPages, p + 1))}
-                disabled={page === clientesFiltrados.totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
                 className="p-1.5 rounded-lg text-[#6B6B8A] hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -721,7 +732,7 @@ export default function ClientesPage() {
         templateHeaders={['ID cliente', 'Razon social', 'Tipo de documento', 'Numero de documento', 'Actividad', 'Domicilio', 'Localidad', 'Condicion de IVA']}
         exampleData={clientesExampleData}
         onUpload={handleBulkUpload}
-        onRefresh={loadAllClientes}
+        onRefresh={() => { loadClientesPage(1, debouncedSearch); loadFullClientes() }}
       />
     </div>
   )

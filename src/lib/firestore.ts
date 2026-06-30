@@ -9,11 +9,15 @@ import {
   query,
   where,
   orderBy,
+  limit,
+  startAfter,
+  getCountFromServer,
   Timestamp,
   QueryConstraint,
   setDoc,
   writeBatch,
   runTransaction,
+  type DocumentSnapshot,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { clearCache } from './cache'
@@ -169,14 +173,41 @@ async function getNextCodigoCliente(): Promise<string> {
   }
 }
 
-export async function getClientes(search?: string, page = 1, pageSize = 10) {
+const _clientesCursors = new Map<number, DocumentSnapshot>()
+
+export async function getClientes(search?: string, page = 1, pageSize = 20) {
   try {
     const _db = getDb()
-    const constraints: QueryConstraint[] = []
-    constraints.push(orderBy('codigoCliente', 'asc'))
+    const baseQuery = collection(_db, COLECCIONES.clientes)
+    const order = orderBy('codigoCliente', 'asc')
 
-    const q = query(collection(_db, COLECCIONES.clientes), ...constraints)
+    // Total count (1 read, lightweight)
+    let total = 0
+    try {
+      const countSnap = await getCountFromServer(query(baseQuery, order))
+      total = countSnap.data().count
+    } catch {
+      const cached = await localGetAll<Cliente>('clientes')
+      total = cached.length
+    }
+
+    // Build paginated query
+    const dataConstraints: QueryConstraint[] = [order, limit(pageSize)]
+    if (page > 1 && _clientesCursors.has(page - 1)) {
+      dataConstraints.push(startAfter(_clientesCursors.get(page - 1)!))
+    }
+
+    const q = query(baseQuery, ...dataConstraints)
     const snapshot = await getDocs(q)
+
+    // Store cursor for next page
+    if (snapshot.docs.length > 0) {
+      _clientesCursors.set(page, snapshot.docs[snapshot.docs.length - 1])
+    }
+    // Clean up old cursors beyond current page
+    Array.from(_clientesCursors.keys()).forEach(key => {
+      if (key >= page + 2) _clientesCursors.delete(key)
+    })
 
     let clientes = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -193,13 +224,10 @@ export async function getClientes(search?: string, page = 1, pageSize = 10) {
       )
     }
 
-    const total = clientes.length
-    const start = (page - 1) * pageSize
-    const paginated = clientes.slice(start, start + pageSize)
+    // Cache en IndexedDB para fallback offline
+    syncManager.cacheCollection('clientes', snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as any)).catch(() => {})
 
-    syncManager.cacheCollection('clientes', clientes.map(c => ({ ...c, id: c.id! }))).catch(() => {})
-
-    return { data: paginated, total, totalPages: Math.ceil(total / pageSize) }
+    return { data: clientes, total, totalPages: Math.ceil(total / pageSize) }
   } catch {
     let clientes = await localGetAll<Cliente>('clientes')
 
@@ -262,6 +290,8 @@ export async function createCliente(data: Omit<Cliente, 'id' | 'createdAt' | 'co
   try {
     const docRef = await addDoc(collection(getDb(), COLECCIONES.clientes), fullData)
     await localSet('clientes', { id: docRef.id, ...fullData })
+    clearCache(CACHE_KEYS.clientes)
+    _clientesCursors.clear()
     return docRef.id
   } catch {
     throw new Error('Error al crear cliente en Firebase')
@@ -271,6 +301,8 @@ export async function createCliente(data: Omit<Cliente, 'id' | 'createdAt' | 'co
 export async function updateCliente(id: string, data: Partial<Cliente>) {
   try {
     await updateDoc(doc(getDb(), COLECCIONES.clientes, id), data)
+    clearCache(CACHE_KEYS.clientes)
+    _clientesCursors.clear()
   } catch {
     throw new Error('Error al actualizar cliente en Firebase')
   }
@@ -279,6 +311,8 @@ export async function updateCliente(id: string, data: Partial<Cliente>) {
 export async function deleteCliente(id: string) {
   try {
     await deleteDoc(doc(getDb(), COLECCIONES.clientes, id))
+    clearCache(CACHE_KEYS.clientes)
+    _clientesCursors.clear()
   } catch {
     throw new Error('Error al eliminar cliente en Firebase')
   }
@@ -365,13 +399,39 @@ export async function createMultipleClientes(
 
 // ============ PRODUCTOS ============
 
-export async function getProductos(search?: string, page = 1, pageSize = 10) {
-  try {
-    const constraints: QueryConstraint[] = []
-    constraints.push(orderBy('codigoProducto', 'asc'))
+const _productosCursors = new Map<number, DocumentSnapshot>()
 
-    const q = query(collection(getDb(), COLECCIONES.productos), ...constraints)
+export async function getProductos(search?: string, page = 1, pageSize = 20) {
+  try {
+    const _db = getDb()
+    const baseQuery = collection(_db, COLECCIONES.productos)
+    const order = orderBy('codigoProducto', 'asc')
+
+    // Total count (1 read)
+    let total = 0
+    try {
+      const countSnap = await getCountFromServer(query(baseQuery, order))
+      total = countSnap.data().count
+    } catch {
+      const cached = await localGetAll<Producto>('productos')
+      total = cached.length
+    }
+
+    // Paginated query
+    const dataConstraints: QueryConstraint[] = [order, limit(pageSize)]
+    if (page > 1 && _productosCursors.has(page - 1)) {
+      dataConstraints.push(startAfter(_productosCursors.get(page - 1)!))
+    }
+
+    const q = query(baseQuery, ...dataConstraints)
     const snapshot = await getDocs(q)
+
+    if (snapshot.docs.length > 0) {
+      _productosCursors.set(page, snapshot.docs[snapshot.docs.length - 1])
+    }
+    Array.from(_productosCursors.keys()).forEach(key => {
+      if (key >= page + 2) _productosCursors.delete(key)
+    })
 
     let productos = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -387,13 +447,9 @@ export async function getProductos(search?: string, page = 1, pageSize = 10) {
       )
     }
 
-    const total = productos.length
-    const start = (page - 1) * pageSize
-    const paginated = productos.slice(start, start + pageSize)
+    syncManager.cacheCollection('productos', snapshot.docs.map(d => ({ id: d.id, ...d.data() }) as any)).catch(() => {})
 
-    syncManager.cacheCollection('productos', productos.map(p => ({ ...p, id: p.id! }))).catch(() => {})
-
-    return { data: paginated, total, totalPages: Math.ceil(total / pageSize) }
+    return { data: productos, total, totalPages: Math.ceil(total / pageSize) }
   } catch {
     let productos = await localGetAll<Producto>('productos')
 
@@ -445,6 +501,8 @@ export async function createProducto(data: Omit<Producto, 'id' | 'createdAt'>) {
   try {
     const docRef = await addDoc(collection(getDb(), COLECCIONES.productos), fullData)
     await localSet('productos', { id: docRef.id, ...fullData })
+    clearCache(CACHE_KEYS.productos)
+    _productosCursors.clear()
     return docRef.id
   } catch {
     throw new Error('Error al crear producto en Firebase')
@@ -458,6 +516,8 @@ export async function updateProducto(id: string, data: Partial<Producto>) {
   }
   try {
     await updateDoc(doc(getDb(), COLECCIONES.productos, id), updateData)
+    clearCache(CACHE_KEYS.productos)
+    _productosCursors.clear()
   } catch {
     throw new Error('Error al actualizar producto en Firebase')
   }
@@ -466,6 +526,8 @@ export async function updateProducto(id: string, data: Partial<Producto>) {
 export async function deleteProducto(id: string) {
   try {
     await deleteDoc(doc(getDb(), COLECCIONES.productos, id))
+    clearCache(CACHE_KEYS.productos)
+    _productosCursors.clear()
   } catch {
     throw new Error('Error al eliminar producto en Firebase')
   }
@@ -882,6 +944,7 @@ export async function getRemitos(filters?: {
   try {
     const constraints: QueryConstraint[] = []
     constraints.push(orderBy('numeroRemito', 'desc'))
+    constraints.push(limit(50))
 
     if (filters?.estado && filters.estado !== 'todos') {
       constraints.push(where('estado', '==', filters.estado))
@@ -950,7 +1013,8 @@ export async function getAllRemitos() {
   try {
     const q = query(
       collection(getDb(), COLECCIONES.remitos),
-      orderBy('numeroRemito', 'desc')
+      orderBy('numeroRemito', 'desc'),
+      limit(50)
     )
     const snapshot = await getDocs(q)
       const data = snapshot.docs.map((doc) => {

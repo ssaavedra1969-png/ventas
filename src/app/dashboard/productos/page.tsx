@@ -3,9 +3,11 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import {
   getAllProductos,
+  getProductos,
   createProducto,
   updateProducto,
   deleteProducto,
+  createMultipleProductos,
 } from '@/lib/firestore'
 import type { Producto } from '@/types'
 import {
@@ -25,7 +27,6 @@ import {
 } from 'lucide-react'
 import BulkUploadModal from '@/components/BulkUploadModal'
 import AutocompleteInput from '@/components/AutocompleteInput'
-import { createMultipleProductos } from '@/lib/firestore'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
 
@@ -68,11 +69,14 @@ const emptyForm: ProductoForm = {
 
 export default function ProductosPage() {
   const [allProductos, setAllProductos] = useState<Producto[]>([])
+  const [paginatedProductos, setPaginatedProductos] = useState<Producto[]>([])
+  const [totalProductos, setTotalProductos] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [page, setPage] = useState(1)
-  const pageSize = 10
+  const pageSize = 20
   const [modalOpen, setModalOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [form, setForm] = useState<ProductoForm>(emptyForm)
@@ -91,38 +95,53 @@ export default function ProductosPage() {
     return () => clearTimeout(timer)
   }, [search])
 
-  // Filtrado + paginación client-side sobre allProductos
-  const productosFiltrados = useMemo(() => {
-    let filtered = allProductos
-    if (debouncedSearch) {
-      const s = debouncedSearch.toLowerCase()
-      filtered = allProductos.filter(
-        (p) =>
-          p.nombre.toLowerCase().includes(s) ||
-          p.tipo.toLowerCase().includes(s)
-      )
+  // Load paginated data from Firebase (limit 20)
+  const loadProductosPage = useCallback(async (p: number, searchTerm?: string) => {
+    setLoading(true)
+    try {
+      const result = await getProductos(searchTerm || undefined, p, pageSize)
+      setPaginatedProductos(result.data)
+      setTotalProductos(result.total)
+      setTotalPages(result.totalPages)
+    } catch {
+      toast.error('Error al cargar productos')
+    } finally {
+      setLoading(false)
     }
-    const total = filtered.length
-    const totalPages = Math.ceil(total / pageSize)
-    const start = (page - 1) * pageSize
-    return {
-      data: filtered.slice(start, start + pageSize),
-      total,
-      totalPages,
-    }
-  }, [allProductos, debouncedSearch, page])
+  }, [])
 
-  const productosSort = useMemo(() => [...productosFiltrados.data].sort((a, b) => {
-    const aVal = a[sortField as keyof Producto]
-    const bVal = b[sortField as keyof Producto]
-    let cmp = 0
-    if (typeof aVal === 'number' && typeof bVal === 'number') {
-      cmp = aVal - bVal
-    } else {
-      cmp = String(aVal ?? '').localeCompare(String(bVal ?? ''), 'es', { sensitivity: 'base' })
+  // Load full list for autocomplete and export (lazy)
+  const loadFullProductos = useCallback(async () => {
+    try {
+      const all = await getAllProductos()
+      setAllProductos(all)
+    } catch {
+      // Silently fail
     }
-    return sortDir === 'asc' ? cmp : -cmp
-  }), [productosFiltrados.data, sortField, sortDir])
+  }, [])
+
+  useEffect(() => {
+    loadProductosPage(page, debouncedSearch)
+  }, [page, debouncedSearch, loadProductosPage])
+
+  useEffect(() => {
+    loadFullProductos()
+  }, [loadFullProductos])
+
+  const productosSort = useMemo(() => {
+    if (!paginatedProductos) return []
+    return [...paginatedProductos].sort((a, b) => {
+      const aVal = a[sortField as keyof Producto]
+      const bVal = b[sortField as keyof Producto]
+      let cmp = 0
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        cmp = aVal - bVal
+      } else {
+        cmp = String(aVal ?? '').localeCompare(String(bVal ?? ''), 'es', { sensitivity: 'base' })
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [paginatedProductos, sortField, sortDir])
 
   const toggleSort = (field: string) => {
     if (sortField === field) {
@@ -139,22 +158,6 @@ export default function ProductosPage() {
       ? <ChevronUp className="inline h-3 w-3 ml-1 text-[#6C3CE1]" />
       : <ChevronDown className="inline h-3 w-3 ml-1 text-[#6C3CE1]" />
   }
-
-  const loadAllProductos = useCallback(async () => {
-    setLoading(true)
-    try {
-      const all = await getAllProductos()
-      setAllProductos(all)
-    } catch {
-      toast.error('Error al cargar productos')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadAllProductos()
-  }, [loadAllProductos])
 
   const sugerenciasNombre = allProductos.map((p) => p.nombre).filter(Boolean) as string[]
   const sugerenciasCodigoProducto = allProductos.map((p) => p.codigoProducto).filter(Boolean)
@@ -173,7 +176,8 @@ export default function ProductosPage() {
       }
     })
     const result = await createMultipleProductos(items)
-    loadAllProductos()
+    loadProductosPage(1, debouncedSearch)
+    loadFullProductos()
     return result
   }
 
@@ -202,7 +206,8 @@ export default function ProductosPage() {
       setEditId(null)
       setForm(emptyForm)
       setErrors({})
-      loadAllProductos()
+      loadProductosPage(1, debouncedSearch)
+      loadFullProductos()
     } catch (err) {
       console.error('Error saving product:', err)
       toast.error('Error al guardar el producto')
@@ -254,7 +259,8 @@ export default function ProductosPage() {
       await deleteProducto(id)
       toast.success('Producto eliminado exitosamente')
       setDeleteConfirm(null)
-      loadAllProductos()
+      loadProductosPage(1, debouncedSearch)
+      loadFullProductos()
     } catch (err) {
       console.error('Error deleting product:', err)
       toast.error('Error al eliminar el producto')
@@ -322,7 +328,7 @@ export default function ProductosPage() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#6C3CE1]" />
           </div>
-        ) : productosFiltrados.data.length === 0 ? (
+        ) : productosSort.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-[#6B6B8A]">No se encontraron productos</p>
           </div>
@@ -417,10 +423,10 @@ export default function ProductosPage() {
           </div>
         )}
 
-        {productosFiltrados.totalPages > 1 && (
+        {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
             <p className="text-sm text-[#6B6B8A]">
-              {productosFiltrados.total} productos - Página {page} de {productosFiltrados.totalPages}
+              {totalProductos} productos - Página {page} de {totalPages}
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -431,8 +437,8 @@ export default function ProductosPage() {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <button
-                onClick={() => setPage((p) => Math.min(productosFiltrados.totalPages, p + 1))}
-                disabled={page === productosFiltrados.totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
                 className="p-1.5 rounded-lg text-[#6B6B8A] hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -681,7 +687,7 @@ export default function ProductosPage() {
         templateHeaders={['Cod. Prod.', 'nombre', 'tipo', 'medida', 'Precio C/IVA', 'Precio S/IVA', 'stock']}
         exampleData={productosExampleData}
         onUpload={handleBulkUpload}
-        onRefresh={loadAllProductos}
+        onRefresh={() => { loadProductosPage(1, debouncedSearch); loadFullProductos() }}
       />
     </div>
   )
