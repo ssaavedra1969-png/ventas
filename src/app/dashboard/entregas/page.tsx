@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAllRemitos, eliminarEntrega, getAllVehiculos, getAllChoferes } from '@/lib/firestore'
-import { createSalida, deleteSalida, getAllSalidas, getSalida } from '@/lib/salidas'
+import { createSalida, updateSalida, deleteSalida, getAllSalidas, getSalida } from '@/lib/salidas'
 import type { Remito, RemitoItem, Entrega, Salida, Vehiculo, Chofer } from '@/types'
 import {
   Truck,
@@ -371,20 +371,32 @@ export default function EntregasPage() {
     }
     setGuardando(true)
     try {
-      await createSalida({
-        idRemito: modalRemitoId,
-        numeroRemito: remito.numeroRemito,
-        fecha: new Date(entregaFecha + 'T12:00:00'),
-        items,
-        vehiculoPatente: entregaVehiculoPatente || undefined,
-        vehiculoMarca: entregaVehiculoMarca || undefined,
-        choferNombre: entregaChofer || undefined,
-        clienteData: remito.clienteData,
-        remitoItems: remito.items,
-      })
-      toast.success('Salida registrada')
+      if (editandoEntregaId) {
+        await updateSalida(editandoEntregaId, {
+          fecha: new Date(entregaFecha + 'T12:00:00'),
+          items,
+          vehiculoPatente: entregaVehiculoPatente || undefined,
+          vehiculoMarca: entregaVehiculoMarca || undefined,
+          choferNombre: entregaChofer || undefined,
+        })
+        toast.success('Salida actualizada')
+      } else {
+        await createSalida({
+          idRemito: modalRemitoId,
+          numeroRemito: remito.numeroRemito,
+          fecha: new Date(entregaFecha + 'T12:00:00'),
+          items,
+          vehiculoPatente: entregaVehiculoPatente || undefined,
+          vehiculoMarca: entregaVehiculoMarca || undefined,
+          choferNombre: entregaChofer || undefined,
+          clienteData: remito.clienteData,
+          remitoItems: remito.items,
+        })
+        toast.success('Salida registrada')
+      }
       setModalAbierto(false)
       setModalRemitoId(null)
+      setEditandoEntregaId(null)
       await fetchData()
     } catch (e) {
       console.error('handleGuardarEntrega error:', e)
