@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Users, Package, UserCheck, SlidersHorizontal } from 'lucide-react'
+import { Users, Package, UserCheck, Truck, SlidersHorizontal } from 'lucide-react'
 
 const tabs = [
   { href: '/dashboard/parametrias/clientes', label: 'Clientes', icon: Users },
   { href: '/dashboard/parametrias/productos', label: 'Productos', icon: Package },
   { href: '/dashboard/parametrias/vendedores', label: 'Vendedores', icon: UserCheck },
+  { href: '/dashboard/parametrias/vehiculos', label: 'Vehículos', icon: Truck },
 ]
 
 export default function ParametriasLayout({ children }: { children: React.ReactNode }) {

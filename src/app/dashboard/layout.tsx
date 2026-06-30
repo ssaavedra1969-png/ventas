@@ -38,7 +38,6 @@ const navigation = [
     items: [
       { href: '/dashboard/facturacion', label: 'Facturación', icon: DollarSign, gradient: 'from-green-400 to-emerald-400' },
       { href: '/dashboard/entregas', label: 'Entregas', icon: Truck, gradient: 'from-amber-400 to-yellow-400' },
-      { href: '/dashboard/vehiculos', label: 'Vehículos', icon: Truck, gradient: 'from-cyan-400 to-teal-400' },
     ],
   },
   {
