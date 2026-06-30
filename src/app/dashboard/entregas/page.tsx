@@ -133,6 +133,7 @@ export default function EntregasPage() {
   const [entregaVehiculoPatente, setEntregaVehiculoPatente] = useState('')
   const [entregaVehiculoMarca, setEntregaVehiculoMarca] = useState('')
   const [entregaChofer, setEntregaChofer] = useState('')
+  const [entregaHora, setEntregaHora] = useState('')
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -251,6 +252,7 @@ export default function EntregasPage() {
         fecha: d,
         createdAt: s.createdAt ?? new Date(),
         items: s.items,
+        horaEntrega: s.horaEntrega,
         vehiculoPatente: s.vehiculoPatente,
         vehiculoMarca: s.vehiculoMarca,
         choferNombre: s.choferNombre,
@@ -335,6 +337,8 @@ export default function EntregasPage() {
     setEntregaVehiculoPatente(entrega.vehiculoPatente ?? '')
     setEntregaVehiculoMarca(entrega.vehiculoMarca ?? '')
     setEntregaChofer(entrega.choferNombre ?? '')
+    const salida = salidas.find(s => s.id === entregaId)
+    setEntregaHora(salida?.horaEntrega ?? '')
     setModalAbierto(true)
   }
 
@@ -343,6 +347,7 @@ export default function EntregasPage() {
     setEntregaVehiculoPatente('')
     setEntregaVehiculoMarca('')
     setEntregaChofer('')
+    setEntregaHora('')
     if (remitoId) {
       seleccionarRemitoParaEntrega(remitoId)
     } else {
@@ -387,6 +392,7 @@ export default function EntregasPage() {
       if (editandoEntregaId) {
         await updateSalida(editandoEntregaId, {
           fecha: new Date(entregaFecha + 'T12:00:00'),
+          horaEntrega: entregaHora || undefined,
           items,
           vehiculoPatente: entregaVehiculoPatente || undefined,
           vehiculoMarca: entregaVehiculoMarca || undefined,
@@ -398,6 +404,7 @@ export default function EntregasPage() {
           idRemito: modalRemitoId,
           numeroRemito: remito.numeroRemito,
           fecha: new Date(entregaFecha + 'T12:00:00'),
+          horaEntrega: entregaHora || undefined,
           items,
           vehiculoPatente: entregaVehiculoPatente || undefined,
           vehiculoMarca: entregaVehiculoMarca || undefined,
@@ -722,6 +729,9 @@ export default function EntregasPage() {
                                   <div className={`w-2 h-2 rounded-full ${c.dot} shrink-0`} />
                                   <span className={`text-[10px] font-mono font-bold ${c.text}`}>#{dd.remito.numeroRemito}</span>
                                   <span className="text-[10px] text-[#B0B0D0] truncate">{dd.remito.clienteData.razonSocial}</span>
+                                  {dd.entrega.horaEntrega && (
+                                    <span className="text-[10px] text-emerald-400/70">{dd.entrega.horaEntrega}</span>
+                                  )}
                                   <span className="text-[10px] text-[#6B6B8A] ml-auto">{dd.entrega.items.length} prod.</span>
                                 </div>
                               )
@@ -865,14 +875,25 @@ export default function EntregasPage() {
               </div>
 
               <div className="p-4 space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-[#6B6B8A] mb-1">Fecha de entrega</label>
-                  <input
-                    type="date"
-                    value={entregaFecha}
-                    onChange={(e) => setEntregaFecha(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#12122A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-[#6B6B8A] mb-1">Fecha de entrega</label>
+                    <input
+                      type="date"
+                      value={entregaFecha}
+                      onChange={(e) => setEntregaFecha(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#12122A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[#6B6B8A] mb-1">Horario de entrega</label>
+                    <input
+                      type="time"
+                      value={entregaHora}
+                      onChange={(e) => setEntregaHora(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#12122A] border border-white/5 text-white text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
+                    />
+                  </div>
                 </div>
 
                 {!modalRemitoId && (
@@ -1105,6 +1126,12 @@ function DeliveryCard({
             <span>{entrega.items.length} producto{entrega.items.length !== 1 ? 's' : ''}</span>
             <span>·</span>
             <span>{entrega.items.reduce((s, i) => s + i.cantidad, 0)} unidades</span>
+            {entrega.horaEntrega && (
+              <>
+                <span className="text-[#3A3A5A]">·</span>
+                <span className="text-emerald-400/70">{entrega.horaEntrega} hs</span>
+              </>
+            )}
             {(entrega.vehiculoPatente || entrega.choferNombre) && (
               <>
                 <span className="text-[#3A3A5A]">·</span>

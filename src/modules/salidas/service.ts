@@ -19,6 +19,7 @@ export async function createSalida(data: {
   idRemito: string
   numeroRemito: number
   fecha: Date
+  horaEntrega?: string
   items: EntregaItem[]
   vehiculoPatente?: string
   vehiculoMarca?: string
@@ -55,6 +56,7 @@ export async function createSalida(data: {
     numeroRemito: data.numeroRemito,
     fecha: Timestamp.fromDate(data.fecha),
     items: data.items,
+    ...(data.horaEntrega ? { horaEntrega: data.horaEntrega } : {}),
     ...(data.vehiculoPatente ? { vehiculoPatente: data.vehiculoPatente } : {}),
     ...(data.vehiculoMarca ? { vehiculoMarca: data.vehiculoMarca } : {}),
     ...(data.choferNombre ? { choferNombre: data.choferNombre } : {}),
@@ -80,6 +82,7 @@ function docToSalida(id: string, data: DocData): Salida {
     idRemito: data.idRemito,
     numeroRemito: data.numeroRemito,
     fecha: data.fecha?.toDate?.() ?? data.fecha,
+    horaEntrega: data.horaEntrega,
     items: data.items ?? [],
     vehiculoPatente: data.vehiculoPatente,
     vehiculoMarca: data.vehiculoMarca,
@@ -130,6 +133,7 @@ export async function getSalida(id: string): Promise<Salida | null> {
 
 export async function updateSalida(id: string, data: {
   fecha: Date
+  horaEntrega?: string
   items: EntregaItem[]
   vehiculoPatente?: string
   vehiculoMarca?: string
@@ -140,6 +144,7 @@ export async function updateSalida(id: string, data: {
     fecha: Timestamp.fromDate(data.fecha),
     items: data.items,
   }
+  if (data.horaEntrega !== undefined) updateData.horaEntrega = data.horaEntrega || null
   if (data.vehiculoPatente !== undefined) updateData.vehiculoPatente = data.vehiculoPatente || null
   if (data.vehiculoMarca !== undefined) updateData.vehiculoMarca = data.vehiculoMarca || null
   if (data.choferNombre !== undefined) updateData.choferNombre = data.choferNombre || null

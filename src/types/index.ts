@@ -61,6 +61,7 @@ export interface Entrega {
   fecha: Date
   createdAt: Date
   items: EntregaItem[]
+  horaEntrega?: string
   vehiculoPatente?: string
   vehiculoMarca?: string
   choferNombre?: string
@@ -206,6 +207,7 @@ export interface Salida {
   idRemito: string
   numeroRemito: number
   fecha: Date
+  horaEntrega?: string
   items: EntregaItem[]
   vehiculoPatente?: string
   vehiculoMarca?: string
