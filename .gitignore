@@ -31,6 +31,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# working notes
+*.txt
+
 # firebase service account keys
 *-firebase-adminsdk-*.json
 
