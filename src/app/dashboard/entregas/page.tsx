@@ -312,8 +312,20 @@ export default function EntregasPage() {
   const abrirModalEditarEntrega = (remitoId: string, entregaId: string) => {
     const remito = remitosConEstado.find(r => r.id === remitoId)
     if (!remito) return
-    const entrega = remito.entregas?.find(e => e.id === entregaId)
-    if (!entrega) return
+    let entrega = remito.entregas?.find(e => e.id === entregaId)
+    if (!entrega) {
+      const salida = salidas.find(s => s.id === entregaId)
+      if (!salida) return
+      entrega = {
+        id: salida.id ?? '',
+        fecha: toDate(salida.fecha),
+        createdAt: salida.createdAt ?? new Date(),
+        items: salida.items,
+        vehiculoPatente: salida.vehiculoPatente,
+        vehiculoMarca: salida.vehiculoMarca,
+        choferNombre: salida.choferNombre,
+      }
+    }
     setEditandoEntregaId(entregaId)
     setModalRemitoId(remitoId)
     setEntregaItems(
