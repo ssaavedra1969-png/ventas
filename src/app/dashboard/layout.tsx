@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
-  FileText,
   PlusCircle,
+  ClipboardList,
   Menu,
   Settings,
   Building2,
@@ -34,23 +34,29 @@ const navigation = [
     ],
   },
   {
+    section: 'PRESUPUESTOS',
+    items: [
+      { href: '/dashboard/presupuestos/nuevo', label: 'Nuevo Presupuesto', icon: PlusCircle, gradient: 'from-pink-400 to-rose-400' },
+      { href: '/dashboard/presupuestos', label: 'Presupuestos', icon: ClipboardList, gradient: 'from-blue-400 to-cyan-400' },
+    ],
+  },
+  {
     section: 'REMITOS',
     items: [
-      { href: '/dashboard/remitos/nuevo', label: 'Nuevo Remito', icon: PlusCircle, gradient: 'from-pink-400 to-rose-400' },
+      { href: '/dashboard/remitos', label: 'Remitos', icon: Truck, gradient: 'from-violet-400 to-purple-400' },
     ],
   },
   {
     section: 'GESTIÓN',
     items: [
       { href: '/dashboard/facturacion', label: 'Facturación', icon: DollarSign, gradient: 'from-green-400 to-emerald-400' },
-      { href: '/dashboard/entregas', label: 'Entregas', icon: Truck, gradient: 'from-amber-400 to-yellow-400' },
+      { href: '/dashboard/entregas', label: 'Salidas', icon: Truck, gradient: 'from-amber-400 to-yellow-400' },
     ],
   },
   {
     section: 'INFORMES',
     items: [
       { href: '/dashboard/informes', label: 'Informes', icon: BarChart3, gradient: 'from-purple-400 to-violet-400' },
-      { href: '/dashboard/remitos', label: 'Listado', icon: FileText, gradient: 'from-sky-400 to-blue-400' },
     ],
   },
 ]

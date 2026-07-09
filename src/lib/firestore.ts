@@ -1351,7 +1351,9 @@ export async function getDashboardStats(): Promise<{
 
   try {
     const allRemitos = await getAllRemitos()
-    const clientes = await getAllClientes()
+    const _db = getDb()
+    const clientesSnap = await getCountFromServer(collection(_db, 'clientes'))
+    const clientesActivos = clientesSnap.data().count
 
     const sorted = [...allRemitos].sort((a, b) => {
       const da = a.createdAt ? new Date(a.createdAt).getTime() : 0
@@ -1371,7 +1373,7 @@ export async function getDashboardStats(): Promise<{
       }
     }
 
-    return { remitosMes, totalFacturado, clientesActivos: clientes.length, ultimosRemitos }
+    return { remitosMes, totalFacturado, clientesActivos, ultimosRemitos }
   } catch {
     const remitos = await localGetAll<Remito>('remitos')
 

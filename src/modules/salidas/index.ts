@@ -2,6 +2,7 @@ export {
   createSalida,
   updateSalida,
   getAllSalidas,
+  getSalidasByMonth,
   getSalidasByRemito,
   getSalida,
   deleteSalida,

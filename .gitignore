@@ -48,3 +48,4 @@ next-env.d.ts
 /backups/datos-*/
 /backups/proyecto-*/
 /backups/service-account.json
+/backups/*.json

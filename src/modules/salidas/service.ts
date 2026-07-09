@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
-  query, orderBy, where, Timestamp,
+  query, orderBy, where, limit, Timestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { localGet, localSet, localDelete } from '@/lib/db'
@@ -110,13 +110,37 @@ export async function getSalidasByRemito(remitoId: string): Promise<Salida[]> {
 
 export async function getAllSalidas() {
   try {
-    const q = query(collection(getDb(), COL), orderBy('createdAt', 'desc'))
+    const q = query(collection(getDb(), COL), orderBy('createdAt', 'desc'), limit(20))
     const snap = await getDocs(q)
     const list = snap.docs.map((d) => docToSalida(d.id, d.data()))
     return list
   } catch {
     const cached = await localGet<{ data: Salida[] }>('salidas_cache', 'all').catch(() => null)
     return cached?.data ?? []
+  }
+}
+
+export async function getSalidasByMonth(year: number, month: number): Promise<Salida[]> {
+  const start = new Date(year, month, 1)
+  const end = new Date(year, month + 1, 1)
+  try {
+    const q = query(
+      collection(getDb(), COL),
+      where('fecha', '>=', Timestamp.fromDate(start)),
+      where('fecha', '<', Timestamp.fromDate(end)),
+      orderBy('fecha', 'asc')
+    )
+    const snap = await getDocs(q)
+    return snap.docs.map((d) => docToSalida(d.id, d.data()))
+  } catch {
+    const cached = await localGet<{ data: Salida[] }>('salidas_cache', 'all').catch(() => null)
+    if (cached?.data) {
+      return cached.data.filter((s) => {
+        const d = s.fecha instanceof Date ? s.fecha : new Date(s.fecha)
+        return d >= start && d < end
+      })
+    }
+    return []
   }
 }
 

@@ -124,10 +124,10 @@ export default function RemitoViewPage() {
           animate={{ opacity: 1, scale: 1 }}
         >
           <Receipt className="h-16 w-16 text-[#6B6B8A] mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Remito no encontrado</h1>
-          <p className="text-[#B0B0D0] mb-6">El remito que buscás no existe o fue eliminado.</p>
+          <h1 className="text-2xl font-bold text-white mb-2">Documento no encontrado</h1>
+          <p className="text-[#B0B0D0] mb-6">El documento que buscás no existe o fue eliminado.</p>
           <button
-            onClick={() => router.push(from ? `/dashboard/remitos?tab=${from}` : '/dashboard')}
+            onClick={() => router.push(from === 'presupuestos' ? '/dashboard/presupuestos' : from === 'remitos' ? '/dashboard/remitos' : '/dashboard')}
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl btn-nebula text-sm font-medium cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -164,7 +164,7 @@ export default function RemitoViewPage() {
       <div className="no-print bg-[#060612]/80 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
-            onClick={() => router.push(from ? `/dashboard/remitos?tab=${from}` : '/dashboard')}
+            onClick={() => router.push(from === 'presupuestos' ? '/dashboard/presupuestos' : from === 'remitos' ? '/dashboard/remitos' : '/dashboard')}
             className="inline-flex items-center gap-2 text-sm text-[#B0B0D0] hover:text-white transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -184,14 +184,16 @@ export default function RemitoViewPage() {
                 <span className="hidden sm:inline">WhatsApp</span>
               </button>
             )}
-            <button
-              onClick={() => router.push(`/remitos/${params.id}/salida`)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/20"
-              title="Generar Remito de Salida"
-            >
-              <Truck className="h-4 w-4" />
-              <span className="hidden sm:inline">Remito de Salida</span>
-            </button>
+            {!presupuesto && (
+              <button
+                onClick={() => router.push(`/remitos/${params.id}/salida`)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/20"
+                title="Generar Remito de Salida"
+              >
+                <Truck className="h-4 w-4" />
+                <span className="hidden sm:inline">Remito de Salida</span>
+              </button>
+            )}
             <button
               onClick={handlePrint}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl btn-nebula text-sm font-medium"

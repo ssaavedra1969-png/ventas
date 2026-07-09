@@ -23,7 +23,7 @@ export async function getAllRemitos() {
     const q = query(
       collection(getDb(), COLECCIONES.remitos),
       orderBy('numeroRemito', 'desc'),
-      limit(50)
+      limit(20)
     )
     const snapshot = await getDocs(q)
     const data = snapshot.docs.map((doc) => {
@@ -84,7 +84,7 @@ export async function getRemitos(filters?: {
   try {
     const constraints: import('firebase/firestore').QueryConstraint[] = []
     constraints.push(orderBy('numeroRemito', 'desc'))
-    constraints.push(limit(50))
+    constraints.push(limit(20))
 
     if (filters?.estado && filters.estado !== 'todos') {
       constraints.push(where('estado', '==', filters.estado))

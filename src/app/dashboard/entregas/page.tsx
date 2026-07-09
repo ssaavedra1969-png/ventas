@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { getAllRemitos, eliminarEntrega } from '@/modules/legacy'
+import { getAllRemitosAprobados } from '@/modules/remitos-aprobados'
 import { getAllVehiculos, getAllChoferes } from '@/modules/vehiculos'
 import { createSalida, updateSalida, deleteSalida, getAllSalidas, getSalida } from '@/modules/salidas'
 import type { Remito, RemitoItem, Entrega, Salida, Vehiculo, Chofer } from '@/types'
@@ -138,11 +139,31 @@ export default function EntregasPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [r, s] = await Promise.all([
+      const [legacy, aprobados, s] = await Promise.all([
         getAllRemitos(),
+        getAllRemitosAprobados(),
         getAllSalidas(),
       ])
-      setRemitos(r)
+      const merged = [
+        ...legacy,
+        ...aprobados.map((a) => ({
+          id: a.id,
+          numeroRemito: a.numeroRemito,
+          fecha: a.fecha,
+          idCliente: a.idCliente,
+          clienteData: a.clienteData,
+          vendedor: a.vendedor,
+          items: a.items,
+          subtotalGeneral: a.subtotalGeneral,
+          iva: a.iva,
+          totalGeneral: a.totalGeneral,
+          estado: a.estado as Remito['estado'],
+          observaciones: a.observaciones,
+          createdAt: a.createdAt,
+          entregas: [],
+        } as Remito)),
+      ]
+      setRemitos(merged)
       setSalidas(s)
     } catch {
       toast.error('Error al cargar datos')
@@ -454,8 +475,8 @@ export default function EntregasPage() {
             <CalendarDays className="h-6 w-6 text-amber-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Plan de Entregas</h1>
-            <p className="text-[#B0B0D0] text-sm">Cronograma mensual de entregas</p>
+            <h1 className="text-2xl font-bold text-white">Plan de Salidas</h1>
+            <p className="text-[#B0B0D0] text-sm">Cronograma mensual de salidas</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -471,7 +492,7 @@ export default function EntregasPage() {
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/20"
           >
             <Plus className="h-4 w-4" />
-            <span className="hidden sm:inline">Nueva Entrega</span>
+            <span className="hidden sm:inline">Nueva Salida</span>
           </button>
         </div>
       </div>
@@ -486,7 +507,7 @@ export default function EntregasPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Target className="h-4 w-4 text-amber-400" />
-              <h2 className="text-sm font-semibold text-white">Entregas Pendientes</h2>
+              <h2 className="text-sm font-semibold text-white">Salidas Pendientes</h2>
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-medium">{remitosPendientes.length}</span>
             </div>
             <div className="flex gap-1">
@@ -553,7 +574,7 @@ export default function EntregasPage() {
                         className={`w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl text-xs font-medium ${c.light} ${c.text} hover:brightness-125 transition-all`}
                       >
                         <Plus className="h-3 w-3" />
-                        Programar Entrega
+                        Programar Salida
                       </button>
                     </div>
                   </motion.div>
@@ -567,10 +588,10 @@ export default function EntregasPage() {
       {/* ─────── STATS ─────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
         {[
-          { label: 'Entregas', value: statsMes.totalDeliveries, sub: 'este mes', color: 'text-amber-400', icon: CalendarDays },
-          { label: 'Unidades', value: statsMes.totalItems, sub: 'entregadas', color: 'text-blue-400', icon: Package },
+          { label: 'Salidas', value: statsMes.totalDeliveries, sub: 'este mes', color: 'text-amber-400', icon: CalendarDays },
+          { label: 'Unidades', value: statsMes.totalItems, sub: 'despachadas', color: 'text-blue-400', icon: Package },
           { label: 'Días activos', value: statsMes.daysWithDeliveries, sub: `de ${calendarDays.filter(d => isSameMonth(d, new Date(añoActual, mesActual))).length}`, color: 'text-emerald-400', icon: BarChart3 },
-          { label: 'Remitos', value: statsMes.remitosUnicos, sub: 'con entregas', color: 'text-violet-400', icon: Truck },
+          { label: 'Remitos', value: statsMes.remitosUnicos, sub: 'con salidas', color: 'text-violet-400', icon: Truck },
           { label: 'Pendientes', value: statsMes.pendientes, sub: 'remitos', color: 'text-amber-400', icon: Clock },
           { label: 'En Progreso', value: statsMes.enProgreso, sub: 'parciales', color: 'text-blue-400', icon: Zap },
           { label: 'Completadas', value: statsMes.completadas, sub: 'remitos', color: 'text-emerald-400', icon: CheckCircle2 },
@@ -660,9 +681,12 @@ export default function EntregasPage() {
                 const isTodayDate = isToday(date)
 
                 return (
-                  <button
+                  <div
                     key={key}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => { if (isCurrent) toggleDia(key) }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (isCurrent) toggleDia(key) } }}
                     className={`
                       relative min-h-[90px] sm:min-h-[110px] p-1.5 border-b border-r border-white/[0.03]
                       transition-all duration-200 group text-left
@@ -703,7 +727,7 @@ export default function EntregasPage() {
                         </div>
                         <div className="flex items-center gap-1">
                           <span className="text-[10px] text-[#6B6B8A]">
-                            {deliveryCount} entrega{deliveryCount !== 1 ? 's' : ''}
+                            {deliveryCount} salida{deliveryCount !== 1 ? 's' : ''}
                           </span>
                           {data!.clientes.size > 0 && (
                             <>
@@ -756,7 +780,7 @@ export default function EntregasPage() {
                         </button>
                       </div>
                     )}
-                  </button>
+                  </div>
                 )
               })}
             </div>
@@ -784,7 +808,7 @@ export default function EntregasPage() {
                     {format(diaSeleccionadoData.date, "EEEE d 'de' MMMM 'de' yyyy", { locale: es })}
                   </p>
                   <p className="text-xs text-[#6B6B8A]">
-                    {diaSeleccionadoData.deliveries.length} entrega{diaSeleccionadoData.deliveries.length !== 1 ? 's' : ''}
+                    {diaSeleccionadoData.deliveries.length} salida{diaSeleccionadoData.deliveries.length !== 1 ? 's' : ''}
                     {' · '}{diaSeleccionadoData.totalItems} unidades
                     {' · '}{diaSeleccionadoData.clientes.size} cliente{diaSeleccionadoData.clientes.size !== 1 ? 's' : ''}
                   </p>
@@ -811,12 +835,12 @@ export default function EntregasPage() {
               {diaSeleccionadoData.deliveries.length === 0 ? (
                 <div className="text-center py-8">
                   <CalendarDays className="h-8 w-8 text-[#3A3A5A] mx-auto mb-2" />
-                  <p className="text-sm text-[#6B6B8A]">Sin entregas este día</p>
+                  <p className="text-sm text-[#6B6B8A]">Sin salidas este día</p>
                   <button
                     onClick={() => abrirModalNuevaEntrega(diaSeleccionado!)}
                     className="mt-3 text-xs text-amber-400 hover:text-amber-300 transition-colors"
                   >
-                    + Programar entrega
+                    + Programar salida
                   </button>
                 </div>
               ) : (
@@ -865,7 +889,7 @@ export default function EntregasPage() {
               className="glass-card rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto"
             >
               <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-                <h3 className="font-semibold text-white">{editandoEntregaId ? 'Editar Entrega' : 'Registrar Entrega'}</h3>
+                <h3 className="font-semibold text-white">{editandoEntregaId ? 'Editar Salida' : 'Registrar Salida'}</h3>
                 <button
                   onClick={() => setModalAbierto(false)}
                   className="p-1 rounded-lg hover:bg-white/5 text-[#6B6B8A] hover:text-white transition-colors"
@@ -877,7 +901,7 @@ export default function EntregasPage() {
               <div className="p-4 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-[#6B6B8A] mb-1">Fecha de entrega</label>
+                    <label className="block text-xs font-medium text-[#6B6B8A] mb-1">Fecha de salida</label>
                     <input
                       type="date"
                       value={entregaFecha}
@@ -886,7 +910,7 @@ export default function EntregasPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-[#6B6B8A] mb-1">Horario de entrega</label>
+                    <label className="block text-xs font-medium text-[#6B6B8A] mb-1">Horario de salida</label>
                     <input
                       type="time"
                       value={entregaHora}
@@ -926,7 +950,7 @@ export default function EntregasPage() {
                 {modalRemitoId && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-medium text-[#6B6B8A]">Productos a entregar</label>
+                      <label className="text-xs font-medium text-[#6B6B8A]">Productos a despachar</label>
                       <button
                         onClick={() => { setModalRemitoId(null); setEntregaItems([]) }}
                         className="text-[10px] text-[#6C3CE1] hover:text-[#8B5CF6] transition-colors"
@@ -944,7 +968,7 @@ export default function EntregasPage() {
                             <div className="flex-1 min-w-0">
                               <p className="text-xs text-white truncate">{prod.nombreProducto}</p>
                               <p className="text-[10px] text-[#6B6B8A]">
-                                Pendiente: {prod.pendiente} · Entregado: {prod.entregado}
+                                Pendiente: {prod.pendiente} · Despachado: {prod.entregado}
                               </p>
                             </div>
                             <input
@@ -1024,7 +1048,7 @@ export default function EntregasPage() {
                   ) : (
                     <>
                       <Truck className="h-4 w-4" />
-                      {editandoEntregaId ? 'Actualizar Entrega' : 'Registrar Entrega'}
+                      {editandoEntregaId ? 'Actualizar Salida' : 'Registrar Salida'}
                     </>
                   )}
                 </button>
@@ -1052,7 +1076,7 @@ export default function EntregasPage() {
               className="glass-card rounded-2xl w-full max-w-sm p-6 text-center"
             >
               <AlertCircle className="h-10 w-10 text-red-400 mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-white mb-2">Eliminar entrega</h3>
+              <h3 className="text-lg font-semibold text-white mb-2">Eliminar salida</h3>
               <p className="text-sm text-[#6B6B8A] mb-6">¿Estás seguro? Esta acción no se puede deshacer.</p>
               <div className="flex gap-3 justify-center">
                 <button
@@ -1078,7 +1102,7 @@ export default function EntregasPage() {
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="glass-card rounded-2xl p-6 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-[#6C3CE1] mx-auto mb-3" />
-            <p className="text-sm text-[#B0B0D0]">Cargando entregas...</p>
+            <p className="text-sm text-[#B0B0D0]">Cargando salidas...</p>
           </div>
         </div>
       )}
@@ -1112,8 +1136,11 @@ function DeliveryCard({
       animate={{ opacity: 1 }}
       className="group"
     >
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setExpanded(!expanded)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded) } }}
         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/[0.02] transition-colors text-left"
       >
         <div className={`w-2 h-2 rounded-full shrink-0 ${color.dot}`} />
@@ -1153,7 +1180,7 @@ function DeliveryCard({
           <button
             onClick={(e) => { e.stopPropagation(); onEdit() }}
             className="p-1.5 rounded-lg hover:bg-sky-500/10 text-[#6B6B8A] hover:text-sky-400 transition-colors"
-            title="Editar entrega"
+            title="Editar salida"
           >
             <Pencil className="h-3.5 w-3.5" />
           </button>
@@ -1173,7 +1200,7 @@ function DeliveryCard({
           </button>
           <ChevronRight className={`h-4 w-4 text-[#3A3A5A] transition-transform ${expanded ? 'rotate-90' : ''}`} />
         </div>
-      </button>
+      </div>
 
       <AnimatePresence>
         {expanded && (

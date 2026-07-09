@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, addDoc,
-  query, orderBy, Timestamp, runTransaction,
+  query, orderBy, limit, Timestamp, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { localGet, localSet } from '@/lib/db'
@@ -105,7 +105,7 @@ function docToFactura(id: string, data: DocData): Factura {
 
 export async function getAllFacturas() {
   try {
-    const q = query(collection(getDb(), COL), orderBy('numeroFacturaInterno', 'desc'))
+    const q = query(collection(getDb(), COL), orderBy('numeroFacturaInterno', 'desc'), limit(20))
     const snap = await getDocs(q)
     const list = snap.docs.map((d) => docToFactura(d.id, d.data()))
     await localSet('facturas_cache', { id: 'all', data: list })

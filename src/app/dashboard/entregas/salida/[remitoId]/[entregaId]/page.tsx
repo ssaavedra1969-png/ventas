@@ -143,14 +143,14 @@ export default function EntregaSalidaPage() {
       <div className="min-h-screen bg-[#060612] flex items-center justify-center">
         <motion.div className="text-center" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
           <Receipt className="h-16 w-16 text-[#6B6B8A] mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Entrega no encontrada</h1>
-          <p className="text-[#B0B0D0] mb-6">La entrega que buscás no existe o fue eliminada.</p>
+          <h1 className="text-2xl font-bold text-white mb-2">Salida no encontrada</h1>
+          <p className="text-[#B0B0D0] mb-6">La salida que buscás no existe o fue eliminada.</p>
           <button
             onClick={() => router.push('/dashboard/entregas')}
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl btn-nebula text-sm font-medium cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
-            Volver a Entregas
+            Volver a Salidas
           </button>
         </motion.div>
       </div>
@@ -181,7 +181,7 @@ export default function EntregaSalidaPage() {
             className="inline-flex items-center gap-2 text-sm text-[#B0B0D0] hover:text-white transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />
-            Volver a Entregas
+            Volver a Salidas
           </button>
           <button
             onClick={handlePrint}
@@ -262,7 +262,7 @@ export default function EntregaSalidaPage() {
                       {fechaEntrega}
                     </div>
                     <p className="text-[9px] text-gray-400 mt-0.5">
-                      Entrega N° {entrega.id.slice(-6).toUpperCase()}
+                      Salida N° {entrega.id.slice(-6).toUpperCase()}
                     </p>
                   </div>
                 </div>
@@ -316,7 +316,7 @@ export default function EntregaSalidaPage() {
           <div className="px-8 sm:px-12 py-5">
             <div className="flex items-center gap-2 mb-3">
               <Package className="h-4 w-4 text-amber-600" />
-              <h2 className="text-[10px] font-bold text-amber-800 uppercase tracking-[0.2em]">Materiales Entregados</h2>
+              <h2 className="text-[10px] font-bold text-amber-800 uppercase tracking-[0.2em]">Materiales Despachados</h2>
             </div>
 
             <table className="w-full">
@@ -345,7 +345,7 @@ export default function EntregaSalidaPage() {
 
             <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-[10px] text-gray-500 pt-2 border-t border-gray-100">
               <span>Total productos: <strong className="text-gray-800">{entrega.items.length}</strong></span>
-              <span>Unidades entregadas: <strong className="text-gray-800">{totalUnidades}</strong></span>
+              <span>Unidades despachadas: <strong className="text-gray-800">{totalUnidades}</strong></span>
               {entrega.vehiculoPatente && (
                 <span>Vehículo: <strong className="text-gray-800">{entrega.vehiculoPatente}{entrega.vehiculoMarca ? ` (${entrega.vehiculoMarca})` : ''}</strong></span>
               )}
@@ -416,8 +416,8 @@ export default function EntregaSalidaPage() {
             </div>
 
             <div className="mt-4 text-center text-[9px] text-gray-400">
-              <p>Fecha de entrega: {fechaEntrega}</p>
-              <p className="mt-0.5">Documento generado electrónicamente — Válido como constancia de entrega</p>
+              <p>Fecha de salida: {fechaEntrega}</p>
+              <p className="mt-0.5">Documento generado electrónicamente — Válido como constancia de salida</p>
             </div>
           </div>
 

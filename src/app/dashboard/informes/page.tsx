@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
-import { getAllRemitos } from '@/modules/legacy'
+import { getAllRemitos, getRemitos } from '@/modules/legacy'
 import type { Remito } from '@/types'
 import {
   BarChart3,
@@ -78,11 +78,19 @@ export default function InformesPage() {
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(true)
   const printRef = useRef<HTMLDivElement>(null)
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (filters?: { desde?: string; hasta?: string }) => {
     setLoading(true)
     try {
-      const r = await getAllRemitos()
-      setRemitos(r)
+      if (filters?.desde || filters?.hasta) {
+        const r = await getRemitos({
+          ...(filters.desde ? { desde: new Date(filters.desde + 'T00:00:00') } : {}),
+          ...(filters.hasta ? { hasta: new Date(filters.hasta + 'T23:59:59') } : {}),
+        })
+        setRemitos(r)
+      } else {
+        const r = await getAllRemitos()
+        setRemitos(r)
+      }
     } catch {
       toast.error('Error al cargar datos')
     } finally {
@@ -91,6 +99,12 @@ export default function InformesPage() {
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  useEffect(() => {
+    if (filtros.fechaDesde || filtros.fechaHasta) {
+      fetchData({ desde: filtros.fechaDesde || undefined, hasta: filtros.fechaHasta || undefined })
+    }
+  }, [filtros.fechaDesde, filtros.fechaHasta])
 
   const vendedoresUnicos = useMemo(() => {
     const set = new Set<string>()
@@ -184,7 +198,7 @@ export default function InformesPage() {
         cantidadEntregas: entregas.length,
         estadoEntregas: entregas.length > 0
           ? entregas.length === r.items.length ? 'Completa' : 'Parcial'
-          : 'Sin entregas',
+          : 'Sin salidas',
         idsEntrega,
         items: r.items.length,
         nroNC: r.facturaAnulada ? (r.nroNC || 'S/N') : '—',
@@ -217,9 +231,9 @@ export default function InformesPage() {
           'Métodos de Pago': f.metodosPago,
           'Ref. Pagos': f.refPagos,
           'Cant. Pagos': f.cantidadPagos,
-          'Cant. Entregas': f.cantidadEntregas,
-          'IDs Entrega': f.idsEntrega,
-          'Estado Entregas': f.estadoEntregas,
+          'Cant. Salidas': f.cantidadEntregas,
+          'IDs Salida': f.idsEntrega,
+          'Estado Salidas': f.estadoEntregas,
           'Items': f.items,
           'N° NC': f.nroNC,
           'Monto NC': f.montoNC,
@@ -257,6 +271,7 @@ export default function InformesPage() {
           <p className="text-sm text-[#6B6B8A]">
             {remitosFiltrados.length} de {remitos.length} remitos
           </p>
+          <p className="text-[10px] text-[#4A4A6A] mt-0.5">Mostrando los 20 más recientes. Usá filtros de fecha para ver más.</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -429,7 +444,7 @@ export default function InformesPage() {
                 <th className="text-right px-3 py-2.5 font-semibold text-[#6B6B8A] uppercase tracking-wider">Pagado</th>
                 <th className="text-right px-3 py-2.5 font-semibold text-[#6B6B8A] uppercase tracking-wider">Saldo</th>
                 <th className="text-center px-3 py-2.5 font-semibold text-[#6B6B8A] uppercase tracking-wider">Pagos</th>
-                <th className="text-center px-3 py-2.5 font-semibold text-[#6B6B8A] uppercase tracking-wider">Entregas</th>
+                <th className="text-center px-3 py-2.5 font-semibold text-[#6B6B8A] uppercase tracking-wider">Salidas</th>
                 <th className="text-center px-3 py-2.5 font-semibold text-[#6B6B8A] uppercase tracking-wider">Items</th>
               </tr>
             </thead>
@@ -444,7 +459,7 @@ export default function InformesPage() {
                   <td className="px-3 py-2.5 text-[#B0B0D0]">{f.vendedor}</td>
                   <td className="px-3 py-2.5">
                     <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${estadoBadge[f.estado] || 'bg-white/5 text-[#B0B0D0]'}`}>
-                      {f.estado === 'En_Revision' ? 'En Revisión' : f.estado === 'A_Entregar' ? 'A Entregar' : f.estado}
+                      {f.estado === 'En_Revision' ? 'En Revisión' : f.estado === 'A_Entregar' ? 'A Despachar' : f.estado}
                     </span>
                   </td>
                   <td className="px-3 py-2.5 text-right font-mono text-emerald-400 font-medium">{formatCurrency(f.total)}</td>
@@ -514,7 +529,7 @@ export default function InformesPage() {
             <tr>
               <th>N°</th><th>Fecha</th><th>Cliente</th><th>Doc.</th><th>Localidad</th>
               <th>Vendedor</th><th>Estado</th><th>Total</th><th>Factura</th>
-              <th>Pagado</th><th>Saldo</th><th>Pagos</th><th>Entregas</th><th>Items</th>
+              <th>Pagado</th><th>Saldo</th><th>Pagos</th><th>Salidas</th><th>Items</th>
             </tr>
           </thead>
           <tbody>

@@ -114,7 +114,7 @@ async function main() {
   console.log(`\nRestaurando colecciones desde: ${inputDir}`)
   console.log('')
 
-  const collections = ['clientes', 'productos', 'vendedores', 'remitos', 'contadores']
+  const collections = ['clientes', 'productos', 'vendedores', 'remitos', 'contadores', 'presupuestos', 'remitos_aprobados', 'facturas', 'salidas']
   const totals = { total: 0, ok: 0, errors: 0 }
 
   for (const name of collections) {

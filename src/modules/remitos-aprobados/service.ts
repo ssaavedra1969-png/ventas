@@ -1,6 +1,6 @@
 import {
   collection, doc, getDoc, getDocs, addDoc, updateDoc,
-  query, orderBy, Timestamp, runTransaction,
+  query, orderBy, limit, Timestamp, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { localGet, localSet } from '@/lib/db'
@@ -102,7 +102,7 @@ function docToRemito(id: string, data: DocData): RemitoAprobado {
 
 export async function getAllRemitosAprobados() {
   try {
-    const q = query(collection(getDb(), COL), orderBy('numeroRemito', 'desc'))
+    const q = query(collection(getDb(), COL), orderBy('numeroRemito', 'desc'), limit(20))
     const snap = await getDocs(q)
     const list = snap.docs.map((d) => docToRemito(d.id, d.data()))
     await localSet('remitos_aprobados_cache', { id: 'all', data: list })

@@ -8,14 +8,14 @@
   {
     "_id": "factura_2026",
     "_createdAt": "2026-06-27T16:16:47.940Z",
-    "_updatedAt": "2026-06-27T16:16:47.940Z",
-    "ultimo": 6
+    "_updatedAt": "2026-06-29T18:25:50.213Z",
+    "ultimo": 7
   },
   {
     "_id": "presupuesto_2026",
     "_createdAt": "2026-06-27T16:16:46.944Z",
-    "_updatedAt": "2026-06-27T16:16:46.944Z",
-    "ultimo": 0
+    "_updatedAt": "2026-06-30T15:25:31.761Z",
+    "ultimo": 3
   },
   {
     "_id": "remito_2026",
@@ -26,7 +26,7 @@
   {
     "_id": "remito_aprobado_2026",
     "_createdAt": "2026-06-27T16:16:47.450Z",
-    "_updatedAt": "2026-06-27T16:16:47.450Z",
-    "ultimo": 6
+    "_updatedAt": "2026-06-29T18:25:17.920Z",
+    "ultimo": 7
   }
 ]

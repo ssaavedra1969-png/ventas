@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getDashboardStats } from '@/lib/firestore'
-import type { Remito } from '@/types'
+import { getAllPresupuestos } from '@/modules/presupuestos'
+import type { Remito, Presupuesto } from '@/types'
 import {
   FileText,
   DollarSign,
@@ -16,6 +17,7 @@ import {
   CheckCircle2,
   Clock,
   ScrollText,
+  ClipboardList,
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -78,7 +80,7 @@ const estadosLegibles: Record<string, string> = {
   Aceptado: 'Aceptado',
   Anulado: 'Anulado',
   En_Revision: 'Revisión',
-  A_Entregar: 'A Entregar',
+  A_Entregar: 'A Despachar',
 }
 
 export default function DashboardPage() {
@@ -89,12 +91,17 @@ export default function DashboardPage() {
     clientesActivos: number
     ultimosRemitos: Remito[]
   } | null>(null)
+  const [presupuestosPendientes, setPresupuestosPendientes] = useState<Presupuesto[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getDashboardStats()
-      .then(setStats)
-      .finally(() => setLoading(false))
+    Promise.all([
+      getDashboardStats(),
+      getAllPresupuestos(),
+    ]).then(([s, pres]) => {
+      setStats(s)
+      setPresupuestosPendientes(pres.filter((p) => p.estado === 'Enviado'))
+    }).finally(() => setLoading(false))
   }, [])
 
   if (loading) {
@@ -262,6 +269,65 @@ export default function DashboardPage() {
           </TiltCard>
         ))}
       </motion.div>
+
+      {/* Presupuestos Pendientes */}
+      {presupuestosPendientes.length > 0 && (
+        <motion.div
+          className="rounded-xl p-6 glass-card border-l-4 border-l-amber-500"
+          variants={itemAnim}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-amber-400" />
+              Presupuestos Pendientes
+            </h2>
+            <Link href="/dashboard/presupuestos">
+              <motion.span
+                className="text-sm text-[#6C3CE1] hover:text-[#00D4FF] transition-colors inline-flex items-center gap-1 cursor-pointer"
+                whileHover={{ x: 4 }}
+                transition={{ type: 'spring', stiffness: 400 }}
+              >
+                Ver todos <ArrowRight className="h-3 w-3" />
+              </motion.span>
+            </Link>
+          </div>
+          <div className="flex items-center gap-4 mb-4">
+            <span className="text-3xl font-bold text-amber-400 font-mono">{presupuestosPendientes.length}</span>
+            <span className="text-sm text-[#B0B0D0]">
+              presupuesto{presupuestosPendientes.length !== 1 ? 's' : ''} esperando aprobación
+            </span>
+          </div>
+          <div className="space-y-2">
+            {presupuestosPendientes.slice(0, 5).map((pres, i) => (
+              <motion.div
+                key={pres.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 + i * 0.05, duration: 0.3 }}
+              >
+                <Link href={`/remitos/${pres.id}?from=presupuestos`}>
+                  <div className="p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition-colors cursor-pointer border border-white/5 hover:border-amber-500/20 flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-sm font-bold text-white font-mono shrink-0">
+                        #{String(pres.numeroPresupuesto).padStart(6, '0')}
+                      </span>
+                      <span className="text-sm text-[#B0B0D0] truncate">{pres.clienteData.razonSocial}</span>
+                    </div>
+                    <span className="text-sm font-mono text-white shrink-0 ml-2">
+                      ${pres.totalGeneral.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+            {presupuestosPendientes.length > 5 && (
+              <p className="text-xs text-[#6B6B8A] text-center pt-1">
+                +{presupuestosPendientes.length - 5} más
+              </p>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* Últimos Remitos */}
       <motion.div

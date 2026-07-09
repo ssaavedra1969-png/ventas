@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { getAllRemitos, agregarPago, eliminarPago } from '@/modules/legacy'
-import type { Remito, Pago } from '@/types'
+import { getAllFacturas } from '@/modules/facturas'
+import type { Remito, Factura, Pago } from '@/types'
 import {
   DollarSign,
   Search,
@@ -24,26 +25,33 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 const METODOS_PAGO = ['Efectivo', 'Transferencia', 'Cheque', 'Debito', 'Credito'] as const
 
-const getEstadoCobranza = (remito: Remito) => {
-  const pagado = remito.totalPagado ?? 0
+const getEstadoCobranza = (item: { totalGeneral: number; totalPagado?: number }) => {
+  const pagado = item.totalPagado ?? 0
   if (pagado <= 0) return { label: 'Pendiente', color: 'text-red-400 bg-red-500/10', icon: AlertCircle }
-  if (pagado >= remito.totalGeneral) return { label: 'Pagado', color: 'text-emerald-400 bg-emerald-500/10', icon: CheckCircle2 }
+  if (pagado >= item.totalGeneral) return { label: 'Pagado', color: 'text-emerald-400 bg-emerald-500/10', icon: CheckCircle2 }
   return { label: 'Parcial', color: 'text-amber-400 bg-amber-500/10', icon: Clock }
 }
 
 export default function FacturacionPage() {
   const [remitos, setRemitos] = useState<Remito[]>([])
+  const [facturas, setFacturas] = useState<Factura[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [expandido, setExpandido] = useState<string | null>(null)
   const [nuevoPago, setNuevoPago] = useState<Record<string, { monto: string; metodo: string; referencia: string }>>({})
   const [guardando, setGuardando] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const pageSize = 20
 
-  const fetchRemitos = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getAllRemitos()
+      const [data, facs] = await Promise.all([
+        getAllRemitos(),
+        getAllFacturas(),
+      ])
       setRemitos(data.filter((r) => r.facturado))
+      setFacturas(facs)
     } catch {
       toast.error('Error al cargar facturación')
     } finally {
@@ -52,21 +60,83 @@ export default function FacturacionPage() {
   }, [])
 
   useEffect(() => {
-    fetchRemitos()
-  }, [fetchRemitos])
+    fetchData()
+  }, [fetchData])
 
-  const filtrados = remitos.filter((r) => {
+  type ItemUnificado = {
+    id: string
+    tipo: 'remito' | 'factura'
+    numeroRemito: number
+    numeroFactura: string
+    fecha: Date
+    clienteData: { razonSocial: string; numeroDocumento?: string; cuit?: string }
+    totalGeneral: number
+    pagos: Pago[]
+    totalPagado: number
+    facturaAnulada?: boolean
+    nroNC?: string
+    montoNC?: number
+  }
+
+  const unificados = useMemo(() => {
+    const items: ItemUnificado[] = []
+    for (const r of remitos) {
+      items.push({
+        id: r.id!,
+        tipo: 'remito',
+        numeroRemito: r.numeroRemito,
+        numeroFactura: r.nroFactura || '',
+        fecha: r.fecha,
+        clienteData: { razonSocial: r.clienteData.razonSocial, numeroDocumento: r.clienteData.numeroDocumento, cuit: (r.clienteData as { cuit?: string }).cuit },
+        totalGeneral: r.totalGeneral,
+        pagos: r.pagos ?? [],
+        totalPagado: r.totalPagado ?? 0,
+        facturaAnulada: r.facturaAnulada,
+        nroNC: r.nroNC,
+        montoNC: r.montoNC,
+      })
+    }
+    for (const f of facturas) {
+      items.push({
+        id: f.id!,
+        tipo: 'factura',
+        numeroRemito: f.numeroRemito,
+        numeroFactura: f.numeroFactura,
+        fecha: f.fecha,
+        clienteData: { razonSocial: f.clienteData.razonSocial, numeroDocumento: f.clienteData.numeroDocumento },
+        totalGeneral: f.totalGeneral,
+        pagos: f.pagos ?? [],
+        totalPagado: f.totalPagado ?? 0,
+        facturaAnulada: f.facturaAnulada,
+        nroNC: f.nroNC,
+        montoNC: f.montoNC,
+      })
+    }
+    return items
+  }, [remitos, facturas])
+
+  const filtrados = unificados.filter((r) => {
     if (!search) return true
     const s = search.toLowerCase()
     return (
       r.clienteData.razonSocial?.toLowerCase().includes(s) ||
-      (r.clienteData.numeroDocumento || (r.clienteData as { cuit?: string }).cuit || '').toLowerCase().includes(s) ||
-      (r.nroFactura ?? '').toLowerCase().includes(s) ||
+      (r.clienteData.numeroDocumento || r.clienteData.cuit || '').toLowerCase().includes(s) ||
+      r.numeroFactura.toLowerCase().includes(s) ||
       String(r.numeroRemito).includes(s)
     )
   })
 
+  const paginated = filtrados.slice((page - 1) * pageSize, page * pageSize)
+  const totalPages = Math.max(1, Math.ceil(filtrados.length / pageSize))
+
+  useEffect(() => { setPage(1) }, [search])
+
   const handleAgregarPago = async (remitoId: string) => {
+    const item = unificados.find((u) => u.id === remitoId)
+    if (!item || item.tipo !== 'remito') {
+      toast.error('El registro de pagos para facturas nuevas estará disponible pronto')
+      return
+    }
     const datos = nuevoPago[remitoId]
     if (!datos || !datos.monto || !datos.metodo) return
     const monto = parseFloat(datos.monto)
@@ -79,9 +149,9 @@ export default function FacturacionPage() {
         referencia: datos.referencia || undefined,
         fecha: new Date(),
       })
-      setNuevoPago((prev) => ({ ...prev, [remitoId]: { monto: '', metodo: '', referencia: '' } }))
+      setNuevoPago((prev) => ({ ...prev, [item.id]: { monto: '', metodo: '', referencia: '' } }))
       toast.success('Pago registrado')
-      fetchRemitos()
+      fetchData()
     } catch (err) {
       console.error('Error al registrar pago:', err)
       toast.error('Error al registrar pago')
@@ -90,11 +160,11 @@ export default function FacturacionPage() {
     }
   }
 
-  const handleEliminarPago = async (remitoId: string, pagoId: string) => {
+  const handleEliminarPago = async (itemId: string, pagoId: string) => {
     try {
-      await eliminarPago(remitoId, pagoId)
+      await eliminarPago(itemId, pagoId)
       toast.success('Pago eliminado')
-      fetchRemitos()
+      fetchData()
     } catch {
       toast.error('Error al eliminar pago')
     }
@@ -121,7 +191,7 @@ export default function FacturacionPage() {
           </div>
         </div>
         <button
-          onClick={() => fetchRemitos()}
+          onClick={() => fetchData()}
           className="p-2 rounded-lg text-[#6B6B8A] hover:text-white hover:bg-white/5 transition-colors"
           title="Actualizar"
         >
@@ -174,8 +244,9 @@ export default function FacturacionPage() {
             <p className="text-[#6B6B8A]">No hay facturas registradas</p>
           </div>
         ) : (
+          <>
           <div className="divide-y divide-white/5">
-            {filtrados.map((remito) => {
+            {paginated.map((remito) => {
               const cobranza = getEstadoCobranza(remito)
               const exp = expandido === remito.id
               const pagos = remito.pagos ?? []
@@ -206,7 +277,7 @@ export default function FacturacionPage() {
                           {/* N° Factura - prominent */}
                           <div className="px-3 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/25">
                             <span className="text-[10px] text-emerald-400/70 uppercase tracking-wider font-semibold">Factura N°</span>
-                            <span className="ml-2 text-sm font-bold text-emerald-400">{remito.nroFactura || '—'}</span>
+                            <span className="ml-2 text-sm font-bold text-emerald-400">{remito.numeroFactura || '—'}</span>
                           </div>
 
                           <span className="text-[#6B6B8A] hidden sm:inline">|</span>
@@ -340,6 +411,28 @@ export default function FacturacionPage() {
               )
             })}
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium text-[#B0B0D0] hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                ← Anterior
+              </button>
+              <span className="text-xs text-[#6B6B8A]">
+                Página {page} de {totalPages} ({filtrados.length} resultados)
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium text-[#B0B0D0] hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente →
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>
