@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useBackgroundSync } from '@/hooks/useBackgroundSync'
 import {
   getAllProductos,
   getProductos,
@@ -127,6 +128,13 @@ export default function ProductosPage() {
   useEffect(() => {
     loadFullProductos()
   }, [loadFullProductos])
+
+  const syncProductos = useCallback(() => {
+    loadProductosPage(page, debouncedSearch)
+    loadFullProductos()
+  }, [loadProductosPage, loadFullProductos, page, debouncedSearch])
+
+  useBackgroundSync(syncProductos, 60000, !loading)
 
   const toggleSort = (field: string) => {
     setPage(1)

@@ -16,27 +16,20 @@ function getDb() {
 }
 
 async function getNextNumero(year: number): Promise<number> {
-  try {
-    const _db = getDb()
-    const ref = doc(_db, 'contadores', `factura_${year}`)
-    const next = await runTransaction(_db, async (tx) => {
-      const snap = await tx.get(ref)
-      if (!snap.exists()) {
-        tx.set(ref, { ultimo: 1 })
-        return 1
-      }
-      const n = snap.data().ultimo + 1
-      tx.update(ref, { ultimo: n })
-      return n
-    })
-    await localSet('contadores', { id: `factura_${year}`, ultimo: next })
-    return next
-  } catch {
-    const local = await localGet<{ id: string; ultimo: number }>('contadores', `factura_${year}`)
-    const next = (local?.ultimo ?? 0) + 1
-    await localSet('contadores', { id: `factura_${year}`, ultimo: next })
-    return next
-  }
+  const _db = getDb()
+  const ref = doc(_db, 'contadores', `factura_${year}`)
+  const next = await runTransaction(_db, async (tx) => {
+    const snap = await tx.get(ref)
+    if (!snap.exists()) {
+      tx.set(ref, { ultimo: 1 })
+      return 1
+    }
+    const n = snap.data().ultimo + 1
+    tx.update(ref, { ultimo: n })
+    return n
+  })
+  try { await localSet('contadores', { id: `factura_${year}`, ultimo: next }) } catch {}
+  return next
 }
 
 export async function createFactura(data: {
@@ -71,13 +64,10 @@ export async function createFactura(data: {
     createdAt: Timestamp.now(),
   }
 
-  try {
-    const docRef = await addDoc(collection(getDb(), COL), fullData)
-    await localSet('facturas', { id: docRef.id, ...fullData, fecha: data.fecha, createdAt: new Date() })
-    return { id: docRef.id, numeroFacturaInterno }
-  } catch {
-    throw new Error('Error al crear factura en Firebase')
-  }
+  const _db = getDb()
+  const docRef = await addDoc(collection(_db, COL), fullData)
+  try { await localSet('facturas', { id: docRef.id, ...fullData, fecha: data.fecha, createdAt: new Date() }) } catch {}
+  return { id: docRef.id, numeroFacturaInterno }
 }
 
 function docToFactura(id: string, data: DocData): Factura {

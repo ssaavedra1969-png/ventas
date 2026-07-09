@@ -1,6 +1,6 @@
 import {
-  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
-  query, orderBy, where, limit, Timestamp,
+  collection, doc, getDoc, getDocs, updateDoc, deleteDoc,
+  query, orderBy, where, limit, Timestamp, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { localGet, localSet, localDelete } from '@/lib/db'
@@ -28,30 +28,11 @@ export async function createSalida(data: {
   remitoItems?: RemitoItem[]
 }) {
   const _db = getDb()
-
-  let numeroSalida = 1
-  try {
-    const q = query(
-      collection(_db, COL),
-      where('idRemito', '==', data.idRemito),
-      orderBy('numeroSalida', 'desc')
-    )
-    const snap = await getDocs(q)
-    if (snap.docs.length > 0) {
-      numeroSalida = snap.docs[0].data().numeroSalida + 1
-    }
-  } catch {
-    try {
-      const cached = await localGet<{ data: Salida[] }>('salidas_cache', `remito_${data.idRemito}`)
-      if (cached?.data?.length) {
-        const max = Math.max(...cached.data.map((s) => s.numeroSalida))
-        numeroSalida = max + 1
-      }
-    } catch {}
-  }
+  const col = collection(_db, COL)
+  const newRef = doc(col)
+  const counterRef = doc(_db, 'contadores', `salidas_${data.idRemito}`)
 
   const fullData = {
-    numeroSalida,
     idRemito: data.idRemito,
     numeroRemito: data.numeroRemito,
     fecha: Timestamp.fromDate(data.fecha),
@@ -65,14 +46,22 @@ export async function createSalida(data: {
     createdAt: Timestamp.now(),
   }
 
+  let numeroSalida: number
   try {
-    const docRef = await addDoc(collection(_db, COL), fullData)
-    try { await localSet('salidas', { id: docRef.id, ...fullData, fecha: data.fecha, createdAt: new Date() }) } catch {}
-    return { id: docRef.id, numeroSalida }
+    numeroSalida = await runTransaction(_db, async (tx) => {
+      const snap = await tx.get(counterRef)
+      const next = !snap.exists() ? 1 : snap.data().ultimo + 1
+      tx.set(counterRef, { ultimo: next })
+      tx.set(newRef, { ...fullData, numeroSalida: next })
+      return next
+    })
   } catch (e) {
-    console.error('createSalida error:', e)
+    console.error('createSalida transaction error:', e)
     throw new Error('Error al crear salida en Firebase')
   }
+
+  try { await localSet('salidas', { id: newRef.id, ...fullData, numeroSalida, fecha: data.fecha, createdAt: new Date() }) } catch {}
+  return { id: newRef.id, numeroSalida }
 }
 
 function docToSalida(id: string, data: DocData): Salida {

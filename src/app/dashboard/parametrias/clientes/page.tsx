@@ -138,7 +138,7 @@ export default function ClientesPage() {
     loadFullClientes()
   }, [loadClientesPage, loadFullClientes, page, debouncedSearch])
 
-  useBackgroundSync(syncClientes, 600000, !loading)
+  useBackgroundSync(syncClientes, 60000, !loading)
 
   const validate = (): boolean => {
     return true
