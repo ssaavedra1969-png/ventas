@@ -1,10 +1,10 @@
 import {
-  collection, doc, getDoc, getDocs, addDoc,
+  collection, doc, getDoc, getDocs, addDoc, updateDoc,
   query, orderBy, limit, Timestamp, runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { localGet, localSet } from '@/lib/db'
-import type { Factura, RemitoItem, ClienteData } from '@/types'
+import type { Factura, RemitoItem, ClienteData, Pago } from '@/types'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type DocData = Record<string, any>
 
@@ -115,4 +115,49 @@ export async function getFactura(id: string): Promise<Factura | null> {
     const local = await localGet<Factura>('facturas', id)
     return local ?? null
   }
+}
+
+export async function agregarPagoFactura(
+  facturaId: string,
+  pago: { monto: number; metodo: Pago['metodo']; referencia?: string; fecha: Date }
+) {
+  if (isNaN(pago.monto) || pago.monto <= 0) throw new Error('Monto inválido')
+
+  const nuevoPago: Pago & { createdAt: Date } = {
+    id: `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+    monto: pago.monto,
+    metodo: pago.metodo,
+    fecha: pago.fecha,
+    createdAt: new Date(),
+  }
+  if (pago.referencia) nuevoPago.referencia = pago.referencia
+
+  const ref = doc(getDb(), COL, facturaId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Factura no encontrada')
+  const data = snap.data()
+  const pagosActuales: Pago[] = data.pagos ?? []
+  const pagoRaw: Record<string, unknown> = {
+    id: nuevoPago.id,
+    monto: pago.monto,
+    metodo: pago.metodo,
+    fecha: Timestamp.fromDate(pago.fecha),
+    createdAt: Timestamp.now(),
+  }
+  if (pago.referencia) pagoRaw.referencia = pago.referencia
+  const nuevosPagos = [...pagosActuales, pagoRaw]
+  const totalPagado = nuevosPagos.reduce((sum: number, p: any) => sum + p.monto, 0)
+  await updateDoc(ref, { pagos: nuevosPagos, totalPagado })
+  return nuevoPago
+}
+
+export async function eliminarPagoFactura(facturaId: string, pagoId: string) {
+  const ref = doc(getDb(), COL, facturaId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Factura no encontrada')
+  const data = snap.data()
+  const pagosActuales: Pago[] = data.pagos ?? []
+  const nuevosPagos = pagosActuales.filter((p) => p.id !== pagoId)
+  const totalPagado = nuevosPagos.reduce((sum, p) => sum + p.monto, 0)
+  await updateDoc(ref, { pagos: nuevosPagos, totalPagado })
 }

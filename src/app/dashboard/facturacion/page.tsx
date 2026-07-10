@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { getAllRemitos, agregarPago, eliminarPago } from '@/modules/legacy'
-import { getAllFacturas } from '@/modules/facturas'
+import { getAllFacturas, agregarPagoFactura, eliminarPagoFactura } from '@/modules/facturas'
 import type { Remito, Factura, Pago } from '@/types'
 import {
   DollarSign,
@@ -131,25 +131,31 @@ export default function FacturacionPage() {
 
   useEffect(() => { setPage(1) }, [search])
 
-  const handleAgregarPago = async (remitoId: string) => {
-    const item = unificados.find((u) => u.id === remitoId)
-    if (!item || item.tipo !== 'remito') {
-      toast.error('El registro de pagos para facturas nuevas estará disponible pronto')
-      return
-    }
-    const datos = nuevoPago[remitoId]
+  const handleAgregarPago = async (itemId: string) => {
+    const item = unificados.find((u) => u.id === itemId)
+    if (!item) return
+    const datos = nuevoPago[itemId]
     if (!datos || !datos.monto || !datos.metodo) return
     const monto = parseFloat(datos.monto)
     if (isNaN(monto) || monto <= 0) return
-    setGuardando(remitoId)
+    setGuardando(itemId)
     try {
-      await agregarPago(remitoId, {
-        monto,
-        metodo: datos.metodo as Pago['metodo'],
-        referencia: datos.referencia || undefined,
-        fecha: new Date(),
-      })
-      setNuevoPago((prev) => ({ ...prev, [item.id]: { monto: '', metodo: '', referencia: '' } }))
+      if (item.tipo === 'factura') {
+        await agregarPagoFactura(itemId, {
+          monto,
+          metodo: datos.metodo as Pago['metodo'],
+          referencia: datos.referencia || undefined,
+          fecha: new Date(),
+        })
+      } else {
+        await agregarPago(itemId, {
+          monto,
+          metodo: datos.metodo as Pago['metodo'],
+          referencia: datos.referencia || undefined,
+          fecha: new Date(),
+        })
+      }
+      setNuevoPago((prev) => ({ ...prev, [itemId]: { monto: '', metodo: '', referencia: '' } }))
       toast.success('Pago registrado')
       fetchData()
     } catch (err) {
@@ -162,7 +168,12 @@ export default function FacturacionPage() {
 
   const handleEliminarPago = async (itemId: string, pagoId: string) => {
     try {
-      await eliminarPago(itemId, pagoId)
+      const item = unificados.find((u) => u.id === itemId)
+      if (item?.tipo === 'factura') {
+        await eliminarPagoFactura(itemId, pagoId)
+      } else {
+        await eliminarPago(itemId, pagoId)
+      }
       toast.success('Pago eliminado')
       fetchData()
     } catch {

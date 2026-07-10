@@ -96,6 +96,9 @@ function docToRemito(id: string, data: DocData): RemitoAprobado {
     estado: data.estado,
     observaciones: data.observaciones,
     usuarioCreador: data.usuarioCreador,
+    nroFactura: data.nroFactura,
+    facturado: data.facturado,
+    fechaFacturado: data.fechaFacturado?.toDate?.() ?? data.fechaFacturado,
     createdAt: data.createdAt?.toDate?.() ?? data.createdAt,
   }
 }
@@ -130,5 +133,19 @@ export async function updateRemitoAprobadoEstado(id: string, estado: RemitoAprob
     await localSet('remitos_aprobados', { id, estado })
   } catch {
     throw new Error('Error al actualizar estado del remito')
+  }
+}
+
+export async function updateRemitoAprobadoFacturacion(id: string, nroFactura: string) {
+  try {
+    await updateDoc(doc(getDb(), COL, id), {
+      nroFactura,
+      facturado: true,
+      fechaFacturado: Timestamp.now(),
+      estado: 'Finalizado',
+    })
+    await localSet('remitos_aprobados', { id, nroFactura, facturado: true, estado: 'Finalizado' })
+  } catch {
+    throw new Error('Error al actualizar facturación del remito')
   }
 }

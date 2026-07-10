@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { getAllRemitos, updateRemitoEstado, updateRemitoNroFactura, updateRemitoNC } from '@/modules/legacy'
 import { getEmpresaConfig } from '@/modules/configuracion'
-import { getAllRemitosAprobados, updateRemitoAprobadoEstado } from '@/modules/remitos-aprobados'
+import { getAllRemitosAprobados, updateRemitoAprobadoEstado, updateRemitoAprobadoFacturacion } from '@/modules/remitos-aprobados'
 import { createFactura } from '@/modules/facturas'
 import type { Remito, RemitoAprobado, EmpresaConfig } from '@/types'
 import {
@@ -168,7 +168,7 @@ export default function RemitosPage() {
     try {
       const item = todos.find((r) => r.id === id)
       if (item?._fuente === 'remito_aprobado') {
-        await updateRemitoAprobadoEstado(id, 'Finalizado')
+        await updateRemitoAprobadoFacturacion(id, nro)
       } else {
         await updateRemitoNroFactura(id, nro)
       }

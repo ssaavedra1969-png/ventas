@@ -177,6 +177,9 @@ export interface RemitoAprobado {
   estado: 'En_Revision' | 'A_Entregar' | 'Finalizado' | 'Anulado'
   observaciones?: string
   usuarioCreador?: string
+  nroFactura?: string
+  facturado?: boolean
+  fechaFacturado?: Date
   createdAt?: Date
 }
 
