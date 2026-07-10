@@ -1,16 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { getAllVehiculos, createVehiculo, deleteVehiculo, getAllChoferes, createChofer, updateChofer, deleteChofer, importVehiculos, importChoferes } from '@/modules/vehiculos'
+import { useState } from 'react'
+import { useRealtime } from '@/hooks/useRealtime'
+import { createVehiculo, deleteVehiculo, createChofer, updateChofer, deleteChofer, importVehiculos, importChoferes } from '@/modules/vehiculos'
 import type { Vehiculo, Chofer } from '@/types'
 import { Truck, User, Plus, Pencil, Trash2, Upload, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function VehiculosPage() {
-  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
-  const [choferes, setChoferes] = useState<Chofer[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: vehiculos, loading: loadingVehiculos } = useRealtime<Vehiculo>('vehiculos')
+  const { data: choferes, loading: loadingChoferes } = useRealtime<Chofer>('choferes')
 
   // Importar desde Excel incrustado
   const [importando, setImportando] = useState(false)
@@ -31,21 +31,6 @@ export default function VehiculosPage() {
   const [guardandoChofer, setGuardandoChofer] = useState(false)
   const [importandoChoferes, setImportandoChoferes] = useState(false)
   const [importChoferesResults, setImportChoferesResults] = useState<{ label: string; ok: boolean; error?: string }[] | null>(null)
-
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      const [v, c] = await Promise.all([getAllVehiculos(), getAllChoferes()])
-      setVehiculos(v)
-      setChoferes(c)
-    } catch {
-      toast.error('Error al cargar datos')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { loadData() }, [])
 
   const VEHICULOS_INCRUSTADOS = [
     { patente: 'AC361ME', marca: 'Scania' },
@@ -97,7 +82,6 @@ export default function VehiculosPage() {
       setImportResults(results)
       if (fail === 0) toast.success(`${ok} vehículos importados`)
       else toast.warning(`${ok} importados, ${fail} fallaron`)
-      await loadData()
     } catch {
       toast.error('Error al importar')
     } finally {
@@ -117,7 +101,6 @@ export default function VehiculosPage() {
       setNuevaPatente('')
       setNuevaMarca('')
       setShowFormVehiculo(false)
-      await loadData()
     } catch {
       toast.error('Error al crear vehículo')
     } finally {
@@ -129,7 +112,6 @@ export default function VehiculosPage() {
     try {
       await deleteVehiculo(id)
       toast.success('Vehículo eliminado')
-      await loadData()
     } catch {
       toast.error('Error al eliminar vehículo')
     }
@@ -154,7 +136,6 @@ export default function VehiculosPage() {
       setChoferTel('')
       setEditChoferId(null)
       setShowFormChofer(false)
-      await loadData()
     } catch {
       toast.error('Error al guardar chofer')
     } finally {
@@ -174,7 +155,6 @@ export default function VehiculosPage() {
     try {
       await deleteChofer(id)
       toast.success('Chofer eliminado')
-      await loadData()
     } catch {
       toast.error('Error al eliminar chofer')
     }
@@ -195,7 +175,6 @@ export default function VehiculosPage() {
       setImportChoferesResults(results)
       if (fail === 0) toast.success(`${ok} choferes importados`)
       else toast.warning(`${ok} importados, ${fail} fallaron`)
-      await loadData()
     } catch {
       toast.error('Error al importar choferes')
     } finally {
@@ -203,7 +182,7 @@ export default function VehiculosPage() {
     }
   }
 
-  if (loading) {
+  if (loadingVehiculos || loadingChoferes) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center space-y-4">

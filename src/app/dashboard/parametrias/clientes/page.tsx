@@ -1,19 +1,17 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import {
   createCliente,
   updateCliente,
   deleteCliente,
   clienteExists,
-  clearCache,
-  getClientes,
-  getAllClientes,
   createMultipleClientes,
   CONDICIONES_IVA,
   CONDIVA_LABEL,
 } from '@/modules/clientes'
 import { createVehiculo } from '@/modules/vehiculos'
+import { useRealtime } from '@/hooks/useRealtime'
 import type { Cliente } from '@/types'
 import {
   Plus,
@@ -29,15 +27,12 @@ import {
   AlertTriangle,
   Upload,
   Download,
-  RefreshCw,
   Truck,
 } from 'lucide-react'
 import BulkUploadModal from '@/components/BulkUploadModal'
 import AutocompleteInput from '@/components/AutocompleteInput'
 import { toast } from 'sonner'
 import * as XLSX from 'xlsx'
-import { useBackgroundSync } from '@/hooks/useBackgroundSync'
-
 interface ClienteForm {
   razonSocial: string
   tipoDocumento: string
@@ -61,11 +56,7 @@ const emptyForm: ClienteForm = {
 }
 
 export default function ClientesPage() {
-  const [allClientes, setAllClientes] = useState<Cliente[]>([])
-  const [paginatedClientes, setPaginatedClientes] = useState<Cliente[]>([])
-  const [totalClientes, setTotalClientes] = useState(0)
-  const [totalPages, setTotalPages] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const { data: allClientes, loading: realtimeLoading } = useRealtime<Cliente>('clientes')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -96,49 +87,37 @@ export default function ClientesPage() {
     return () => clearTimeout(timer)
   }, [search])
 
-  // Load paginated data from Firebase (limit 20)
-  const loadClientesPage = useCallback(async (p: number, searchTerm?: string, sField?: string, sDir?: 'asc' | 'desc') => {
-    setLoading(true)
-    try {
-      const result = await getClientes(searchTerm || undefined, p, pageSize, sField ?? sortField, sDir ?? sortDir)
-      setPaginatedClientes(result.data)
-      setTotalClientes(result.total)
-      setTotalPages(result.totalPages)
-    } catch (err) {
-      console.error('Error loading clientes:', err)
-      toast.error('Error al cargar clientes')
-    } finally {
-      setLoading(false)
+  // Paginación, filtrado y ordenamiento en memoria desde datos en tiempo real
+  const {
+    paginatedData,
+    total,
+    totalPages,
+  } = useMemo(() => {
+    let filtered = allClientes
+    if (debouncedSearch) {
+      const s = debouncedSearch.toLowerCase()
+      filtered = allClientes.filter(
+        (c) =>
+          c.razonSocial?.toLowerCase().includes(s) ||
+          c.numeroDocumento?.toLowerCase().includes(s) ||
+          c.codigoCliente?.toLowerCase().includes(s),
+      )
     }
-  }, [sortField, sortDir])
-
-  // Load full list for autocomplete and export (lazy, only when needed)
-  const loadFullClientes = useCallback(async () => {
-    try {
-      const data = await getAllClientes()
-      setAllClientes(data)
-    } catch {
-      // Silently fail; full list is non-critical
+    const sorted = [...filtered].sort((a, b) => {
+      const aVal = String((a as unknown as Record<string, unknown>)[sortField] ?? '')
+      const bVal = String((b as unknown as Record<string, unknown>)[sortField] ?? '')
+      const cmp = aVal.localeCompare(bVal, 'es', { numeric: true })
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    const total = sorted.length
+    const totalPages = Math.ceil(total / pageSize)
+    const start = (page - 1) * pageSize
+    return {
+      paginatedData: sorted.slice(start, start + pageSize),
+      total,
+      totalPages,
     }
-  }, [])
-
-  // Load paginated on mount and when page/search changes
-  useEffect(() => {
-    loadClientesPage(page, debouncedSearch)
-  }, [page, debouncedSearch, loadClientesPage])
-
-  // Load full list once in background for autocomplete/export
-  useEffect(() => {
-    loadFullClientes()
-  }, [loadFullClientes])
-
-  const syncClientes = useCallback(() => {
-    clearCache('allClientes')
-    loadClientesPage(page, debouncedSearch)
-    loadFullClientes()
-  }, [loadClientesPage, loadFullClientes, page, debouncedSearch])
-
-  useBackgroundSync(syncClientes, 60000, !loading)
+  }, [allClientes, debouncedSearch, page, sortField, sortDir, pageSize])
 
   const validate = (): boolean => {
     return true
@@ -166,8 +145,7 @@ export default function ClientesPage() {
       setEditId(null)
       setForm(emptyForm)
       setErrors({})
-      loadClientesPage(1, debouncedSearch)
-      loadFullClientes()
+      setPage(1)
     } catch (err) {
       console.error('Error saving cliente:', err)
       toast.error('Error al guardar el cliente')
@@ -214,7 +192,7 @@ export default function ClientesPage() {
 
   const handleExport = async () => {
     try {
-      const data = await getAllClientes()
+      const data = allClientes.length > 0 ? allClientes : []
       const wb = XLSX.utils.book_new()
       const ws = XLSX.utils.json_to_sheet(
         data.map((c) => ({
@@ -243,8 +221,7 @@ export default function ClientesPage() {
       await deleteCliente(id)
       toast.success('Cliente eliminado exitosamente')
       setDeleteConfirm(null)
-      loadClientesPage(1, debouncedSearch)
-      loadFullClientes()
+      setPage(1)
     } catch (err) {
       console.error('Error deleting cliente:', err)
       toast.error('Error al eliminar el cliente')
@@ -301,8 +278,7 @@ export default function ClientesPage() {
       condicionIVA: mapCondicionIVA(String(row['Condicion de IVA'] ?? row.condicionIVA ?? row['Condición de IVA'] ?? '')),
     }))
     const result = await createMultipleClientes(items)
-    loadClientesPage(1, debouncedSearch)
-    loadFullClientes()
+    setPage(1)
     return result
   }
 
@@ -322,14 +298,6 @@ export default function ClientesPage() {
           <p className="text-[#B0B0D0] text-sm">Gestión de clientes</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={syncClientes}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-white/10 text-[#B0B0D0] hover:text-white hover:bg-white/5 transition-colors"
-            title="Actualizar datos"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span className="hidden sm:inline">Actualizar</span>
-          </button>
           <button
             onClick={handleExport}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-white/10 text-[#B0B0D0] hover:text-white hover:bg-white/5 transition-colors"
@@ -384,11 +352,11 @@ export default function ClientesPage() {
 
       {/* Table */}
       <div className="glass-card rounded-xl overflow-hidden">
-        {loading ? (
+        {realtimeLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#6C3CE1]" />
           </div>
-        ) : paginatedClientes.length === 0 ? (
+        ) : paginatedData.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-[#6B6B8A]">No se encontraron clientes</p>
           </div>
@@ -427,7 +395,7 @@ export default function ClientesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {paginatedClientes.map((cliente) => (
+                {paginatedData.map((cliente) => (
                   <tr
                     key={cliente.id}
                     className="hover:bg-white/5 transition-colors"
@@ -485,7 +453,7 @@ export default function ClientesPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
             <p className="text-sm text-[#6B6B8A]">
-              {totalClientes} clientes - Página {page} de {totalPages}
+              {total} clientes - Página {page} de {totalPages}
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -815,7 +783,7 @@ export default function ClientesPage() {
         templateHeaders={['ID cliente', 'Razon social', 'Tipo de documento', 'Numero de documento', 'Actividad', 'Domicilio', 'Localidad', 'Condicion de IVA']}
         exampleData={clientesExampleData}
         onUpload={handleBulkUpload}
-        onRefresh={() => { loadClientesPage(1, debouncedSearch); loadFullClientes() }}
+        onRefresh={() => setPage(1)}
       />
     </div>
   )

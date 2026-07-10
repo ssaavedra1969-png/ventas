@@ -12,8 +12,10 @@ import {
   ChevronRight,
   DollarSign,
   Truck,
+  FileText,
   BarChart3,
   SlidersHorizontal,
+  BookOpen,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -34,22 +36,17 @@ const navigation = [
     ],
   },
   {
-    section: 'PRESUPUESTOS',
+    section: 'COMERCIAL',
     items: [
       { href: '/dashboard/presupuestos/nuevo', label: 'Nuevo Presupuesto', icon: PlusCircle, gradient: 'from-pink-400 to-rose-400' },
       { href: '/dashboard/presupuestos', label: 'Presupuestos', icon: ClipboardList, gradient: 'from-blue-400 to-cyan-400' },
-    ],
-  },
-  {
-    section: 'REMITOS',
-    items: [
-      { href: '/dashboard/remitos', label: 'Remitos', icon: Truck, gradient: 'from-violet-400 to-purple-400' },
-    ],
-  },
-  {
-    section: 'GESTIÓN',
-    items: [
+      { href: '/dashboard/remitos', label: 'Remitos', icon: FileText, gradient: 'from-violet-400 to-purple-400' },
       { href: '/dashboard/facturacion', label: 'Facturación', icon: DollarSign, gradient: 'from-green-400 to-emerald-400' },
+    ],
+  },
+  {
+    section: 'LOGÍSTICA',
+    items: [
       { href: '/dashboard/entregas', label: 'Salidas', icon: Truck, gradient: 'from-amber-400 to-yellow-400' },
     ],
   },
@@ -59,11 +56,18 @@ const navigation = [
       { href: '/dashboard/informes', label: 'Informes', icon: BarChart3, gradient: 'from-purple-400 to-violet-400' },
     ],
   },
+  {
+    section: 'SISTEMA',
+    items: [
+      { href: '/dashboard/manual', label: 'Manual', icon: BookOpen, gradient: 'from-cyan-400 to-teal-400' },
+    ],
+  },
 ]
 
 function NavItem({ item, pathname, onClick }: { item: typeof navigation[0]['items'][0]; pathname: string; onClick: () => void }) {
-  const isActive = item.href === '/dashboard/parametrias'
-    ? pathname === '/dashboard/parametrias' || pathname.startsWith('/dashboard/parametrias/')
+  const hasSubRoutes = ['/dashboard/parametrias', '/dashboard/entregas', '/dashboard/remitos']
+  const isActive = hasSubRoutes.includes(item.href)
+    ? pathname === item.href || pathname.startsWith(item.href + '/')
     : pathname === item.href
   return (
     <Link href={item.href} onClick={onClick} className="block relative">
@@ -127,6 +131,10 @@ export default function DashboardLayout({
 
   useEffect(() => {
     syncManager.start()
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {})
+    }
 
     const update = () => {
       const now = new Date()

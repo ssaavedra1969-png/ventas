@@ -7,6 +7,7 @@ import {
 import { db } from '@/lib/firebase'
 import { localGetAll, localSet, generateLocalId, enqueueOperation } from '@/lib/db'
 import { syncManager } from '@/lib/sync'
+import { localFirstRead, markSynced } from '@/lib/local-first'
 import type { Producto } from '@/types'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -96,24 +97,24 @@ export async function getProductos(search?: string, page = 1, pageSize = 20, sor
   }
 }
 
-export async function getAllProductos() {
-  try {
-    const q = query(
-      collection(getDb(), COLECCION_PRODUCTOS),
-      orderBy('nombre', 'asc')
-    )
-    const snapshot = await getDocs(q)
-    const data = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Producto[]
-    await syncManager.cacheCollection('productos', data.map(p => ({ ...p, id: p.id! })))
+export async function getAllProductos(options?: { forceRefresh?: boolean }) {
+  if (options?.forceRefresh) {
+    const data = await fetchProductosFromFirebase()
     return data
-  } catch (error) {
-    const localData = await localGetAll<Producto>('productos')
-    if (localData.length > 0) return localData
-    throw error
   }
+  return localFirstRead<Producto>('productos', fetchProductosFromFirebase)
+}
+
+async function fetchProductosFromFirebase(): Promise<Producto[]> {
+  const q = query(collection(getDb(), COLECCION_PRODUCTOS), orderBy('nombre', 'asc'))
+  const snapshot = await getDocs(q)
+  const data = snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Producto[]
+  await syncManager.cacheCollection('productos', data.map(p => ({ ...p, id: p.id! })))
+  await markSynced('productos')
+  return data
 }
 
 export async function createProducto(data: Omit<Producto, 'id' | 'createdAt'>) {

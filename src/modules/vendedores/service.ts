@@ -5,6 +5,7 @@ import {
 import { db } from '@/lib/firebase'
 import { localGetAll, localGet, localSet, localDelete, generateLocalId, enqueueOperation } from '@/lib/db'
 import { syncManager } from '@/lib/sync'
+import { localFirstRead, markSynced } from '@/lib/local-first'
 import { getAllRemitos } from '@/lib/firestore'
 import type { Vendedor, RemitoItem } from '@/types'
 
@@ -13,24 +14,24 @@ function getDb() {
   return db
 }
 
-export async function getVendedores() {
-  try {
-    const q = query(
-      collection(getDb(), 'vendedores'),
-      orderBy('nombre', 'asc')
-    )
-    const snapshot = await getDocs(q)
-    const data = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Vendedor[]
-    syncManager.cacheCollection('vendedores', data.map(v => ({ ...v, id: v.id! }))).catch(() => {})
+export async function getVendedores(options?: { forceRefresh?: boolean }) {
+  if (options?.forceRefresh) {
+    const data = await fetchVendedoresFromFirebase()
     return data
-  } catch {
-    const localData = await localGetAll<Vendedor>('vendedores')
-    if (localData.length > 0) return localData
-    throw new Error('Sin conexión y sin datos locales de vendedores')
   }
+  return localFirstRead<Vendedor>('vendedores', fetchVendedoresFromFirebase)
+}
+
+async function fetchVendedoresFromFirebase(): Promise<Vendedor[]> {
+  const q = query(collection(getDb(), 'vendedores'), orderBy('nombre', 'asc'))
+  const snapshot = await getDocs(q)
+  const data = snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Vendedor[]
+  await syncManager.cacheCollection('vendedores', data.map(v => ({ ...v, id: v.id! })))
+  await markSynced('vendedores')
+  return data
 }
 
 export async function createVendedor(data: Omit<Vendedor, 'id' | 'createdAt'>) {

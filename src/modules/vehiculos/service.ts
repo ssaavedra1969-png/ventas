@@ -3,8 +3,9 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
-import { localGetAll, localSet } from '@/lib/db'
+import { localSet } from '@/lib/db'
 import { syncManager } from '@/lib/sync'
+import { localFirstRead, markSynced } from '@/lib/local-first'
 import type { Vehiculo, Chofer } from '@/types'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -13,17 +14,22 @@ function getDb() {
   return db
 }
 
-export async function getAllVehiculos(): Promise<Vehiculo[]> {
-  try {
-    const snapshot = await getDocs(collection(getDb(), 'vehiculos'))
-    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vehiculo))
-    data.sort((a, b) => a.patente.localeCompare(b.patente))
-    await syncManager.cacheCollection('vehiculos', data.map(v => ({ ...v, id: v.id! })))
+export async function getAllVehiculos(options?: { forceRefresh?: boolean }): Promise<Vehiculo[]> {
+  if (options?.forceRefresh) {
+    const data = await fetchVehiculosFromFirebase()
     return data
-  } catch {
-    const result = await localGetAll<Vehiculo>('vehiculos')
-    return result.sort((a, b) => a.patente.localeCompare(b.patente))
   }
+  const local = await localFirstRead<Vehiculo>('vehiculos', fetchVehiculosFromFirebase)
+  return local.sort((a, b) => a.patente.localeCompare(b.patente))
+}
+
+async function fetchVehiculosFromFirebase(): Promise<Vehiculo[]> {
+  const snapshot = await getDocs(collection(getDb(), 'vehiculos'))
+  const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Vehiculo))
+  data.sort((a, b) => a.patente.localeCompare(b.patente))
+  await syncManager.cacheCollection('vehiculos', data.map(v => ({ ...v, id: v.id! })))
+  await markSynced('vehiculos')
+  return data
 }
 
 export async function createVehiculo(data: Omit<Vehiculo, 'id' | 'createdAt'>): Promise<string> {
@@ -59,17 +65,22 @@ export async function importVehiculos(data: { patente: string; marca: string }[]
   return results
 }
 
-export async function getAllChoferes(): Promise<Chofer[]> {
-  try {
-    const snapshot = await getDocs(collection(getDb(), 'choferes'))
-    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Chofer))
-    data.sort((a, b) => a.nombre.localeCompare(b.nombre))
-    await syncManager.cacheCollection('choferes', data.map(c => ({ ...c, id: c.id! })))
+export async function getAllChoferes(options?: { forceRefresh?: boolean }): Promise<Chofer[]> {
+  if (options?.forceRefresh) {
+    const data = await fetchChoferesFromFirebase()
     return data
-  } catch {
-    const result = await localGetAll<Chofer>('choferes')
-    return result.sort((a, b) => a.nombre.localeCompare(b.nombre))
   }
+  const local = await localFirstRead<Chofer>('choferes', fetchChoferesFromFirebase)
+  return local.sort((a, b) => a.nombre.localeCompare(b.nombre))
+}
+
+async function fetchChoferesFromFirebase(): Promise<Chofer[]> {
+  const snapshot = await getDocs(collection(getDb(), 'choferes'))
+  const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Chofer))
+  data.sort((a, b) => a.nombre.localeCompare(b.nombre))
+  await syncManager.cacheCollection('choferes', data.map(c => ({ ...c, id: c.id! })))
+  await markSynced('choferes')
+  return data
 }
 
 export async function createChofer(data: Omit<Chofer, 'id' | 'createdAt'>): Promise<string> {

@@ -24,8 +24,8 @@ import {
   localGetAll, localGet, localSet,
   enqueueOperation, generateLocalId,
 } from '@/lib/db'
-import { clearCache } from '@/lib/cache'
 import { syncManager } from '@/lib/sync'
+import { localFirstRead, markSynced } from '@/lib/local-first'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Cliente } from './types'
 
@@ -163,24 +163,24 @@ export async function getClientes(search?: string, page = 1, pageSize = 20, sort
   }
 }
 
-export async function getAllClientes() {
-  try {
-    const q = query(
-      collection(getDb(), 'clientes'),
-      orderBy('razonSocial', 'asc')
-    )
-    const snapshot = await getDocs(q)
-    const data = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Cliente[]
-    await syncManager.cacheCollection('clientes', data.map(c => ({ ...c, id: c.id! })))
+export async function getAllClientes(options?: { forceRefresh?: boolean }) {
+  if (options?.forceRefresh) {
+    const data = await fetchClientesFromFirebase()
     return data
-  } catch (error) {
-    const localData = await localGetAll<Cliente>('clientes')
-    if (localData.length > 0) return localData
-    throw error
   }
+  return localFirstRead<Cliente>('clientes', fetchClientesFromFirebase)
+}
+
+async function fetchClientesFromFirebase(): Promise<Cliente[]> {
+  const q = query(collection(getDb(), 'clientes'), orderBy('razonSocial', 'asc'))
+  const snapshot = await getDocs(q)
+  const data = snapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Cliente[]
+  await syncManager.cacheCollection('clientes', data.map(c => ({ ...c, id: c.id! })))
+  await markSynced('clientes')
+  return data
 }
 
 export async function getCliente(id: string) {
@@ -286,7 +286,6 @@ export async function createMultipleClientes(
     }
 
     await batch.commit()
-    clearCache('allClientes')
   } catch {
     for (const item of data) {
       const codigoCliente = await getNextCodigoCliente()

@@ -9,6 +9,18 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'ADMINISTRACION de FALPAT SRL',
   description: 'Sistema de gestión - REMITOS y PRESUPUESTOS',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'FALPAT Ventas',
+  },
+  icons: {
+    icon: [
+      { url: '/icons/icon-192.svg', sizes: '192x192', type: 'image/svg+xml' },
+      { url: '/icons/icon-512.svg', sizes: '512x512', type: 'image/svg+xml' },
+    ],
+  },
 }
 
 export default function RootLayout({

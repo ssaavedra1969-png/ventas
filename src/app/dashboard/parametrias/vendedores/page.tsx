@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { useRealtime } from '@/hooks/useRealtime'
 import {
-  getVendedores,
   createVendedor,
   updateVendedor,
   deleteVendedor,
@@ -43,9 +43,9 @@ interface VendedorForm {
 const emptyForm: VendedorForm = { codigo: '', nombre: '' }
 
 export default function VendedoresPage() {
-  const [vendedores, setVendedores] = useState<Vendedor[]>([])
+  const { data: vendedores, loading: realtimeLoading } = useRealtime<Vendedor>('vendedores')
   const [stats, setStats] = useState<VendedorStats[]>([])
-  const [loading, setLoading] = useState(true)
+  const [statsLoading, setStatsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -56,23 +56,19 @@ export default function VendedoresPage() {
   const [bulkOpen, setBulkOpen] = useState(false)
   const [showStats, setShowStats] = useState(false)
 
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    try {
-      const [vendedoresData, statsData] = await Promise.all([
-        getVendedores(),
-        getVendedoresStats(),
-      ])
-      setVendedores(vendedoresData)
-      setStats(statsData)
-    } catch {
-      toast.error('Error al cargar datos')
-    } finally {
-      setLoading(false)
-    }
+  useEffect(() => {
+    (async () => {
+      setStatsLoading(true)
+      try {
+        const statsData = await getVendedoresStats()
+        setStats(statsData)
+      } catch {
+        toast.error('Error al cargar estadísticas')
+      } finally {
+        setStatsLoading(false)
+      }
+    })()
   }, [])
-
-  useEffect(() => { loadData() }, [loadData])
 
   const filtered = vendedores.filter((v) => {
     if (!search) return true
@@ -116,7 +112,6 @@ export default function VendedoresPage() {
       setEditId(null)
       setForm(emptyForm)
       setErrors({})
-      loadData()
     } catch {
       toast.error('Error al guardar')
     } finally {
@@ -136,7 +131,6 @@ export default function VendedoresPage() {
       await deleteVendedor(id)
       toast.success('Vendedor eliminado')
       setDeleteConfirm(null)
-      loadData()
     } catch {
       toast.error('Error al eliminar')
     }
@@ -182,7 +176,7 @@ export default function VendedoresPage() {
       </div>
 
       {/* Resumen global */}
-      {!loading && stats.length > 0 && (
+      {!statsLoading && stats.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="glass-card rounded-xl px-4 py-3">
             <p className="text-[#B0B0D0] text-xs mb-0.5">Total Remitos</p>
@@ -245,7 +239,7 @@ export default function VendedoresPage() {
 
       {/* Tabla de vendedores */}
       <div className="glass-card rounded-xl overflow-hidden">
-        {loading ? (
+        {realtimeLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#6C3CE1]" />
           </div>
@@ -314,7 +308,7 @@ export default function VendedoresPage() {
       </div>
 
       {/* Estadísticas detalladas por vendedor */}
-      {showStats && !loading && stats.length > 0 && (
+      {showStats && !statsLoading && stats.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-[#6C3CE1]" />
@@ -503,7 +497,7 @@ export default function VendedoresPage() {
         templateHeaders={['codigo', 'nombre']}
         exampleData={vendedoresExampleData}
         onUpload={handleBulkUpload}
-        onRefresh={loadData}
+        onRefresh={() => {}}
       />
     </div>
   )

@@ -1,10 +1,8 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
-import { useBackgroundSync } from '@/hooks/useBackgroundSync'
+import { useState, useMemo } from 'react'
+import { useRealtime } from '@/hooks/useRealtime'
 import {
-  getAllProductos,
-  getProductos,
   createProducto,
   updateProducto,
   deleteProducto,
@@ -69,11 +67,7 @@ const emptyForm: ProductoForm = {
 }
 
 export default function ProductosPage() {
-  const [allProductos, setAllProductos] = useState<Producto[]>([])
-  const [paginatedProductos, setPaginatedProductos] = useState<Producto[]>([])
-  const [totalProductos, setTotalProductos] = useState(0)
-  const [totalPages, setTotalPages] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const { data: allProductos, loading: realtimeLoading } = useRealtime<Producto>('productos')
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -88,53 +82,26 @@ export default function ProductosPage() {
   const [sortField, setSortField] = useState<string>('nombre')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search)
-      setPage(1)
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [search])
+  const filtered = useMemo(() => {
+    return allProductos.filter((p) => {
+      if (!debouncedSearch) return true
+      const s = debouncedSearch.toLowerCase()
+      return p.nombre.toLowerCase().includes(s) || p.tipo.toLowerCase().includes(s)
+    })
+  }, [allProductos, debouncedSearch])
 
-  // Load paginated data from Firebase (limit 20)
-  const loadProductosPage = useCallback(async (p: number, searchTerm?: string, sField?: string, sDir?: 'asc' | 'desc') => {
-    setLoading(true)
-    try {
-      const result = await getProductos(searchTerm || undefined, p, pageSize, sField ?? sortField, sDir ?? sortDir)
-      setPaginatedProductos(result.data)
-      setTotalProductos(result.total)
-      setTotalPages(result.totalPages)
-    } catch {
-      toast.error('Error al cargar productos')
-    } finally {
-      setLoading(false)
-    }
-  }, [sortField, sortDir])
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const aVal = String((a as unknown as Record<string, unknown>)[sortField] ?? '')
+      const bVal = String((b as unknown as Record<string, unknown>)[sortField] ?? '')
+      const cmp = aVal.localeCompare(bVal, 'es', { numeric: true })
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+  }, [filtered, sortField, sortDir])
 
-  // Load full list for autocomplete and export (lazy)
-  const loadFullProductos = useCallback(async () => {
-    try {
-      const all = await getAllProductos()
-      setAllProductos(all)
-    } catch {
-      // Silently fail
-    }
-  }, [])
-
-  useEffect(() => {
-    loadProductosPage(page, debouncedSearch)
-  }, [page, debouncedSearch, loadProductosPage])
-
-  useEffect(() => {
-    loadFullProductos()
-  }, [loadFullProductos])
-
-  const syncProductos = useCallback(() => {
-    loadProductosPage(page, debouncedSearch)
-    loadFullProductos()
-  }, [loadProductosPage, loadFullProductos, page, debouncedSearch])
-
-  useBackgroundSync(syncProductos, 60000, !loading)
+  const total = sorted.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const paginatedData = sorted.slice((page - 1) * pageSize, page * pageSize)
 
   const toggleSort = (field: string) => {
     setPage(1)
@@ -170,8 +137,6 @@ export default function ProductosPage() {
       }
     })
     const result = await createMultipleProductos(items)
-    loadProductosPage(1, debouncedSearch)
-    loadFullProductos()
     return result
   }
 
@@ -200,8 +165,6 @@ export default function ProductosPage() {
       setEditId(null)
       setForm(emptyForm)
       setErrors({})
-      loadProductosPage(1, debouncedSearch)
-      loadFullProductos()
     } catch (err) {
       console.error('Error saving product:', err)
       toast.error('Error al guardar el producto')
@@ -226,26 +189,20 @@ export default function ProductosPage() {
   }
 
   const handleExport = async () => {
-    try {
-      const all = await getAllProductos()
-      const data = all.map((p) => ({
-        'Cod. Prod.': p.codigoProducto,
-        Nombre: p.nombre,
-        Tipo: p.tipo,
-        Medida: p.medida,
-        'Precio C/IVA': p.valorUnitario,
-        'Precio S/IVA': p.precioSinIVA || Math.round((p.valorUnitario / 1.21) * 100) / 100,
-        Stock: p.stock ?? 0,
-      }))
-      const wb = XLSX.utils.book_new()
-      const ws = XLSX.utils.json_to_sheet(data)
-      XLSX.utils.book_append_sheet(wb, ws, 'Productos')
-      XLSX.writeFile(wb, 'productos.xlsx')
-      toast.success('Productos exportados exitosamente')
-    } catch (err) {
-      console.error('Error exporting products:', err)
-      toast.error('Error al exportar productos')
-    }
+    const data = allProductos.map((p) => ({
+      'Cod. Prod.': p.codigoProducto,
+      Nombre: p.nombre,
+      Tipo: p.tipo,
+      Medida: p.medida,
+      'Precio C/IVA': p.valorUnitario,
+      'Precio S/IVA': p.precioSinIVA || Math.round((p.valorUnitario / 1.21) * 100) / 100,
+      Stock: p.stock ?? 0,
+    }))
+    const wb = XLSX.utils.book_new()
+    const ws = XLSX.utils.json_to_sheet(data)
+    XLSX.utils.book_append_sheet(wb, ws, 'Productos')
+    XLSX.writeFile(wb, 'productos.xlsx')
+    toast.success('Productos exportados exitosamente')
   }
 
   const handleDelete = async (id: string) => {
@@ -253,8 +210,6 @@ export default function ProductosPage() {
       await deleteProducto(id)
       toast.success('Producto eliminado exitosamente')
       setDeleteConfirm(null)
-      loadProductosPage(1, debouncedSearch)
-      loadFullProductos()
     } catch (err) {
       console.error('Error deleting product:', err)
       toast.error('Error al eliminar el producto')
@@ -304,12 +259,16 @@ export default function ProductosPage() {
           type="text"
           placeholder="Buscar por nombre o tipo..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setDebouncedSearch(e.target.value)
+            setPage(1)
+          }}
           className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#12122A] border border-white/5 text-white placeholder-[#6B6B8A] text-sm focus:outline-none focus:border-[#6C3CE1]/50 transition-colors"
         />
         {search && (
           <button
-            onClick={() => setSearch('')}
+            onClick={() => { setSearch(''); setDebouncedSearch('') }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B6B8A] hover:text-white"
           >
             <X className="h-4 w-4" />
@@ -318,11 +277,11 @@ export default function ProductosPage() {
       </div>
 
       <div className="glass-card rounded-xl overflow-hidden">
-        {loading ? (
+        {realtimeLoading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#6C3CE1]" />
           </div>
-        ) : paginatedProductos.length === 0 ? (
+        ) : paginatedData.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-[#6B6B8A]">No se encontraron productos</p>
           </div>
@@ -358,7 +317,7 @@ export default function ProductosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {paginatedProductos.map((producto) => (
+                {paginatedData.map((producto) => (
                   <tr
                     key={producto.id}
                     className="hover:bg-white/5 transition-colors"
@@ -420,7 +379,7 @@ export default function ProductosPage() {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
             <p className="text-sm text-[#6B6B8A]">
-              {totalProductos} productos - Página {page} de {totalPages}
+              {total} productos - Página {page} de {totalPages}
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -681,7 +640,7 @@ export default function ProductosPage() {
         templateHeaders={['Cod. Prod.', 'nombre', 'tipo', 'medida', 'Precio C/IVA', 'Precio S/IVA', 'stock']}
         exampleData={productosExampleData}
         onUpload={handleBulkUpload}
-        onRefresh={() => { loadProductosPage(1, debouncedSearch); loadFullProductos() }}
+        onRefresh={() => setPage(1)}
       />
     </div>
   )

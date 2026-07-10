@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>FALPAT Ventas — Manual de Usuario</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --primary: #6C3CE1;
+    --primary-light: #8B5CF6;
+    --accent: #00D4FF;
+    --accent-green: #00FF88;
+    --dark-bg: #0A0A1A;
+    --card-bg: #12122A;
+    --surface: rgba(255,255,255,0.03);
+    --text: #F0F0FF;
+    --text-muted: #6B6B8A;
+    --text-dim: #4A4A6A;
+    --border: rgba(255,255,255,0.05);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--dark-bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Cover Page */
+  .cover {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: linear-gradient(135deg, #0A0A1A 0%, #1A0A3A 50%, #0A1A2A 100%);
+    position: relative;
+    overflow: hidden;
+    padding: 60px 40px;
+    page-break-after: always;
+  }
+
+  .cover::before {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(108,60,225,0.15), transparent 70%);
+    top: -200px;
+    right: -200px;
+  }
+
+  .cover::after {
+    content: '';
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,212,255,0.1), transparent 70%);
+    bottom: -100px;
+    left: -100px;
+  }
+
+  .cover h1 {
+    font-size: 52px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #6C3CE1, #00D4FF, #00FF88);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .cover .subtitle {
+    font-size: 22px;
+    font-weight: 300;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .cover .meta {
+    font-size: 14px;
+    color: var(--text-dim);
+    position: relative;
+    z-index: 1;
+  }
+
+  .cover .badge {
+    display: inline-block;
+    padding: 8px 24px;
+    border-radius: 100px;
+    background: linear-gradient(135deg, rgba(108,60,225,0.2), rgba(0,212,255,0.1));
+    border: 1px solid rgba(108,60,225,0.3);
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 30px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Page layout */
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 60px 40px;
+    page-break-after: always;
+  }
+
+  .page:last-child { page-break-after: auto; }
+
+  .page-header {
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-header .section-number {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    margin-bottom: 8px;
+  }
+
+  .page-header h2 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .page-header p {
+    font-size: 15px;
+    color: var(--text-muted);
+    max-width: 800px;
+  }
+
+  h3 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 40px 0 16px;
+  }
+
+  h4 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 30px 0 12px;
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    line-height: 1.8;
+  }
+
+  ul, ol {
+    margin: 0 0 20px 20px;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+
+  li { margin-bottom: 6px; }
+
+  strong { color: var(--text); font-weight: 600; }
+
+  /* Screenshot */
+  .screenshot {
+    margin: 24px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--card-bg);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+
+  .screenshot img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .screenshot .caption {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--text-dim);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-style: italic;
+  }
+
+  /* Info boxes */
+  .info-box {
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 24px 0;
+    border-left: 4px solid var(--primary);
+    background: linear-gradient(135deg, rgba(108,60,225,0.08), rgba(0,212,255,0.04));
+  }
+
+  .info-box.warning {
+    border-left-color: #FFB347;
+    background: linear-gradient(135deg, rgba(255,179,71,0.08), rgba(255,107,107,0.04));
+  }
+
+  .info-box.success {
+    border-left-color: var(--accent-green);
+    background: linear-gradient(135deg, rgba(0,255,136,0.08), rgba(0,212,255,0.04));
+  }
+
+  .info-box h4 {
+    margin: 0 0 8px;
+    font-size: 14px;
+  }
+
+  .info-box p, .info-box ul { font-size: 13px; margin-bottom: 0; }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 24px 0;
+    font-size: 13px;
+  }
+
+  thead th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  tbody td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* Badge */
+  .badge-status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .badge-enviado { background: rgba(108,60,225,0.15); color: var(--primary-light); }
+  .badge-aprobado { background: rgba(0,212,255,0.15); color: var(--accent); }
+  .badge-revision { background: rgba(255,179,71,0.15); color: #FFB347; }
+  .badge-despachar { background: rgba(0,255,136,0.15); color: var(--accent-green); }
+  .badge-finalizado { background: rgba(0,255,136,0.15); color: var(--accent-green); }
+  .badge-anulado { background: rgba(255,107,107,0.15); color: #FF6B6B; }
+
+  .estado-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin: 20px 0;
+  }
+
+  .estado-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .estado-card .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .estado-card .value { font-size: 14px; font-weight: 600; color: var(--text); }
+
+  /* Steps */
+  .steps {
+    counter-reset: step;
+    margin: 24px 0;
+  }
+
+  .step {
+    counter-increment: step;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    position: relative;
+    padding-left: 72px;
+  }
+
+  .step::before {
+    content: counter(step);
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+  }
+
+  .step h4 { margin: 0 0 8px; }
+  .step p { margin-bottom: 0; font-size: 13px; }
+
+  /* Table of Contents */
+  .toc {
+    margin: 30px 0;
+  }
+
+  .toc-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+    transition: all 0.2s;
+  }
+
+  .toc-item .num {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    margin-right: 16px;
+    flex-shrink: 0;
+  }
+
+  .toc-item .info { flex: 1; }
+  .toc-item .info .title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .toc-item .info .desc { font-size: 12px; color: var(--text-dim); }
+
+  .toc-item .arrow { color: var(--text-dim); font-size: 18px; }
+
+  /* Flow diagram */
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 30px 0;
+    padding: 30px;
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .flow-step .box {
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 100px;
+  }
+
+  .flow-step .box.primary { background: rgba(108,60,225,0.2); color: var(--primary-light); border: 1px solid rgba(108,60,225,0.3); }
+  .flow-step .box.secondary { background: rgba(0,212,255,0.15); color: var(--accent); border: 1px solid rgba(0,212,255,0.2); }
+  .flow-step .box.success { background: rgba(0,255,136,0.15); color: var(--accent-green); border: 1px solid rgba(0,255,136,0.2); }
+  .flow-step .box.warning { background: rgba(255,179,71,0.15); color: #FFB347; border: 1px solid rgba(255,179,71,0.2); }
+  .flow-step .box.danger { background: rgba(255,107,107,0.15); color: #FF6B6B; border: 1px solid rgba(255,107,107,0.2); }
+
+  .flow-arrow {
+    color: var(--text-dim);
+    font-size: 18px;
+    font-weight: 300;
+  }
+
+  @media print {
+    body { background: white; color: black; }
+    .cover { background: linear-gradient(135deg, #0A0A1A, #1A0A3A, #0A1A2A); }
+    .page { max-width: 100%; padding: 40px; }
+    .screenshot { break-inside: avoid; }
+    .step { break-inside: avoid; }
+    .info-box { break-inside: avoid; }
+    table { break-inside: avoid; }
+    .flow-diagram { break-inside: avoid; }
+    .estado-grid { break-inside: avoid; }
+  }
+
+  .page-break { page-break-before: always; }
+
+  .version-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- PORTADA -->
+<!-- ============================================================ -->
+<div class="cover">
+  <div class="badge">Sistema de Gestión Comercial</div>
+  <h1>FALPAT Ventas</h1>
+  <p class="subtitle">Manual de Usuario — Desde el presupuesto hasta la entrega</p>
+  <p class="meta">Versión 1.0 &nbsp;·&nbsp; Julio 2026 &nbsp;·&nbsp; FALPAT SRL</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- ÍNDICE -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-number">Contenido</div>
+    <h2>Índice</h2>
+  </div>
+  <div class="toc">
+    <div class="toc-item"><div class="num">1</div><div class="info"><div class="title">Estructura del Sistema</div><div class="desc">Barra lateral, secciones y navegación</div></div><div class="arrow">→</div></div>
+    <div class="toc-item"><div class="num">2</div><div class="info"><div class="title">Dashboard</div><div class="desc">Panel principal con indicadores del mes</div></div><div class="arrow">→</div></div>
+    <div class="toc-item"><div class="num">3</div><div class="info"><div class="title">Parametrías</div><div class="desc">Clientes, Productos, Vendedores, Vehículos y Choferes</div></div><div class="arrow">→</div></div>
+    <div class="toc-item"><div class="num">4</div><div class="info"><div class="title">Presupuestos</div><div class="desc">Creación paso a paso, lista y acciones (aprobar, anular, WhatsApp)</div></div><div class="arrow">→</div></div>
+    <div class="toc-item"><div class="num">5</div><div class="info"><div class="title">Remitos</div><div class="desc">Estados, transiciones, registro de factura y nota de crédito</div></div><div class="arrow">→</div></div>
+    <div class="toc-item"><div class="num">6</div><div class="info"><div class="title">Facturación</div><div class="desc">Cobranza, registro de pagos y resumen financiero</div></div><div class="arrow">→</div></div>
+    <div class="toc-item"><div class="num">7</div><div class="info"><div class="title">Salidas (Entregas)</div><div class="desc">Calendario de entregas, programación e impresión de remitos de salida</div></div><div class="arrow">→</div></div>
+    <div class="toc-item"><div class="num">8</div><div class="info"><div class="title">Vista de Documento</div><div class="desc">Detalle imprimible de presupuestos y remitos</div></div><div class="arrow">→</div></div>
+    <div class="toc-item"><div class="num">9</div><div class="info"><div class="title">Informes</div><div class="desc">Estadísticas generales del negocio</div></div><div class="arrow">→</div></div>
+    <div class="toc-item"><div class="num">10</div><div class="info"><div class="title">Flujo Completo</div><div class="desc">Diagrama resumen de principio a fin</div></div><div class="arrow">→</div></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 1. ESTRUCTURA DEL SISTEMA -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-number">Capítulo 1</div>
+    <h2>Estructura del Sistema</h2>
+    <p>FALPAT Ventas es un sistema web de gestión comercial que cubre el ciclo completo de ventas: desde la creación de presupuestos hasta la planificación de entregas y el cobro.</p>
+  </div>
+
+  <h3>Barra lateral de navegación</h3>
+  <p>Al ingresar al sistema, la barra lateral izquierda organiza todas las secciones en grupos funcionales:</p>
+
+  <div class="screenshot">
+    <img src="screenshots/01-dashboard.png" alt="Vista general del Dashboard">
+    <div class="caption">Figura 1.1 — Panel principal al iniciar sesión</div>
+  </div>
+
+  <h4>Secciones del menú</h4>
+  <table>
+    <thead>
+      <tr><th>Sección</th><th>Página</th><th>Descripción</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>PRINCIPAL</strong></td><td>Dashboard</td><td>Panel con indicadores clave del mes</td></tr>
+      <tr><td><strong>PARAMETRÍAS</strong></td><td>Parametrías</td><td>Subpágina con acceso a clientes, productos, vendedores, vehículos y choferes</td></tr>
+      <tr><td><strong>COMERCIAL</strong></td><td>Nuevo Presupuesto</td><td>Asistente de 3 pasos para crear presupuestos</td></tr>
+      <tr><td><strong>COMERCIAL</strong></td><td>Presupuestos</td><td>Lista de presupuestos con acciones de aprobación</td></tr>
+      <tr><td><strong>COMERCIAL</strong></td><td>Remitos</td><td>Gestión de remitos y registro de facturación</td></tr>
+      <tr><td><strong>COMERCIAL</strong></td><td>Facturación</td><td>Cobranza, pagos y resumen financiero</td></tr>
+      <tr><td><strong>LOGÍSTICA</strong></td><td>Salidas</td><td>Calendario de planificación de entregas</td></tr>
+      <tr><td><strong>INFORMES</strong></td><td>Informes</td><td>Estadísticas generales</td></tr>
+      <tr><td style="opacity:0.6">—</td><td>Configuración</td><td>Datos de la empresa (razón social, CUIT, etc.)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box">
+    <h4>💡 Sincronización en tiempo real</h4>
+    <p>Todos los datos maestros (clientes, productos, vendedores, vehículos, choferes) se actualizan automáticamente. Cuando un usuario crea o modifica un registro, los cambios aparecen al instante en todas las pantallas sin necesidad de recargar la página.</p>
+  </div>
+
+  <div class="info-box warning">
+    <h4>⚠️ Conectividad</h4>
+    <p>El indicador <strong>SyncStatus</strong> en la barra superior muestra si hay conexión con el servidor (verde = conectado, rojo = sin conexión). La aplicación permite leer datos aunque no haya conexión, pero las escrituras (crear, editar, eliminar) requieren conexión a Internet.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 2. DASHBOARD -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-number">Capítulo 2</div>
+    <h2>Dashboard — Panel Principal</h2>
+    <p>El Dashboard es la primera pantalla que se ve al ingresar. Proporciona una visión general del negocio con indicadores clave, alertas de presupuestos pendientes y acceso rápido a los últimos remitos.</p>
+  </div>
+
+  <h3>Indicadores del mes</h3>
+  <p>Tres tarjetas con efecto 3D muestran las métricas más importantes:</p>
+
+  <div class="estado-grid">
+    <div class="estado-card">
+      <div class="label">Remitos del Mes</div>
+      <div class="value">Cantidad creada en el mes actual</div>
+    </div>
+    <div class="estado-card">
+      <div class="label">Total Facturado</div>
+      <div class="value">Suma total de remitos facturados</div>
+    </div>
+    <div class="estado-card">
+      <div class="label">Clientes Activos</div>
+      <div class="value">Total de clientes registrados</div>
+    </div>
+  </div>
+
+  <h3>Presupuestos Pendientes</h3>
+  <p>Si existen presupuestos en estado <strong>Enviado</strong> (pendientes de aprobación), se muestra una sección con la cantidad y un listado de los últimos pendientes. Cada fila lleva al detalle del presupuesto.</p>
+
+  <h3>Últimos Remitos</h3>
+  <p>Lista los 5 remitos más recientes (tanto del sistema nuevo como legacy). Cada fila incluye:</p>
+  <ul>
+    <li><strong>Número de remito</strong> y nombre del cliente</li>
+    <li><strong>Estado</strong> con badge de color</li>
+    <li><strong>Estado de cobranza</strong>: <span class="badge-status badge-enviado">Pendiente</span> / <span class="badge-status badge-despachar">Pagado</span> / <span class="badge-status badge-revision">Parcial</span></li>
+    <li><strong>Total</strong> y número de factura si aplica</li>
+    <li>Link directo al detalle del documento</li>
+  </ul>
+
+  <div class="screenshot">
+    <img src="screenshots/01-dashboard.png" alt="Dashboard con indicadores">
+    <div class="caption">Figura 2.1 — Dashboard: tarjetas de indicadores, presupuestos pendientes y últimos remitos</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 3. PARAMETRÍAS -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-number">Capítulo 3</div>
+    <h2>Parametrías — Datos Maestros</h2>
+    <p>Las parametrías contienen los datos fundamentales del sistema. Se accede desde <strong>Parametrías</strong> en el menú lateral, que a su vez contiene 5 subpáginas.</p>
+  </div>
+
+  <!-- 3.1 CLIENTES -->
+  <h3>3.1 Clientes</h3>
+  <p>Gestión completa de clientes con búsqueda, ordenamiento por columnas y exportación a Excel.</p>
+
+  <div class="screenshot">
+    <img src="screenshots/02-clientes.png" alt="Pantalla de Clientes">
+    <div class="caption">Figura 3.1 — Lista de clientes con búsqueda y acciones</div>
+  </div>
+
+  <h4>Campos del formulario</h4>
+  <table>
+    <thead><tr><th>Campo</th><th>Descripción</th><th>Ejemplo</th></tr></thead>
+    <tbody>
+      <tr><td>Código Cliente</td><td>Generado automáticamente al crear</td><td>CLI-001</td></tr>
+      <tr><td>Razón Social</td><td>Nombre o razón social</td><td>FALPAT SRL</td></tr>
+      <tr><td>Tipo Documento</td><td>CUIT / DNI</td><td>CUIT</td></tr>
+      <tr><td>Número Documento</td><td>Documento del cliente</td><td>30-12345678-9</td></tr>
+      <tr><td>Actividad</td><td>Rubro comercial</td><td>Construcción</td></tr>
+      <tr><td>Domicilio</td><td>Dirección completa</td><td>Av. Siempre Viva 123</td></tr>
+      <tr><td>Localidad</td><td>Ciudad / localidad</td><td>Buenos Aires</td></tr>
+      <tr><td>Teléfono</td><td>Número de contacto</td><td>+54 11 1234-5678</td></tr>
+      <tr><td><strong>Condición IVA</strong></td><td>Determina el tipo de factura</td><td>RI / CF / Monotributo / Exento</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box success">
+    <h4>🔑 Condición de IVA — Clave para la facturación</h4>
+    <p>La <strong>condición de IVA</strong> es el campo más importante del cliente porque determina cómo se calculan los impuestos en cada presupuesto:</p>
+    <ul>
+      <li><strong>RI</strong> (Responsable Inscripto) → Factura A → IVA 21% detallado por separado</li>
+      <li><strong>Monotributo</strong> → Factura A → IVA 21% detallado</li>
+      <li><strong>CF</strong> (Consumidor Final) → Factura B → IVA incluido en el precio</li>
+      <li><strong>Exento</strong> → Factura B → IVA incluido en el precio</li>
+    </ul>
+  </div>
+
+  <h4>Acciones disponibles</h4>
+  <ul>
+    <li><strong>Nuevo Cliente</strong> — Botón violeta "Nuevo Cliente" en la esquina superior derecha</li>
+    <li><strong>Editar</strong> — Icono de lápiz en cada fila</li>
+    <li><strong>Eliminar</strong> — Icono de tacho rojo (requiere confirmación modal)</li>
+    <li><strong>Excel</strong> — Exporta la lista completa a un archivo .xlsx</li>
+    <li><strong>Carga Masiva</strong> — Importa clientes desde un archivo Excel</li>
+    <li><strong>Buscar</strong> — Filtro por razón social o código de cliente</li>
+  </ul>
+
+  <!-- 3.2 PRODUCTOS -->
+  <h3>3.2 Productos</h3>
+
+  <div class="screenshot">
+    <img src="screenshots/03-productos.png" alt="Pantalla de Productos">
+    <div class="caption">Figura 3.2 — Catálogo de productos con ordenamiento por columnas</div>
+  </div>
+
+  <p><strong>Campos:</strong> Código Producto (5 dígitos), Nombre, Tipo (12 categorías: Aglomerados, Herrería, Electricidad, Pinturería, Sanitarios, Cemento, Arena/Piedra, Hierros, Madera, Pisos, Techos, Otros), Medida (Kg, Unidad, m³, Litro, Metro, m², Bolsa, Pallet), Precio C/IVA, Precio S/IVA (automático = C/IVA ÷ 1,21), Stock.</p>
+  <p><strong>Acciones:</strong> Nuevo, Editar, Eliminar, Excel, Carga Masiva, búsqueda por nombre o tipo. También se puede ordenar haciendo click en cualquier encabezado de columna.</p>
+
+  <!-- 3.3 VENDEDORES -->
+  <h3>3.3 Vendedores</h3>
+
+  <div class="screenshot">
+    <img src="screenshots/04-vendedores.png" alt="Pantalla de Vendedores">
+    <div class="caption">Figura 3.3 — Vendedores con panel de estadísticas</div>
+  </div>
+
+  <p><strong>Campos:</strong> Código (máximo 5 caracteres, ej: AG, JC, MR), Nombre.</p>
+  <p><strong>Estadísticas de rendimiento:</strong> Al hacer click en el botón <strong>"Estadísticas"</strong> (ícono de gráfico), se despliega un panel detallado con:</p>
+  <ul>
+    <li>Remitos totales por vendedor</li>
+    <li>Total facturado</li>
+    <li>Ítems vendidos</li>
+    <li>Último remito (fecha)</li>
+    <li>Barra de rendimiento relativo</li>
+    <li>Ranking con trofeo 🏆</li>
+    <li>Desglose por estado de remitos (Enviado, Aceptado, En Revisión, etc.)</li>
+    <li>Promedio por remito y remito más alto</li>
+  </ul>
+
+  <!-- 3.4 VEHÍCULOS Y CHOFERES -->
+  <h3>3.4 Vehículos y Choferes</h3>
+
+  <div class="screenshot">
+    <img src="screenshots/05-vehiculos.png" alt="Pantalla de Vehículos y Choferes">
+    <div class="caption">Figura 3.4 — Gestión de vehículos (izquierda) y choferes (derecha)</div>
+  </div>
+
+  <p>Ambos se gestionan en la misma pantalla, dividida en dos columnas.</p>
+
+  <h4>Vehículos (columna izquierda)</h4>
+  <ul>
+    <li><strong>Importar vehículos</strong> — Botón verde que carga los 30 vehículos predefinidos de la flota (Scania, Mercedes Benz, Volkswagen, etc.)</li>
+    <li><strong>Agregar</strong> — Formulario inline: patente + marca</li>
+    <li><strong>Eliminar</strong> — Confirmación con cuadro de diálogo</li>
+  </ul>
+
+  <h4>Choferes (columna derecha)</h4>
+  <ul>
+    <li><strong>Importar choferes</strong> — Ícono de upload: pide ingresar nombres (uno por línea)</li>
+    <li><strong>Agregar / Editar</strong> — Nombre, documento, teléfono</li>
+    <li><strong>Eliminar</strong> — Confirmación</li>
+  </ul>
+
+  <div class="info-box">
+    <h4>📌 ¿Para qué se usan?</h4>
+    <p>Vehículos y choferes se seleccionan al <strong>programar una salida</strong> (entrega). Cada salida registra qué vehículo y qué chofer realizaron la entrega.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 4. PRESUPUESTOS -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-number">Capítulo 4</div>
+    <h2>Presupuestos</h2>
+    <p>El módulo de presupuestos permite crear cotizaciones para clientes mediante un asistente de 3 pasos, y luego gestionarlas (aprobar, anular, compartir por WhatsApp).</p>
+  </div>
+
+  <h3>4.1 Crear nuevo presupuesto</h3>
+  <p><strong>Ruta:</strong> Comercial → Nuevo Presupuesto</p>
+
+  <div class="steps">
+
+    <div class="step">
+      <h4>Paso 1 — Seleccionar Cliente y Vendedor</h4>
+      <div class="screenshot">
+        <img src="screenshots/06-presupuesto-nuevo.png" alt="Paso 1: selección de cliente">
+        <div class="caption">Figura 4.1 — Paso 1: búsqueda y selección de cliente con autocompletado</div>
+      </div>
+      <p>En esta pantalla se ve un campo de búsqueda de cliente con <strong>autocompletado</strong>. Al escribir, se despliegan sugerencias con el nombre y documento del cliente. Al seleccionar uno, se muestra su información completa (razón social, CUIT, domicilio, condición de IVA).</p>
+      <p>Opcionalmente se puede seleccionar un vendedor de la lista desplegable. Luego se hace click en <strong>"Siguiente"</strong>.</p>
+    </div>
+
+    <div class="step">
+      <h4>Paso 2 — Agregar Productos</h4>
+      <p>Se despliega un formulario con:</p>
+      <ul>
+        <li><strong>Buscador de productos</strong> con autocompletado por nombre</li>
+        <li>Al seleccionar un producto: <strong>cantidad</strong>, <strong>precio unitario</strong> (cargado automático), <strong>bonificación</strong> (% de descuento opcional)</li>
+        <li>Botón <strong>"Agregar"</strong> para incluir el producto en la lista</li>
+        <li>Tabla de ítems agregados con: producto, cantidad, precio unitario, bonificación %, subtotal</li>
+        <li>Botones de <strong>editar</strong> (lápiz) y <strong>eliminar</strong> (tacho) en cada fila</li>
+      </ul>
+      <p>Al finalizar, click en <strong>"Siguiente"</strong>.</p>
+    </div>
+
+    <div class="step">
+      <h4>Paso 3 — Revisar y Confirmar</h4>
+      <p>Resumen final con:</p>
+      <ul>
+        <li>Cliente seleccionado y fecha</li>
+        <li>Tabla completa de ítems con subtotales</li>
+        <li><strong>Subtotal</strong>, <strong>IVA</strong> (calculado según condición del cliente), <strong>Total General</strong></li>
+        <li>Campo de <strong>observaciones</strong> (opcional)</li>
+        <li>Selector de <strong>fecha</strong> (por defecto la fecha actual)</li>
+      </ul>
+      <p>Click en el botón <strong>"Generar Presupuesto"</strong> para finalizar. El presupuesto se crea en estado <strong>Enviado</strong>.</p>
+    </div>
+  </div>
+
+  <div class="info-box success">
+    <h4>💾 Borrador automático</h4>
+    <p>Si se cierra la página sin terminar, el sistema guarda automáticamente un borrador. Al volver a "Nuevo Presupuesto" se restaura automáticamente el progreso.</p>
+  </div>
+
+  <h3>4.2 Lista de Presupuestos</h3>
+  <p><strong>Ruta:</strong> Comercial → Presupuestos</p>
+
+  <div class="screenshot">
+    <img src="screenshots/07-presupuestos-lista.png" alt="Lista de presupuestos">
+    <div class="caption">Figura 4.2 — Lista de presupuestos con paginación y acciones por estado</div>
+  </div>
+
+  <h4>Columnas de la tabla</h4>
+  <table>
+    <thead><tr><th>Columna</th><th>Descripción</th></tr></thead>
+    <tbody>
+      <tr><td>N°</td><td>Número de presupuesto secuencial por año</td></tr>
+      <tr><td>Fecha</td><td>Fecha de creación dd/MM/yyyy</td></tr>
+      <tr><td>Cliente</td><td>Razón social del cliente</td></tr>
+      <tr><td>Total</td><td>Monto total del presupuesto</td></tr>
+      <tr><td>Estado</td><td>Badge de color según el estado</td></tr>
+      <tr><td>Acción</td><td>Botones según el estado (ver abajo)</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Estados y acciones</h4>
+
+  <div class="estado-grid">
+    <div class="estado-card">
+      <div class="label"><span class="badge-status badge-enviado">Enviado</span></div>
+      <div class="value">Pendiente de aprobación</div>
+      <p style="font-size:12px;margin-top:8px;color:var(--text-dim)">✅ Aprobar · ❌ Anular · 📤 WhatsApp · 🖨️ Ver</p>
+    </div>
+    <div class="estado-card">
+      <div class="label"><span class="badge-status badge-aprobado">Aprobado</span></div>
+      <div class="value">Convertido a remito</div>
+      <p style="font-size:12px;margin-top:8px;color:var(--text-dim)">❌ Anular · 🖨️ Ver</p>
+    </div>
+    <div class="estado-card">
+      <div class="label"><span class="badge-status badge-anulado">Anulado</span></div>
+      <div class="value">Cancelado</div>
+      <p style="font-size:12px;margin-top:8px;color:var(--text-dim)">🖨️ Ver</p>
+    </div>
+  </div>
+
+  <h4>✅ Acción: Aprobar presupuesto</h4>
+  <p>Disponible solo en estado <strong>Enviado</strong>. Al hacer click:</p>
+  <ol>
+    <li>Aparece un modal de confirmación: "Se generará un Remito a partir del presupuesto"</li>
+    <li>Al confirmar, el sistema <strong>crea automáticamente un Remito Aprobado</strong> en estado <em>En_Revisión</em></li>
+    <li>El presupuesto pasa a estado <strong>Aprobado</strong></li>
+    <li>Redirige automáticamente a la página de Remitos</li>
+  </ol>
+
+  <h4>❌ Acción: Anular presupuesto</h4>
+  <p>Abre un modal de confirmación. El presupuesto pasa a estado <strong>Anulado</strong>. Los presupuestos anulados no se pueden reactivar.</p>
+
+  <h4>📤 Acción: Compartir por WhatsApp</h4>
+  <p>Abre un popup con el número de teléfono del cliente y un mensaje prearmado con el enlace del presupuesto. Se puede editar el mensaje antes de enviar. Al confirmar, abre WhatsApp con el texto listo.</p>
+
+  <h4>🖨️ Acción: Ver documento</h4>
+  <p>Abre la vista de detalle imprimible del presupuesto.</p>
+
+  <h4>Navegación</h4>
+  <p>La tabla tiene paginación de <strong>20 elementos por página</strong> con botones <strong>Anterior</strong> y <strong>Siguiente</strong>. Arriba hay un campo de búsqueda para filtrar por cliente.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- 5. REMITOS -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-number">Capítulo 5</div>
+    <h2>Remitos</h2>
+    <p>La página de Remitos centraliza la gestión de todos los remitos aprobados. Aquí se realizan las transiciones de estado, el registro de facturas y las notas de crédito.</p>
+  </div>
+
+  <div class="screenshot">
+    <img src="screenshots/08-remitos.png" alt="Lista de remitos">
+    <div class="caption">Figura 5.1 — Lista de remitos con acciones contextuales según el estado</div>
+  </div>
+
+  <h3>Estados de un remito</h3>
+
+  <div class="estado-grid">
+    <div class="estado-card">
+      <div class="label"><span class="badge-status badge-revision">En_Revisión</span></div>
+      <div class="value">Recién creado desde presupuesto</div>
+      <p style="font-size:12px;margin-top:8px;color:var(--text-dim)">Pendiente de revisión y aprobación logística</p>
+    </div>
+    <div class="estado-card">
+      <div class="label"><span class="badge-status badge-despachar">A_Despachar</span></div>
+      <div class="value">Listo para entrega</div>
+      <p style="font-size:12px;margin-top:8px;color:var(--text-dim)">Disponible para programar salidas</p>
+    </div>
+    <div class="estado-card">
+      <div class="label"><span class="badge-status badge-finalizado">Finalizado</span></div>
+      <div class="value">Completado</div>
+      <p style="font-size:12px;margin-top:8px;color:var(--text-dim)">Facturado y entregado</p>
+    </div>
+    <div class="estado-card">
+      <div class="label"><span class="badge-status badge-anulado">Anulado</span></div>
+      <div class="value">Cancelado</div>
+      <p style="font-size:12px;margin-top:8px;color:var(--text-dim)">No se puede modificar</p>
+    </div>
+  </div>
+
+  <h3>Acciones disponibles</h3>
+
+  <h4>✅ Marcar como "A Despachar"</h4>
+  <p>Cuando un remito está en <strong>En_Revisión</strong> o <strong>Aceptado</strong>, se puede hacer click en el botón de check verde para marcarlo como listo para entrega. El remito pasa a estado <strong>A_Despachar</strong> y aparece en el calendario de salidas.</p>
+
+  <h4>💰 Registrar factura</h4>
+  <p>Cuando el remito está listo para facturar, se escribe el <strong>número de factura real</strong> (ej: "A-0001-2026") en el campo inline y se clickea el botón de guardar. El sistema:</p>
+  <ol>
+    <li>Crea un registro de <strong>Factura</strong> en la colección de facturas</li>
+    <li>Asigna un número secuencial interno automático</li>
+    <li>Marca el remito como <code>facturado: true</code></li>
+    <li>Si es un remito aprobado, lo pasa a estado <strong>Finalizado</strong></li>
+  </ol>
+
+  <h4>❌ Nota de Crédito (anular factura)</h4>
+  <p>Si un remito ya está facturado pero necesita anularse, se hace click en el botón del banco. Aparece un modal donde se ingresa:</p>
+  <ul>
+    <li><strong>N° de Nota de Crédito</strong> — número del comprobante de anulación</li>
+    <li><strong>Monto</strong> — valor de la nota de crédito</li>
+  </ul>
+  <p>Al confirmar, el remito se marca como <code>facturaAnulada: true</code>. Aparece el badge "Anulada N/C [número] $[monto]".</p>
+
+  <h4>📤 WhatsApp</h4>
+  <p>Similar a presupuestos: envía el enlace del remito por WhatsApp al cliente.</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- 6. FACTURACIÓN -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-number">Capítulo 6</div>
+    <h2>Facturación — Cobranza</h2>
+    <p>La pantalla de Facturación permite gestionar la cobranza de todos los remitos facturados. Cada remito se puede expandir para ver los pagos registrados y agregar nuevos.</p>
+  </div>
+
+  <div class="screenshot">
+    <img src="screenshots/09-facturacion.png" alt="Pantalla de facturación">
+    <div class="caption">Figura 6.1 — Facturación: resumen financiero y lista de remitos facturados</div>
+  </div>
+
+  <h3>Resumen financiero</h3>
+  <p>Tres tarjetas en la parte superior muestran:</p>
+  <div class="estado-grid">
+    <div class="estado-card">
+      <div class="label">Total Facturado</div>
+      <div class="value">Suma de todos los remitos facturados</div>
+    </div>
+    <div class="estado-card">
+      <div class="label">Total Cobrado</div>
+      <div class="value">Suma de todos los pagos registrados</div>
+    </div>
+    <div class="estado-card">
+      <div class="label">Pendiente</div>
+      <div class="value">Diferencia = Facturado − Cobrado</div>
+    </div>
+  </div>
+
+  <h3>Lista de remitos facturados</h3>
+  <p>Cada fila es <strong>expandible</strong> (click para abrir/cerrar).</p>
+
+  <h4>Vista contraída</h4>
+  <ul>
+    <li>N° de remito, fecha dd/MM/yyyy, nombre del cliente</li>
+    <li>Factura N° [número], Total $X, Pagado $Y, Saldo $Z</li>
+    <li>Badge de cobranza: <span class="badge-status badge-enviado">Pendiente</span> (rojo) / <span class="badge-status badge-revision">Parcial</span> (amarillo) / <span class="badge-status badge-despachar">Pagado</span> (verde)</li>
+  </ul>
+
+  <h4>Vista expandida</h4>
+  <p><strong>Pagos existentes:</strong> listado con monto, método, referencia (opcional) y fecha. Cada pago se puede eliminar con el botón de tacho rojo.</p>
+  <p><strong>Registrar nuevo pago:</strong> formulario con:</p>
+  <ul>
+    <li><strong>Monto</strong> — valor del pago</li>
+    <li><strong>Método</strong> — selector desplegable con 5 opciones: <em>Efectivo, Transferencia, Cheque, Débito, Crédito</em></li>
+    <li><strong>Referencia</strong> (opcional) — ej: número de transferencia, cheque</li>
+    <li>Botón <strong>"Agregar Pago"</strong></li>
+  </ul>
+
+  <h3>Búsqueda</h3>
+  <p>Campo de búsqueda que filtra simultáneamente por: cliente, CUIT, N° de factura, N° de remito.</p>
+
+  <div class="info-box">
+    <h4>📊 Estado de cobranza</h4>
+    <p>El sistema calcula automáticamente el estado de cobranza de cada remito comparando <code>totalPagado</code> vs <code>totalGeneral</code>. Si no hay pagos → <strong>Pendiente</strong>. Si está parcialmente pagado → <strong>Parcial</strong>. Si está completamente pagado → <strong>Pagado</strong>.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 7. SALIDAS (ENTREGAS) -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-number">Capítulo 7</div>
+    <h2>Salidas — Plan de Entregas</h2>
+    <p>El módulo de Salidas es un planificador visual con calendario mensual. Permite programar entregas, asignar vehículos y choferes, e imprimir remitos de salida.</p>
+  </div>
+
+  <div class="screenshot">
+    <img src="screenshots/10-salidas.png" alt="Pantalla de salidas/entregas">
+    <div class="caption">Figura 7.1 — Calendario de entregas con tarjetas de remitos pendientes</div>
+  </div>
+
+  <h3>Sección superior: Remitos Pendientes</h3>
+  <p>Tarjetas horizontales desplazables que muestran los remitos con productos pendientes de entregar. Cada tarjeta incluye:</p>
+  <ul>
+    <li>N° de remito y nombre del cliente</li>
+    <li><strong>Barra de progreso</strong> visual (cantidad entregada vs total)</li>
+    <li>Botón <strong>"Programar Salida"</strong></li>
+  </ul>
+  <p>Se puede alternar entre vista <strong>"Pendientes"</strong> (solo remitos incompletos) y <strong>"Todas"</strong>.</p>
+
+  <h3>Barra de estadísticas del mes</h3>
+  <div class="estado-grid">
+    <div class="estado-card"><div class="label">Salidas</div><div class="value">Total del mes</div></div>
+    <div class="estado-card"><div class="label">Unidades</div><div class="value">Ítems despachados</div></div>
+    <div class="estado-card"><div class="label">Días activos</div><div class="value">Días con entregas</div></div>
+    <div class="estado-card"><div class="label">Remitos</div><div class="value">Con al menos 1 salida</div></div>
+    <div class="estado-card"><div class="label">Pendientes</div><div class="value">Sin completar</div></div>
+    <div class="estado-card"><div class="label">En Progreso</div><div class="value">Entregas parciales</div></div>
+    <div class="estado-card"><div class="label">Completadas</div><div class="value">Totalmente entregados</div></div>
+    <div class="estado-card"><div class="label">Avance %</div><div class="value">Porcentaje general</div></div>
+  </div>
+
+  <h3>Calendario mensual</h3>
+  <p>Grilla de 7 columnas (lunes a domingo) con navegación entre meses (flechas izquierda/derecha) y botón <strong>"Hoy"</strong> para volver al mes actual.</p>
+
+  <h4>Días con entregas</h4>
+  <ul>
+    <li>Muestran <strong>puntos de colores</strong> (cada remito tiene un color asignado)</li>
+    <li>Al pasar el mouse: <strong>tooltip</strong> con número de remito, cliente, hora y cantidad</li>
+    <li>Al hacer click: se abre el <strong>panel de detalle</strong> del día debajo del calendario</li>
+  </ul>
+
+  <h4>Días sin entregas</h4>
+  <p>Tienen un botón <strong>"+"</strong> para crear una salida rápida en esa fecha.</p>
+
+  <h3>Panel de detalle del día</h3>
+  <p>Al seleccionar un día, se muestra:</p>
+  <ul>
+    <li>Fecha, cantidad de salidas, unidades y clientes</li>
+    <li>Botón <strong>"Agregar"</strong> para nueva salida</li>
+    <li>Cada salida del día se muestra como una <strong>DeliveryCard</strong> con:</li>
+    <ul>
+      <li>N° de remito y cliente</li>
+      <li>Vehículo (patente + marca) y chofer</li>
+      <li>Productos despachados y cantidades</li>
+      <li>Hora de entrega</li>
+      <li>Botones: <strong>➕ Agregar más</strong> · <strong>✏️ Editar</strong> · <strong>🖨️ Imprimir</strong> · <strong>🗑️ Eliminar</strong></li>
+    </ul>
+  </ul>
+
+  <h3>Registrar nueva salida</h3>
+  <p>Al hacer click en <strong>"Programar Salida"</strong> o <strong>"Agregar"</strong>, se abre un modal con:</p>
+
+  <div class="steps">
+    <div class="step">
+      <h4>Seleccionar remito</h4>
+      <p>Selector que solo muestra remitos con productos pendientes. Al seleccionar, se cargan automáticamente los productos con su cantidad pendiente como sugerencia.</p>
+    </div>
+    <div class="step">
+      <h4>Configurar entrega</h4>
+      <p><strong>Fecha</strong> (por defecto el día seleccionado en el calendario), <strong>Vehículo</strong> (selector con patente + marca), <strong>Chofer</strong> (selector con nombre), <strong>Hora</strong> (opcional).</p>
+    </div>
+    <div class="step">
+      <h4>Ajustar cantidades</h4>
+      <p>Cada producto muestra la cantidad sugerida (pendiente) y se puede editar manualmente. El sistema no permite superar el máximo pendiente.</p>
+    </div>
+  </div>
+
+  <p>Al guardar, se crea la <strong>Salida</strong> con número secuencial <strong>S-001, S-002</strong> (por cada remito) y el calendario se actualiza automáticamente.</p>
+
+  <h3>Imprimir remito de salida</h3>
+  <div class="screenshot">
+    <img src="screenshots/10-salidas.png" alt="Remito de salida impreso">
+    <div class="caption">Figura 7.2 — La vista de impresión incluye datos del cliente, productos, vehículo y espacios para firmas</div>
+  </div>
+  <p>El documento impreso incluye:</p>
+  <ul>
+    <li>Encabezado de FALPAT SRL (razón social, CUIT, dirección, teléfono, email)</li>
+    <li>Datos del cliente (nombre, CUIT, domicilio, condición IVA)</li>
+    <li>Productos despachados con columna de pendiente</li>
+    <li>Vehículo (patente + marca) y chofer</li>
+    <li>Términos y condiciones legales</li>
+    <li>Espacios para <strong>firma del cliente</strong> y <strong>firma del chofer</strong></li>
+    <li>Marca de agua "REMITO DE SALIDA"</li>
+  </ul>
+</div>
+
+<!-- ============================================================ -->
+<!-- 8. VISTA DE DOCUMENTO -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-number">Capítulo 8</div>
+    <h2>Vista de Documento</h2>
+    <p>La página de detalle unifica la visualización de presupuestos, remitos legacy y remitos aprobados en un solo formato imprimible profesional.</p>
+  </div>
+
+  <h3>¿Qué muestra?</h3>
+  <ul>
+    <li><strong>Encabezado de la empresa</strong> — FALPAT SRL con CUIT, dirección, teléfono y email (cargados desde Configuración)</li>
+    <li><strong>Badge de tipo de documento</strong> — "PRESUPUESTO", "REMITO" o "A DESPACHAR" según corresponda</li>
+    <li><strong>Número de documento</strong> y <strong>fecha</strong> de creación</li>
+    <li><strong>Vendedor</strong> asignado (si aplica)</li>
+    <li><strong>Información del cliente</strong> en tarjeta destacada: razón social, CUIT, domicilio, condición de IVA</li>
+    <li><strong>Tabla de ítems</strong> con: código, nombre, cantidad, precio unitario, bonificación, subtotal</li>
+    <li><strong>Totales</strong>: subtotal, IVA (si corresponde Factura A), total general</li>
+    <li><strong>Historial de pagos</strong> (si los hay)</li>
+    <li><strong>Observaciones</strong></li>
+  </ul>
+
+  <h3>Acciones en la vista</h3>
+  <ul>
+    <li><strong>🖨️ Imprimir / PDF</strong> — formato optimizado para impresión</li>
+    <li><strong>📤 WhatsApp</strong> — compartir enlace del documento (solo presupuestos)</li>
+    <li><strong>🚛 Remito de Salida</strong> — acceso directo a planificar la entrega (solo remitos)</li>
+    <li><strong>← Volver</strong> — navega según el origen (presupuestos, remitos, etc.)</li>
+  </ul>
+
+  <div class="info-box warning">
+    <h4>🔍 Nota sobre documentos</h4>
+    <p>Esta vista es pública: cualquier persona con el enlace puede ver el documento. Es útil para compartir presupuestos con clientes por WhatsApp o email. Los presupuestos se muestran con una marca de agua "PRESUPUESTO".</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 9. INFORMES -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-number">Capítulo 9</div>
+    <h2>Informes</h2>
+    <p>La página de Informes proporciona estadísticas generales del negocio con gráficos y resúmenes.</p>
+  </div>
+
+  <div class="screenshot">
+    <img src="screenshots/11-informes.png" alt="Pantalla de informes">
+    <div class="caption">Figura 9.1 — Panel de informes con estadísticas y gráficos</div>
+  </div>
+
+  <p>Los informes incluyen métricas como remitos por período, facturación acumulada, productos más vendidos, rendimiento por vendedor, etc. Los datos se pueden exportar y visualizar en diferentes rangos de fechas.</p>
+
+  <div class="info-box">
+    <h4>📈 Datos en tiempo real</h4>
+    <p>Los informes se generan con los datos más recientes de Firebase. Algunos indicadores pueden tener un pequeño retraso dependiendo de la cantidad de datos procesados.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 10. FLUJO COMPLETO -->
+<!-- ============================================================ -->
+<div class="page">
+  <div class="page-header">
+    <div class="section-number">Capítulo 10</div>
+    <h2>Flujo Completo</h2>
+    <p>Diagrama resumen del ciclo comercial completo, desde la creación del presupuesto hasta la entrega y el cobro.</p>
+  </div>
+
+  <div class="flow-diagram">
+    <div class="flow-step">
+      <div class="box primary">📋 Presupuesto</div>
+      <span class="flow-arrow">→</span>
+      <div class="box secondary">✅ Aprobar</div>
+      <span class="flow-arrow">→</span>
+      <div class="box primary">📄 Remito</div>
+      <span class="flow-arrow">→</span>
+      <div class="box success">💰 Facturar</div>
+      <span class="flow-arrow">→</span>
+      <div class="box warning">🚛 Salida</div>
+      <span class="flow-arrow">→</span>
+      <div class="box success">💵 Cobrar</div>
+    </div>
+  </div>
+
+  <h3>Paso a paso</h3>
+
+  <table>
+    <thead>
+      <tr><th>#</th><th>Paso</th><th>Sección</th><th>¿Qué ocurre?</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1</strong></td>
+        <td>Cargar datos maestros</td>
+        <td>Parametrías</td>
+        <td>Registrar clientes, productos, vendedores, vehículos y choferes. Se hace una sola vez al inicio.</td>
+      </tr>
+      <tr>
+        <td><strong>2</strong></td>
+        <td>Crear presupuesto</td>
+        <td>Nuevo Presupuesto</td>
+        <td>Seleccionar cliente + vendedor → agregar productos con cantidades y precios → revisar y confirmar. El presupuesto queda en estado <em>Enviado</em>.</td>
+      </tr>
+      <tr>
+        <td><strong>3</strong></td>
+        <td>Aprobar presupuesto</td>
+        <td>Presupuestos</td>
+        <td>Desde la lista de presupuestos, hacer click en ✅ <strong>Aprobar</strong>. El sistema genera automáticamente un Remito Aprobado en estado <em>En_Revisión</em>.</td>
+      </tr>
+      <tr>
+        <td><strong>4</strong></td>
+        <td>Revisar y preparar</td>
+        <td>Remitos</td>
+        <td>En la lista de remitos, marcar como <strong>"A Despachar"</strong> cuando esté listo para entrega. El remito pasa a estado <em>A_Despachar</em>.</td>
+      </tr>
+      <tr>
+        <td><strong>5</strong></td>
+        <td>Facturar</td>
+        <td>Remitos</td>
+        <td>Ingresar el número de factura real en el campo inline y guardar. Se crea la Factura y el remito se marca como facturado.</td>
+      </tr>
+      <tr>
+        <td><strong>6</strong></td>
+        <td>Programar salida</td>
+        <td>Salidas</td>
+        <td>En el calendario de entregas, seleccionar un día y hacer click en <strong>"Programar Salida"</strong>. Elegir vehículo, chofer y cantidades a despachar. Se genera la Salida con número S-001, S-002...</td>
+      </tr>
+      <tr>
+        <td><strong>7</strong></td>
+        <td>Entregar</td>
+        <td>Salidas</td>
+        <td>Imprimir el <strong>Remito de Salida</strong> y entregarlo junto con la mercadería. El cliente y el chofer firman el documento.</td>
+      </tr>
+      <tr>
+        <td><strong>8</strong></td>
+        <td>Cobrar</td>
+        <td>Facturación</td>
+        <td>Desde la pantalla de Facturación, expandir el remito y hacer click en <strong>"Agregar Pago"</strong>. Seleccionar método (Efectivo, Transferencia, etc.) e ingresar el monto.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Diagrama de estados</h3>
+
+  <div class="flow-diagram" style="flex-direction:column;gap:12px;">
+    <div><strong>Presupuesto:</strong> <span class="badge-status badge-enviado">Enviado</span> <span class="flow-arrow" style="font-size:24px;">→</span> <span class="badge-status badge-aprobado">Aprobado</span> <span class="flow-arrow" style="font-size:24px;">→</span> <span class="badge-status badge-anulado">Anulado</span></div>
+    <div style="color:var(--text-dim);font-size:20px;">⬇</div>
+    <div><strong>Remito:</strong> <span class="badge-status badge-revision">En_Revisión</span> <span class="flow-arrow" style="font-size:24px;">→</span> <span class="badge-status badge-despachar">A_Despachar</span> <span class="flow-arrow" style="font-size:24px;">→</span> <span class="badge-status badge-finalizado">Finalizado</span> <span class="flow-arrow" style="font-size:24px;">→</span> <span class="badge-status badge-anulado">Anulado</span></div>
+    <div style="color:var(--text-dim);font-size:20px;">⬇</div>
+    <div><strong>Factura:</strong> <span style="color:var(--accent-green);font-weight:600;">Creada</span> <span class="flow-arrow" style="font-size:24px;">→</span> <span style="color:#FF6B6B;font-weight:600;">Nota de Crédito</span> <span style="font-size:12px;color:var(--text-dim);">(anulación)</span></div>
+    <div style="color:var(--text-dim);font-size:20px;">⬇</div>
+    <div><strong>Salida:</strong> <span style="color:var(--accent);font-weight:600;">S-001</span> <span class="flow-arrow" style="font-size:24px;">→</span> <span style="color:var(--accent);font-weight:600;">S-002</span> <span style="font-size:12px;color:var(--text-dim);">(múltiples por remito)</span></div>
+  </div>
+
+  <h3>Números secuenciales</h3>
+  <table>
+    <thead><tr><th>Documento</th><th>Numeración</th><th>Ejemplo</th></tr></thead>
+    <tbody>
+      <tr><td>Presupuesto</td><td>Por año: contador global</td><td>P-000001 (2026)</td></tr>
+      <tr><td>Remito Aprobado</td><td>Por año: contador global</td><td>R-000001 (2026)</td></tr>
+      <tr><td>Factura</td><td>La ingresa el usuario + número interno secuencial</td><td>A-0001-2026 / interno: 1</td></tr>
+      <tr><td>Salida</td><td>Por remito: S-001, S-002...</td><td>S-001 para el remito X</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box success">
+    <h4>🎯 Resumen</h4>
+    <p>El sistema cubre todo el ciclo de ventas: <strong>Presupuesto → Remito → Factura → Salida → Cobro</strong>. Cada paso genera los documentos necesarios y actualiza los estados automáticamente, asegurando trazabilidad completa desde la cotización hasta la entrega final.</p>
+  </div>
+
+  <div class="version-footer">
+    FALPAT Ventas — Manual de Usuario v1.0 — Julio 2026<br>
+    Generado desde la aplicación en https://ventas-falpat.vercel.app
+  </div>
+</div>
+
+</body>
+</html>
