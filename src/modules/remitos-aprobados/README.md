@@ -66,6 +66,10 @@ Salida
 - **Estados válidos:** `'En_Revision'`, `'A_Entregar'`, `'Finalizado'`, `'Anulado'`
 - **Proceso:** `updateDoc` Firebase → `localSet` IndexedDB
 
+### `updateRemitoAprobadoFacturacion(id: string, nroFactura: string): Promise<void>`
+- **Proceso:** `updateDoc` Firebase con `nroFactura`, `facturado: true`, `fechaFacturado`, `estado: 'Finalizado'` → `localSet` IndexedDB
+- **Uso:** Se llama al facturar un remito_aprobado desde la UI de Remitos
+
 ## Tipos (`types.ts`)
 
 ```ts
@@ -86,9 +90,7 @@ interface RemitoAprobado {
   usuarioCreador?: string
   nroFactura?: string
   facturado?: boolean
-  facturaAnulada?: boolean
-  nroNC?: string
-  montoNC?: number
+  fechaFacturado?: Date
   createdAt?: Date
 }
 ```

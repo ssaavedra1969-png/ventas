@@ -198,16 +198,16 @@ export default function ManualPage() {
         <p className={styles.p}>Cuando est&aacute; en <Badge label="En_Revisi&oacute;n" color="bg-amber-500/20 text-amber-400" /> o <Badge label={'Aceptado'} color="bg-blue-500/20 text-blue-400" />, pasa a <Badge label={'A_Despachar'} color="bg-emerald-500/20 text-emerald-400" /> y aparece en el calendario de salidas.</p>
 
         <h4 className={styles.h4}>Registrar factura</h4>
-        <p className={styles.p}>Se escribe el n&uacute;mero de factura real (ej: &quot;A-0001-2026&quot;) y se guarda. El sistema crea la Factura con n&uacute;mero interno secuencial y marca el remito como facturado.</p>
+        <p className={styles.p}>Se escribe el n&uacute;mero de factura real (ej: &quot;A-0001-2026&quot;) y se guarda. El sistema crea la Factura con n&uacute;mero interno secuencial, marca el remito como facturado y guarda el n&uacute;mero de factura en el remito original.</p>
 
         <h4 className={styles.h4}>Nota de Cr&eacute;dito</h4>
         <p className={styles.p}>Si el remito est&aacute; facturado pero necesita anularse, se ingresa N&deg; de NC y Monto. El remito se marca como <code>facturaAnulada: true</code>.</p>
       </Section>
 
       {/* 6. FACTURACION */}
-      <Section num="Cap&iacute;tulo 6" title="Facturaci&oacute;n &mdash; Cobranza" desc="Gesti&oacute;n de cobranza de todos los remitos facturados. Cada remito se expande para ver pagos y agregar nuevos.">
+      <Section num="Cap&iacute;tulo 6" title="Facturaci&oacute;n &mdash; Cobranza" desc="Gesti&oacute;n de cobranza de todos los remitos facturados, tanto del flujo legacy como del nuevo flujo (presupuesto &rarr; remito aprobado). Cada factura se expande para ver pagos y agregar nuevos.">
         <img src={s('09-facturacion')} alt="Facturaci&oacute;n" className={styles.img} />
-        <p className={styles.caption}>Figura 6.1 &mdash; Resumen financiero y lista de remitos facturados</p>
+        <p className={styles.caption}>Figura 6.1 &mdash; Resumen financiero y lista de facturas con cobranza</p>
 
         <h4 className={styles.h4}>Resumen</h4>
         <p className={styles.p}>Tres tarjetas: <strong>Total Facturado</strong>, <strong>Total Cobrado</strong>, <strong>Pendiente</strong> (diferencia).</p>
@@ -215,6 +215,11 @@ export default function ManualPage() {
         <h4 className={styles.h4}>Lista expandible</h4>
         <p className={styles.p}><strong>Vista contra&iacute;da:</strong> N&deg; remito, fecha, cliente, factura N&deg;, Total, Pagado, Saldo, badge de cobranza.</p>
         <p className={styles.p}><strong>Vista expandida:</strong> pagos existentes (monto, m&eacute;todo, referencia, fecha, eliminar) + formulario &quot;Agregar Pago&quot; (monto, m&eacute;todo: Efectivo/Transferencia/Cheque/D&eacute;bito/Cr&eacute;dito, referencia opcional).</p>
+
+        <Info type={'success'}>
+          <h4 className={styles.h4}>Cobranza unificada</h4>
+          <p className={styles.p}>Los pagos se registran directamente en la factura correspondiente, ya sea del flujo legacy (remitos) o del nuevo flujo (remitos aprobados &rarr; facturas). El sistema maneja autom&aacute;ticamente la sincronizaci&oacute;n de pagos.</p>
+        </Info>
       </Section>
 
       {/* 7. SALIDAS */}
@@ -323,7 +328,7 @@ export default function ManualPage() {
 
         <Info type={'success'}>
           <h4 className={styles.h4}>Ciclo completo</h4>
-          <p className={styles.p}><strong>Presupuesto &rarr; Remito &rarr; Factura &rarr; Salida &rarr; Cobro.</strong> Cada paso genera los documentos necesarios y actualiza los estados autom&aacute;ticamente, asegurando trazabilidad desde la cotizaci&oacute;n hasta la entrega final.</p>
+          <p className={styles.p}><strong>Presupuesto &rarr; Remito &rarr; Factura &rarr; Salida &rarr; Cobro.</strong> Cada paso genera los documentos necesarios y actualiza los estados autom&aacute;ticamente, asegurando trazabilidad desde la cotizaci&oacute;n hasta el cobro final.</p>
         </Info>
 
         <div className="mt-12 pt-4 border-t border-white/5 text-center text-xs text-[#6B6B8A]">

@@ -22,7 +22,7 @@
 | Módulo/Página | ¿Qué usa? |
 |--------------|-----------|
 | `app/dashboard/remitos/page.tsx` | `createFactura()` al registrar factura |
-| `app/dashboard/facturacion/page.tsx` | `getAllFacturas()` (lectura) |
+| `app/dashboard/facturacion/page.tsx` | `getAllFacturas()`, `agregarPagoFactura()`, `eliminarPagoFactura()` |
 | `app/dashboard/informes/page.tsx` | Estadísticas de facturación |
 
 ## API Pública
@@ -42,6 +42,14 @@
 ### `getFactura(id: string): Promise<Factura | null>`
 - **Origen:** Firebase `facturas/{id}`
 - **Fallback:** IndexedDB
+
+### `agregarPagoFactura(facturaId: string, pago: PagoInput): Promise<Pago>`
+- **Proceso:** `getDoc` → agrega pago al array `pagos` → recalcula `totalPagado` → `updateDoc`
+- **Validación:** Monto mayor a 0
+- **Genera:** ID único con timestamp + random
+
+### `eliminarPagoFactura(facturaId: string, pagoId: string): Promise<void>`
+- **Proceso:** `getDoc` → filtra pago del array `pagos` → recalcula `totalPagado` → `updateDoc`
 
 ## Tipos (`types.ts`)
 
@@ -76,3 +84,5 @@ interface Factura {
 | `Factura creada sin número interno` | Transaction falló parcialmente | Verificar documento en Firestore |
 | `La factura no se vincula al remito` | `idRemito` no coincide | Comparar IDs en Firestore Console |
 | `Error silencioso` | `createFactura()` tiene `.catch(() => {})` en página remitos | Revisar logs de página remitos |
+| `Error al agregar pago a factura` | `agregarPagoFactura()` falló | Verificar que la factura existe en Firestore |
+| `Pago no aparece en factura` | `updateDoc` no se ejecutó | Revisar consola del navegador |

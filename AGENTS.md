@@ -44,7 +44,7 @@ App → firestore.ts → Firebase (primario) → fallback → IndexedDB (solo le
 ### Cuando vuelve la cuota:
 1. Las lecturas vuelven a Firebase automáticamente (próximo getAll)
 2. Las escrituras reintentadas por el usuario funcionan
-3. syncManager.checkConnectivity() cada **60s** detecta conectividad
+3. syncManager.checkConnectivity() cada **5min** detecta conectividad
 
 ### Fuerza bruta manual:
 ```bash
@@ -102,19 +102,17 @@ npm run lint         # ESLint
 
 ---
 
-## Último: 09/07/2026
+## Último: 10/07/2026
 
 ### Deploy
 - URL: https://ventas-falpat.vercel.app
 - Build OK
 
-### Lo último — Mantenimiento y limpieza (5 tareas)
+### Lo último — Fix cobranza completa para flujo nuevo (3 bugs críticos)
 
-1. **Script de backup actualizado**: `scripts/export-firestore.mjs` exporta también `presupuestos`, `remitos_aprobados`, `facturas`, `salidas`
-2. **Entregas ahora carga remitos_aprobados**: `getAllRemitosAprobados()` mergea con legacy en `fetchData`, mostrando remitos nuevos en el calendario
-3. **Paginación UI**: botones Anterior/Siguiente en Presupuestos, Remitos y Facturación (20 items/página)
-4. **Dashboard liviano**: `getCountFromServer('clientes')` reemplaza `getAllClientes()` (menos lecturas)
-5. **UI consolidada**: textos "Entrega" → "Salida", "A Entregar" → "A Despachar" en toda la interfaz
+1. **Bug 1 - nroFactura en remitos_aprobados**: `handleGuardarFactura` ahora guarda `nroFactura`, `facturado: true` y `fechaFacturado` en el documento de `remitos_aprobados` al facturar desde la UI de Remitos
+2. **Bug 2 - Cobranza habilitada para facturas**: Se crearon `agregarPagoFactura` y `eliminarPagoFactura` que escriben en la colección `facturas`. La página de Facturación ahora rutea pagos correctamente según el tipo de item
+3. **Bug 3 - Sincronización de pagos**: Los pagos ahora se registran en la colección correcta (remitos legacy vs facturas nuevas), eliminando la desincronización
 
 ### Guía completa para nueva PC
 
