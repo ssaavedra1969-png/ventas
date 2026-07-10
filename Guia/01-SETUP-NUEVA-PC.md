@@ -28,16 +28,21 @@ cd ventas
 
 ## Paso 2 — Copiar los archivos de credenciales
 
-Desde la PC original, copiar estos **2 archivos** (por USB, Google Drive, Dropbox, etc.):
+Copiar la carpeta **completa** de la PC original a la PC nueva (por USB):
 
 ```
 PC original:
-  📄 ventas/.env.local
-  📄 ventas/backups/service-account.json
+  📁 ventas/Guia/    ← todo, incluyendo confidencial/
 
 PC nueva:
-  📁 ventas/.env.local
-  📁 ventas/backups/service-account.json
+  📁 ventas/Guia/
+```
+
+O manualmente, copiar estos **2 archivos**:
+
+```
+Guia/confidencial/.env.local            →  ventas/.env.local
+Guia/confidencial/service-account.json  →  ventas/backups/service-account.json
 ```
 
 ⚠️ **Estos archivos NO están en GitHub** porque contienen secretos.

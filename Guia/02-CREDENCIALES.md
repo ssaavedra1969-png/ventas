@@ -14,9 +14,19 @@ Todos los secretos y claves necesarias para que el proyecto funcione.
 Dónde están en la PC original:
 
 ```
-C:\AI\Antigravity\FALPAT Ventas\.env.local
-C:\AI\Antigravity\FALPAT Ventas\backups\service-account.json
+📁 Guia/confidencial/.env.local              ← copia lista para llevar
+📁 Guia/confidencial/service-account.json    ← copia lista para llevar
+📁 ventas/.env.local                         ← original
+📁 ventas/backups/service-account.json       ← original
 ```
+
+Para pasar a otra PC:
+1. Copiar la carpeta `Guia/` completa por USB
+2. Mover los archivos de `Guia/confidencial/` a sus destinos:
+   ```
+   Guia/confidencial/.env.local            →  ventas/.env.local
+   Guia/confidencial/service-account.json  →  ventas/backups/service-account.json
+   ```
 
 ---
 
