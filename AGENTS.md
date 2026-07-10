@@ -116,7 +116,19 @@ npm run lint         # ESLint
 4. **Dashboard liviano**: `getCountFromServer('clientes')` reemplaza `getAllClientes()` (menos lecturas)
 5. **UI consolidada**: textos "Entrega" → "Salida", "A Entregar" → "A Despachar" en toda la interfaz
 
-### Notas técnicas importantes
+### Guía completa para nueva PC
+
+Toda la documentación de setup, credenciales, Firebase, Vercel y GitHub está en:
+
+```
+Guia/00-INDEX.md
+```
+
+En una PC nueva: clonar repo, copiar `.env.local` + `service-account.json`, `npm install`, `npm run dev`.
+
+---
+
+## Notas técnicas importantes
 - `createSalida` cuenta salidas existentes via query (`numeroSalida = max + 1`)
 - `localSet`/`localGet` en stores nuevas protegidos con `.catch(() => null)`
 - Si Firebase falla en escritura → toast error al usuario. Sin encolamiento.
